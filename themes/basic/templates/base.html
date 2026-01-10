@@ -3,12 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ site.domain }}{% endblock title %}</title>
+    <title>{% block title %}{{ site.title }}{% endblock title %}</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <header>
-        <a href="/" class="site-title">{{ site.domain }}</a>
+        <a href="/" class="site-title">{{ site.title }}</a>
     </header>
     <main>
         {% block content %}{% endblock content %}

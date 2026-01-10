@@ -7,6 +7,9 @@ pub struct Site {
     /// The domain where this site will be hosted
     pub domain: String,
 
+    /// Site title (defaults to domain if not specified)
+    pub title: Option<String>,
+
     /// Theme to use for rendering (defaults to "basic").
     ///
     /// Resolution order (handled by Pipeline::load):

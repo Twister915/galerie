@@ -15,6 +15,7 @@ use crate::builtin_themes;
 #[derive(Debug, Serialize)]
 struct SiteContext {
     domain: String,
+    title: String,
 }
 
 /// The pipeline combines configuration, theme, and photos to build a site.
@@ -310,6 +311,11 @@ impl Pipeline {
         context.insert(
             "site",
             &SiteContext {
+                title: self
+                    .config
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| self.config.domain.clone()),
                 domain: self.config.domain.clone(),
             },
         );
