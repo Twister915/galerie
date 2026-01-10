@@ -5,7 +5,14 @@
       "Bash(cargo init:*)",
       "Bash(cargo build:*)",
       "Bash(git init:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo run:*)",
+      "Bash(cargo clippy:*)",
+      "WebFetch(domain:tera.netlify.app)",
+      "WebFetch(domain:keats.github.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(time cargo run:*)"
     ]
   }
 }

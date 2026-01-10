@@ -1,5 +1,13 @@
-use clap::Parser;
+mod config;
+mod error;
+mod photos;
+mod pipeline;
+mod processing;
+mod theme;
+
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use tracing::Level;
 
 const VERSION: &str = env!("GIT_VERSION");
 
@@ -8,39 +16,70 @@ const VERSION: &str = env!("GIT_VERSION");
 #[command(version = VERSION)]
 #[command(about = env!("CARGO_PKG_DESCRIPTION"))]
 struct Args {
-    /// Input directory containing images
-    #[arg(short, long)]
-    input: PathBuf,
+    /// Site directory (contains site.toml and photo directories)
+    #[arg(short = 'C', long, default_value = ".", global = true)]
+    directory: PathBuf,
 
-    /// Output directory for generated site
-    #[arg(short, long, default_value = "output")]
-    output: PathBuf,
+    /// Path to site configuration file (relative to site directory)
+    #[arg(short, long, default_value = "site.toml", global = true)]
+    config: PathBuf,
 
-    /// Configuration file path
-    #[arg(short, long)]
-    config: Option<PathBuf>,
+    /// Logging verbosity (-v: debug, -vv: trace)
+    #[arg(short, long, action = clap::ArgAction::Count, global = true)]
+    verbose: u8,
 
-    /// Enable verbose output
-    #[arg(short, long, default_value_t = false)]
-    verbose: bool,
+    /// Suppress all output except errors
+    #[arg(short, long, global = true)]
+    quiet: bool,
+
+    #[command(subcommand)]
+    command: Option<Command>,
 }
 
-fn init_tracing(verbose: bool) {
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Build the site (default if no command specified)
+    Build,
+
+    /// Build and serve the site locally
+    Serve {
+        /// Port to serve on
+        #[arg(short, long, default_value = "3000")]
+        port: u16,
+    },
+}
+
+impl Args {
+    fn log_level(&self) -> Level {
+        if self.quiet {
+            Level::ERROR
+        } else {
+            match self.verbose {
+                0 => Level::INFO,
+                1 => Level::DEBUG,
+                _ => Level::TRACE,
+            }
+        }
+    }
+
+    fn config_path(&self) -> PathBuf {
+        self.directory.join(&self.config)
+    }
+}
+
+fn init_tracing(level: Level) {
     use tracing_subscriber::{fmt, EnvFilter};
 
-    let default_level = if verbose { "debug" } else { "info" };
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(default_level));
+        .unwrap_or_else(|_| EnvFilter::new(level.as_str()));
 
     #[cfg(distribute)]
     {
-        // Production: JSON logs, no ANSI
         fmt().json().with_env_filter(filter).init();
     }
 
     #[cfg(not(distribute))]
     {
-        // Development: pretty logs with colors
         fmt().pretty().with_env_filter(filter).init();
     }
 }
@@ -48,17 +87,106 @@ fn init_tracing(verbose: bool) {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    init_tracing(args.verbose);
+    init_tracing(args.log_level());
+
+    tracing::debug!(?args, "parsed arguments");
+
+    // Load site configuration
+    let config_path = args.config_path();
+    tracing::info!(path = %config_path.display(), "loading site config");
+
+    let config_content = std::fs::read_to_string(&config_path)?;
+    let site: config::Site = toml::from_str(&config_content)?;
 
     tracing::info!(
-        input = %args.input.display(),
-        output = %args.output.display(),
-        "galerie starting"
+        domain = %site.domain,
+        theme = %site.theme.path().display(),
+        photos = %site.photos.display(),
+        build = %site.build.display(),
+        "site configured"
     );
 
-    // TODO: Implement gallery generation pipeline
+    // Load and build the site
+    let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
+    pipeline.build()?;
 
-    tracing::info!("galerie complete");
+    // Handle command
+    match args.command.unwrap_or(Command::Build) {
+        Command::Build => {
+            tracing::info!("build complete");
+        }
+        Command::Serve { port } => {
+            serve(&pipeline.site_dir.join(&pipeline.config.build), port)?;
+        }
+    }
 
     Ok(())
+}
+
+fn serve(dir: &std::path::Path, port: u16) -> Result<(), Box<dyn std::error::Error>> {
+    use std::fs;
+    use tiny_http::{Header, Response, Server};
+
+    let addr = format!("0.0.0.0:{}", port);
+    let server = Server::http(&addr).map_err(|e| format!("failed to start server: {}", e))?;
+
+    tracing::info!(url = %format!("http://localhost:{}", port), "serving site");
+    println!("\n  Serving at http://localhost:{}\n  Press Ctrl+C to stop\n", port);
+
+    for request in server.incoming_requests() {
+        let url_path = request.url().to_string();
+        let url_path = url_path.trim_start_matches('/');
+
+        // Determine file path
+        let file_path = if url_path.is_empty() {
+            dir.join("index.html")
+        } else {
+            let path = dir.join(url_path);
+            if path.is_dir() {
+                path.join("index.html")
+            } else {
+                path
+            }
+        };
+
+        // Serve the file
+        if file_path.exists() && file_path.is_file() {
+            let content = fs::read(&file_path)?;
+            let content_type = guess_content_type(&file_path);
+
+            let response = Response::from_data(content)
+                .with_header(Header::from_bytes("Content-Type", content_type).unwrap());
+
+            request.respond(response)?;
+            tracing::debug!(path = %url_path, "200 OK");
+        } else {
+            let response = Response::from_string("404 Not Found")
+                .with_status_code(404)
+                .with_header(Header::from_bytes("Content-Type", "text/plain").unwrap());
+
+            request.respond(response)?;
+            tracing::debug!(path = %url_path, "404 Not Found");
+        }
+    }
+
+    Ok(())
+}
+
+fn guess_content_type(path: &std::path::Path) -> &'static str {
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("html") => "text/html; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("js") => "application/javascript; charset=utf-8",
+        Some("json") => "application/json; charset=utf-8",
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("svg") => "image/svg+xml",
+        Some("ico") => "image/x-icon",
+        Some("woff") => "font/woff",
+        Some("woff2") => "font/woff2",
+        Some("ttf") => "font/ttf",
+        _ => "application/octet-stream",
+    }
 }

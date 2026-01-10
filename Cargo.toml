@@ -11,6 +11,10 @@ image = "0.25"
 walkdir = "2"
 kamadak-exif = "0.5"
 tera = "1"
+tiny_http = "0.12"
+rayon = "1"
+blake3 = "1"
+webp = "0.3"
 
 [dependencies.tracing-subscriber]
 version = "0.3"
@@ -26,6 +30,23 @@ features = ["derive"]
 
 [dev-dependencies]
 test-case = "3"
+tempfile = "3"
+
+# Optimize image processing even in dev builds (otherwise unusably slow)
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+
+[profile.dev.package.blake3]
+opt-level = 3
+
+[profile.dev.package.webp]
+opt-level = 3
+
+[profile.dev.package.libwebp-sys]
+opt-level = 3
 
 [profile.release]
 lto = "fat"
