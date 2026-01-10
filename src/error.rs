@@ -18,6 +18,9 @@ pub enum Error {
     #[error("theme missing required template: index.html")]
     MissingIndexTemplate,
 
+    #[error("theme not found: {name} (not a local directory or built-in theme)")]
+    ThemeNotFound { name: String },
+
     #[error("no photos found in {}", path.display())]
     NoPhotos { path: PathBuf },
 }

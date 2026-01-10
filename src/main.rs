@@ -1,3 +1,4 @@
+mod builtin_themes;
 mod config;
 mod error;
 mod photos;
@@ -100,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!(
         domain = %site.domain,
-        theme = %site.theme.path().display(),
+        theme = %site.theme,
         photos = %site.photos.display(),
         build = %site.build.display(),
         "site configured"

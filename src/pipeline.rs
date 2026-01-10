@@ -5,10 +5,11 @@ use serde::Serialize;
 use tera::Context;
 
 use crate::config::Site;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::photos::{Album, Photo};
 use crate::processing;
-use crate::theme::{templates, Theme};
+use crate::theme::{templates, StaticSource, Theme};
+use crate::builtin_themes;
 
 /// Site context passed to all templates.
 #[derive(Debug, Serialize)]
@@ -36,11 +37,21 @@ impl Pipeline {
     /// Load all components for site generation.
     pub fn load(site_dir: PathBuf, config: Site) -> Result<Self> {
         // Resolve paths relative to site directory
-        let theme_path = site_dir.join(config.theme.path());
+        let local_theme_path = site_dir.join(&config.theme);
         let photos_path = site_dir.join(&config.photos);
 
-        tracing::debug!(theme = %theme_path.display(), "loading theme");
-        let theme = Theme::load(&theme_path)?;
+        // Try local directory first, then built-in themes
+        let theme = if local_theme_path.is_dir() {
+            tracing::debug!(theme = %local_theme_path.display(), "loading local theme");
+            Theme::load(&local_theme_path)?
+        } else if let Some(builtin) = builtin_themes::get(&config.theme) {
+            tracing::debug!(theme = %config.theme, "loading built-in theme");
+            Theme::from_builtin(builtin)?
+        } else {
+            return Err(Error::ThemeNotFound {
+                name: config.theme.clone(),
+            });
+        };
 
         tracing::debug!(photos = %photos_path.display(), "discovering photos");
         let root = crate::photos::discover(&photos_path)?;
@@ -105,14 +116,29 @@ impl Pipeline {
 
     /// Copy static assets from theme to output.
     fn copy_static(&self, output_dir: &Path) -> Result<()> {
-        let Some(ref static_dir) = self.theme.static_dir else {
-            return Ok(());
-        };
-
         let dest = output_dir.join("static");
-        copy_dir_recursive(static_dir, &dest)?;
 
-        tracing::debug!(from = %static_dir.display(), to = %dest.display(), "copied static assets");
+        match &self.theme.static_source {
+            StaticSource::Directory(dir) => {
+                copy_dir_recursive(dir, &dest)?;
+                tracing::debug!(from = %dir.display(), to = %dest.display(), "copied static assets");
+            }
+            StaticSource::Builtin(embedded_dir) => {
+                fs::create_dir_all(&dest)?;
+                // Write all files from embedded directory (skip hidden files)
+                for file in embedded_dir.files() {
+                    let Some(name) = file.path().file_name().and_then(|n| n.to_str()) else {
+                        continue;
+                    };
+                    if name.starts_with('.') {
+                        continue;
+                    }
+                    fs::write(dest.join(name), file.contents())?;
+                }
+                tracing::debug!(to = %dest.display(), "copied embedded static assets");
+            }
+            StaticSource::None => {}
+        }
 
         Ok(())
     }

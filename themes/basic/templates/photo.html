@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ photo.stem }} - {{ site.domain }}{% endblock title %}
+
+{% block content %}
+<nav class="photo-nav">
+    {% if prev_photo %}
+    <a href="/{{ prev_photo.html_path | safe }}" class="nav-prev">Previous</a>
+    {% else %}
+    <span class="nav-prev disabled">Previous</span>
+    {% endif %}
+
+    <a href="/" class="nav-index">Index</a>
+
+    {% if next_photo %}
+    <a href="/{{ next_photo.html_path | safe }}" class="nav-next">Next</a>
+    {% else %}
+    <span class="nav-next disabled">Next</span>
+    {% endif %}
+</nav>
+
+<figure class="photo-view">
+    <img src="/{{ photo.image_path | safe }}" alt="{{ photo.stem }}">
+    <figcaption>
+        <span class="photo-name">{{ photo.stem }}</span>
+        {% if photo.metadata.camera or photo.metadata.lens or photo.metadata.date_taken %}
+        <div class="photo-meta">
+            {% if photo.metadata.date_taken %}
+            <span class="meta-date">{{ photo.metadata.date_taken }}</span>
+            {% endif %}
+            {% if photo.metadata.camera %}
+            <span class="meta-camera">{{ photo.metadata.camera }}</span>
+            {% endif %}
+            {% if photo.metadata.lens %}
+            <span class="meta-lens">{{ photo.metadata.lens }}</span>
+            {% endif %}
+            {% if photo.metadata.exposure %}
+            <span class="meta-exposure">
+                {% if photo.metadata.exposure.aperture %}{{ photo.metadata.exposure.aperture }}{% endif %}
+                {% if photo.metadata.exposure.shutter_speed %} {{ photo.metadata.exposure.shutter_speed }}{% endif %}
+                {% if photo.metadata.exposure.iso %} ISO {{ photo.metadata.exposure.iso }}{% endif %}
+                {% if photo.metadata.exposure.focal_length %} {{ photo.metadata.exposure.focal_length }}{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+        <a href="/{{ photo.original_path | safe }}" class="download-link" download>Download Original</a>
+    </figcaption>
+</figure>
+{% endblock content %}

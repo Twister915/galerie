@@ -7,9 +7,14 @@ pub struct Site {
     /// The domain where this site will be hosted
     pub domain: String,
 
-    /// Theme to use for rendering
-    #[serde(deserialize_with = "deserialize_theme")]
-    pub theme: Theme,
+    /// Theme to use for rendering (defaults to "basic").
+    ///
+    /// Resolution order (handled by Pipeline::load):
+    /// 1. Local directory with this name → use local
+    /// 2. Built-in theme with this name → use embedded
+    /// 3. Error
+    #[serde(default = "default_theme")]
+    pub theme: String,
 
     /// Directory containing source photos (relative to site root)
     #[serde(default = "default_photos")]
@@ -20,34 +25,8 @@ pub struct Site {
     pub build: PathBuf,
 }
 
-/// Theme source specification
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Theme {
-    /// Theme located in a local directory (relative to site root)
-    Local(PathBuf),
-    // Future variants:
-    // Git { url: String, rev: Option<String> },
-    // Remote(Url),
-}
-
-impl Theme {
-    /// Returns the path where this theme's files are located.
-    ///
-    /// For local themes, this is the path as specified.
-    /// For remote themes (future), this would be the cached/extracted location.
-    pub fn path(&self) -> &PathBuf {
-        match self {
-            Self::Local(path) => path,
-        }
-    }
-}
-
-fn deserialize_theme<'de, D>(deserializer: D) -> Result<Theme, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let value = String::deserialize(deserializer)?;
-    Ok(Theme::Local(PathBuf::from(value)))
+fn default_theme() -> String {
+    "basic".to_string()
 }
 
 fn default_photos() -> PathBuf {
@@ -71,7 +50,7 @@ mod tests {
         let site: Site = toml::from_str(toml).unwrap();
 
         assert_eq!(site.domain, "photos.example.com");
-        assert_eq!(site.theme, Theme::Local(PathBuf::from("themes/minimal")));
+        assert_eq!(site.theme, "themes/minimal");
         assert_eq!(site.photos, PathBuf::from("photos"));
         assert_eq!(site.build, PathBuf::from("dist"));
     }
@@ -87,7 +66,7 @@ mod tests {
         let site: Site = toml::from_str(toml).unwrap();
 
         assert_eq!(site.domain, "photos.example.com");
-        assert_eq!(site.theme, Theme::Local(PathBuf::from("my-theme")));
+        assert_eq!(site.theme, "my-theme");
         assert_eq!(site.photos, PathBuf::from("albums/vacation"));
         assert_eq!(site.build, PathBuf::from("output"));
     }
@@ -101,16 +80,10 @@ mod tests {
     }
 
     #[test]
-    fn missing_theme_fails() {
+    fn default_theme() {
         let toml = r#"domain = "example.com""#;
-        let result: Result<Site, _> = toml::from_str(toml);
+        let site: Site = toml::from_str(toml).unwrap();
 
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn theme_path() {
-        let theme = Theme::Local(PathBuf::from("themes/gallery"));
-        assert_eq!(theme.path(), &PathBuf::from("themes/gallery"));
+        assert_eq!(site.theme, "basic");
     }
 }

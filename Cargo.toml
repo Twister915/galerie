@@ -15,6 +15,7 @@ tiny_http = "0.12"
 rayon = "1"
 blake3 = "1"
 webp = "0.3"
+include_dir = "0.7"
 
 [dependencies.tracing-subscriber]
 version = "0.3"
