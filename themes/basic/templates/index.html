@@ -21,8 +21,8 @@
 <section class="photos">
     <div class="photo-grid">
         {% for photo in photos %}
-        <a href="/{{ photo.html_path | safe }}" class="photo-card">
-            <img src="/{{ photo.thumb_path | safe }}" alt="{{ photo.stem }}" loading="lazy">
+        <a href="/{{ photo.html_path }}" class="photo-card">
+            <img src="/{{ photo.thumb_path }}" alt="{{ photo.stem }}" loading="lazy">
         </a>
         {% endfor %}
     </div>

@@ -48,6 +48,9 @@ enum Command {
         #[arg(short, long, default_value = "3000")]
         port: u16,
     },
+
+    /// Delete the output directory
+    Clean,
 }
 
 impl Args {
@@ -107,17 +110,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "site configured"
     );
 
-    // Load and build the site
-    let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
-    pipeline.build()?;
-
     // Handle command
     match args.command.unwrap_or(Command::Build) {
         Command::Build => {
+            let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
+            pipeline.build()?;
             tracing::info!("build complete");
         }
         Command::Serve { port } => {
+            let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
+            pipeline.build()?;
             serve(&pipeline.site_dir.join(&pipeline.config.build), port)?;
+        }
+        Command::Clean => {
+            let output_dir = args.directory.join(&site.build);
+            if output_dir.exists() {
+                std::fs::remove_dir_all(&output_dir)?;
+                tracing::info!(path = %output_dir.display(), "cleaned output directory");
+            } else {
+                tracing::info!(path = %output_dir.display(), "output directory does not exist");
+            }
         }
     }
 

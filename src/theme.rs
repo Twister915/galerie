@@ -53,7 +53,10 @@ impl Theme {
 
         // Load all templates from templates/**/*.html
         let glob_pattern = format!("{}/**/*.html", templates_dir.display());
-        let templates = Tera::new(&glob_pattern)?;
+        let mut templates = Tera::new(&glob_pattern)?;
+
+        // Disable autoescaping - we control all template data
+        templates.autoescape_on(vec![]);
 
         // Validate required templates
         if !templates.get_template_names().any(|n| n == templates::INDEX) {
@@ -121,6 +124,9 @@ impl Theme {
 
             templates.add_raw_template(name, content)?;
         }
+
+        // Disable autoescaping - we control all template data
+        templates.autoescape_on(vec![]);
 
         // Validate required templates
         if !templates.get_template_names().any(|n| n == templates::INDEX) {

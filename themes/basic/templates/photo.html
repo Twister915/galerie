@@ -5,7 +5,7 @@
 {% block content %}
 <nav class="photo-nav">
     {% if prev_photo %}
-    <a href="/{{ prev_photo.html_path | safe }}" class="nav-prev">Previous</a>
+    <a href="/{{ prev_photo.html_path }}" class="nav-prev">Previous</a>
     {% else %}
     <span class="nav-prev disabled">Previous</span>
     {% endif %}
@@ -13,14 +13,14 @@
     <a href="/" class="nav-index">Index</a>
 
     {% if next_photo %}
-    <a href="/{{ next_photo.html_path | safe }}" class="nav-next">Next</a>
+    <a href="/{{ next_photo.html_path }}" class="nav-next">Next</a>
     {% else %}
     <span class="nav-next disabled">Next</span>
     {% endif %}
 </nav>
 
 <figure class="photo-view">
-    <img src="/{{ photo.image_path | safe }}" alt="{{ photo.stem }}">
+    <img src="/{{ photo.image_path }}" alt="{{ photo.stem }}">
     <figcaption>
         <span class="photo-name">{{ photo.stem }}</span>
         {% if photo.metadata.camera or photo.metadata.lens or photo.metadata.date_taken %}
@@ -44,7 +44,7 @@
             {% endif %}
         </div>
         {% endif %}
-        <a href="/{{ photo.original_path | safe }}" class="download-link" download>Download Original</a>
+        <a href="/{{ photo.original_path }}" class="download-link" download>Download Original</a>
     </figcaption>
 </figure>
 {% endblock content %}
