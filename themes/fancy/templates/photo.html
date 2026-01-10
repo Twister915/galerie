@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ photo.stem }} - {{ site.title }}</title>
+
+    <!-- SEO meta tags -->
+    <meta name="description" content="Photo: {{ photo.stem }}{% if photo.metadata.camera %} - {{ photo.metadata.camera }}{% endif %}">
+    <meta property="og:title" content="{{ photo.stem }} - {{ site.title }}">
+    <meta property="og:type" content="article">
+    <meta property="og:image" content="https://{{ site.domain }}/{{ photo.image_path }}">
+    <meta property="og:url" content="https://{{ site.domain }}/#/photo/{{ photo.stem }}">
+
+    <!-- Redirect to SPA -->
+    <meta http-equiv="refresh" content="0;url=/#/photo/{{ photo.stem }}">
+    <link rel="canonical" href="https://{{ site.domain }}/#/photo/{{ photo.stem }}">
+
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        a { color: #4a9eff; }
+    </style>
+</head>
+<body>
+    <p>Redirecting to <a href="/#/photo/{{ photo.stem }}">{{ photo.stem }}</a>...</p>
+    <script>window.location.replace('/#/photo/{{ photo.stem }}');</script>
+</body>
+</html>

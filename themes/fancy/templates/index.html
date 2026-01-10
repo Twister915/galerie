@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.title }}{% endblock title %}
+
+{% block head %}
+<meta name="description" content="Photo gallery - {{ site.title }}">
+<meta property="og:title" content="{{ site.title }}">
+<meta property="og:type" content="website">
+{% endblock head %}
+
+{% block body %}
+<!-- Site header -->
+<header class="site-header">
+    <a href="/" class="site-title">{{ site.title }}</a>
+    {% if root.children %}
+    <nav class="album-nav">
+        {% for album in root.children %}
+        <a href="#/album/{{ album.slug }}" class="album-link" data-album="{{ album.slug }}">{{ album.name }}</a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+</header>
+
+<!-- Main grid container -->
+<main class="gallery" id="gallery">
+    <div class="masonry-grid" id="masonry-grid">
+        <!-- Photos injected by JS -->
+    </div>
+</main>
+
+<!-- Photo viewer overlay -->
+<div class="photo-viewer" id="photo-viewer" hidden>
+    <div class="viewer-backdrop" id="viewer-backdrop"></div>
+
+    <div class="viewer-controls">
+        <button class="viewer-btn" id="drawer-toggle" aria-label="Toggle info">i</button>
+        <button class="viewer-btn viewer-close" id="viewer-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="viewer-main">
+        <button class="viewer-nav viewer-prev" id="viewer-prev" aria-label="Previous">&lsaquo;</button>
+        <div class="viewer-image-container">
+            <img class="viewer-image" id="viewer-image" alt="">
+        </div>
+        <button class="viewer-nav viewer-next" id="viewer-next" aria-label="Next">&rsaquo;</button>
+    </div>
+
+    <!-- Info drawer -->
+    <aside class="info-drawer" id="info-drawer">
+        <div class="drawer-content" id="drawer-content">
+            <!-- Populated by JS -->
+        </div>
+    </aside>
+
+    <!-- Filmstrip -->
+    <nav class="filmstrip" id="filmstrip">
+        <!-- Populated by JS -->
+    </nav>
+</div>
+
+<!-- Photo data embedded as JSON -->
+<script id="photo-data" type="application/json">
+{
+    "site": {
+        "title": {{ site.title | json_encode() | safe }},
+        "domain": {{ site.domain | json_encode() | safe }}
+    },
+    "albums": [
+        {% for album in root.children %}
+        {
+            "name": {{ album.name | json_encode() | safe }},
+            "slug": {{ album.slug | json_encode() | safe }},
+            "photoCount": {{ album.photos | length }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "photos": [
+        {% for photo in photos %}
+        {
+            "stem": {{ photo.stem | json_encode() | safe }},
+            "hash": {{ photo.hash | json_encode() | safe }},
+            "width": {{ photo.width }},
+            "height": {{ photo.height }},
+            "imagePath": "/{{ photo.image_path }}",
+            "thumbPath": "/{{ photo.thumb_path }}",
+            "originalPath": "/{{ photo.original_path }}",
+            "htmlPath": "/{{ photo.html_path }}",
+            "metadata": {
+                "dateTaken": {{ photo.metadata.date_taken | json_encode() | safe }},
+                "camera": {{ photo.metadata.camera | json_encode() | safe }},
+                "lens": {{ photo.metadata.lens | json_encode() | safe }},
+                "copyright": {{ photo.metadata.copyright | json_encode() | safe }},
+                "gps": {% if photo.metadata.gps %}{"latitude": {{ photo.metadata.gps.latitude }}, "longitude": {{ photo.metadata.gps.longitude }}}{% else %}null{% endif %},
+                "exposure": {% if photo.metadata.exposure %}{
+                    "aperture": {{ photo.metadata.exposure.aperture | json_encode() | safe }},
+                    "shutterSpeed": {{ photo.metadata.exposure.shutter_speed | json_encode() | safe }},
+                    "iso": {{ photo.metadata.exposure.iso | json_encode() | safe }},
+                    "focalLength": {{ photo.metadata.exposure.focal_length | json_encode() | safe }}
+                }{% else %}null{% endif %}
+            }
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</script>
+{% endblock body %}

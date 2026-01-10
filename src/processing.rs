@@ -103,6 +103,14 @@ fn process_photo(photo: &mut Photo, images_dir: &Path) -> Result<bool> {
     // Extract EXIF metadata (cheap operation, always do it)
     photo.metadata = extract_exif(&original_data);
 
+    // Extract image dimensions (reads header only, doesn't decode full image)
+    let reader = image::ImageReader::new(Cursor::new(&original_data))
+        .with_guessed_format()
+        .map_err(|e| crate::error::Error::Image(image::ImageError::IoError(e)))?;
+    let (width, height) = reader.into_dimensions()?;
+    photo.width = width;
+    photo.height = height;
+
     // Check if cached outputs exist
     let thumb_path = images_dir.join(format!("{}-{}-thumb.webp", photo.stem, photo.hash));
     let full_path = images_dir.join(format!("{}-{}-full.webp", photo.stem, photo.hash));
@@ -167,8 +175,11 @@ fn extract_exif(data: &[u8]) -> PhotoMetadata {
     };
 
     let get_string = |tag| {
-        exif.get_field(tag, exif::In::PRIMARY)
-            .and_then(|f| f.display_value().to_string().into())
+        exif.get_field(tag, exif::In::PRIMARY).map(|f| {
+            let s = f.display_value().to_string();
+            // display_value() includes quotes around strings, strip them
+            s.trim_matches('"').to_string()
+        })
     };
 
     // Extract date/time

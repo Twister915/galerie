@@ -22,6 +22,12 @@ pub struct Photo {
     /// Content hash (first 8 chars of BLAKE3 hex) for cache-busting
     pub hash: String,
 
+    /// Original image width in pixels
+    pub width: u32,
+
+    /// Original image height in pixels
+    pub height: u32,
+
     /// EXIF metadata extracted from the image
     pub metadata: PhotoMetadata,
 }
@@ -86,6 +92,8 @@ impl Photo {
             extension,
             stem,
             hash: String::new(),
+            width: 0,
+            height: 0,
             metadata: PhotoMetadata::default(),
         })
     }
@@ -318,6 +326,8 @@ mod tests {
             stem: "test".to_string(),
             extension: "jpg".to_string(),
             hash: "abc12345".to_string(),
+            width: 1920,
+            height: 1080,
             metadata: PhotoMetadata::default(),
         };
 
@@ -335,6 +345,8 @@ mod tests {
             stem: "test".to_string(),
             extension: "jpg".to_string(),
             hash: "def67890".to_string(),
+            width: 3000,
+            height: 2000,
             metadata: PhotoMetadata::default(),
         };
 
