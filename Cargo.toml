@@ -1,0 +1,36 @@
+[package]
+name = "galerie"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror = "1"
+tracing = "0.1"
+toml = "0.8"
+image = "0.25"
+walkdir = "2"
+kamadak-exif = "0.5"
+tera = "1"
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["env-filter", "json"]
+
+[dependencies.clap]
+version = "4"
+features = ["derive"]
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[dev-dependencies]
+test-case = "3"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
+[profile.distribute]
+inherits = "release"
+strip = "symbols"
