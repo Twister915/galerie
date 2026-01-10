@@ -385,7 +385,7 @@ body.viewer-open {
 }
 
 /* --------------------------------------------------------------------------
-   Filmstrip
+   Filmstrip (Virtualized)
    -------------------------------------------------------------------------- */
 .filmstrip {
     position: absolute;
@@ -396,10 +396,6 @@ body.viewer-open {
     z-index: var(--z-controls);
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: var(--gap-sm);
-    padding: 0 var(--gap-md);
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
@@ -420,15 +416,25 @@ body.viewer-open {
     border-radius: 2px;
 }
 
+/* Virtualized track - contains absolutely positioned thumbnails */
+.filmstrip-track {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
 .filmstrip-thumb {
-    flex-shrink: 0;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     width: var(--filmstrip-thumb);
     height: var(--filmstrip-thumb);
     border: 2px solid transparent;
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast), opacity var(--transition-fast);
     opacity: 0.6;
 }
 

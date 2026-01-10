@@ -6,10 +6,19 @@
  * - Hash-based routing (#/photo/stem, #/album/slug)
  * - Components: Grid, Viewer, Filmstrip, Drawer, Map
  * - Event delegation for performance
+ * - Progressive loading for large galleries
  */
 
 (function() {
     'use strict';
+
+    // ==========================================================================
+    // Configuration
+    // ==========================================================================
+
+    const GRID_BATCH_SIZE = 40;           // Photos to load per batch
+    const FILMSTRIP_BUFFER = 10;          // Extra thumbnails to render outside viewport
+    const FILMSTRIP_THUMB_WIDTH = 68;     // Thumbnail width + gap for positioning
 
     // ==========================================================================
     // State
@@ -24,7 +33,14 @@
         drawerOpen: false,
         masonry: null,
         map: null,
-        filterAlbum: null
+        filterAlbum: null,
+        // Progressive loading state
+        gridLoadedCount: 0,
+        gridLoading: false,
+        gridObserver: null,
+        // Filmstrip virtualization
+        filmstripStart: 0,
+        filmstripEnd: 0
     };
 
     // ==========================================================================
@@ -33,14 +49,13 @@
 
     /**
      * Simple string hash function for deterministic shuffling.
-     * Returns a numeric hash that's different from the input's sort order.
      */
     function simpleHash(str) {
         var hash = 5381;
         for (var i = 0; i < str.length; i++) {
             hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
         }
-        return hash >>> 0; // Convert to unsigned 32-bit
+        return hash >>> 0;
     }
 
     // ==========================================================================
@@ -60,7 +75,9 @@
         infoDrawer: null,
         drawerToggle: null,
         drawerContent: null,
-        filmstrip: null
+        filmstrip: null,
+        filmstripTrack: null,
+        loadingSentinel: null
     };
 
     // ==========================================================================
@@ -68,7 +85,6 @@
     // ==========================================================================
 
     function init() {
-        // Parse embedded photo data
         const dataScript = document.getElementById('photo-data');
         if (!dataScript) {
             console.error('Photo data not found');
@@ -82,7 +98,6 @@
             state.site = data.site;
 
             // Create grid order: indices sorted by hashed-hash for visual variety
-            // We hash the hash again so grid order doesn't correlate with tile size
             state.gridOrder = state.photos
                 .map(function(photo, index) { return { index: index, sortKey: simpleHash(photo.hash) }; })
                 .sort(function(a, b) { return a.sortKey - b.sortKey; })
@@ -92,22 +107,10 @@
             return;
         }
 
-        // Cache DOM elements
         cacheDomElements();
-
-        // Build grid
-        buildGrid();
-
-        // Pre-build filmstrip (hidden, but ready for instant open)
-        buildFilmstrip();
-
-        // Initialize Masonry after images load
-        initMasonry();
-
-        // Set up event listeners
+        setupGrid();
+        setupFilmstrip();
         setupEventListeners();
-
-        // Handle initial route
         handleRoute();
     }
 
@@ -128,61 +131,211 @@
     }
 
     // ==========================================================================
-    // Grid
+    // Grid - Progressive Loading
     // ==========================================================================
 
-    /**
-     * Determine tile size class from photo hash.
-     * Uses first 2 chars of hash to deterministically assign size.
-     * Distribution: ~60% 1x, ~30% 2x, ~10% 4x
-     */
     function getTileSizeClass(hash) {
         const value = parseInt(hash.substring(0, 2), 16);
-        if (value < 25) return 'size-4x';  // ~10%
-        if (value < 102) return 'size-2x'; // ~30%
-        return 'size-1x';                   // ~60%
+        if (value < 25) return 'size-4x';
+        if (value < 102) return 'size-2x';
+        return 'size-1x';
     }
 
-    function buildGrid() {
-        // Add grid-sizer and gutter-sizer for Masonry
+    function setupGrid() {
+        // Add sizers for Masonry
         dom.grid.innerHTML = '<div class="grid-sizer"></div><div class="gutter-sizer"></div>';
 
-        // Create photo tiles in shuffled order (sorted by hash for variety)
-        state.gridOrder.forEach(function(index) {
-            const photo = state.photos[index];
-            const sizeClass = getTileSizeClass(photo.hash);
+        // Create loading sentinel (triggers infinite scroll)
+        dom.loadingSentinel = document.createElement('div');
+        dom.loadingSentinel.className = 'loading-sentinel';
+        dom.loadingSentinel.style.cssText = 'height:1px;width:100%;clear:both;';
 
-            const tile = document.createElement('div');
-            tile.className = 'photo-tile ' + sizeClass;
-            tile.dataset.index = index;
-            tile.dataset.stem = photo.stem;
+        // Load initial batch
+        loadMorePhotos();
+
+        // Initialize Masonry immediately (aspect ratios handle pre-layout)
+        state.masonry = new Masonry(dom.grid, {
+            itemSelector: '.photo-tile',
+            columnWidth: '.grid-sizer',
+            gutter: '.gutter-sizer',
+            fitWidth: true,
+            transitionDuration: 0,
+            initLayout: false
+        });
+
+        // Layout after first images start loading
+        requestAnimationFrame(function() {
+            state.masonry.layout();
+        });
+
+        // Set up intersection observer for infinite scroll
+        state.gridObserver = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting && !state.gridLoading) {
+                loadMorePhotos();
+            }
+        }, {
+            rootMargin: '200px'
+        });
+
+        // Append sentinel after grid
+        dom.grid.parentNode.insertBefore(dom.loadingSentinel, dom.grid.nextSibling);
+        state.gridObserver.observe(dom.loadingSentinel);
+    }
+
+    function loadMorePhotos() {
+        if (state.gridLoadedCount >= state.gridOrder.length) {
+            // All photos loaded, remove sentinel
+            if (dom.loadingSentinel.parentNode) {
+                dom.loadingSentinel.parentNode.removeChild(dom.loadingSentinel);
+            }
+            return;
+        }
+
+        state.gridLoading = true;
+
+        const startIndex = state.gridLoadedCount;
+        const endIndex = Math.min(startIndex + GRID_BATCH_SIZE, state.gridOrder.length);
+        const fragment = document.createDocumentFragment();
+        const newTiles = [];
+
+        for (var i = startIndex; i < endIndex; i++) {
+            const photoIndex = state.gridOrder[i];
+            const photo = state.photos[photoIndex];
+            const tile = createTile(photo, photoIndex);
+            fragment.appendChild(tile);
+            newTiles.push(tile);
+        }
+
+        // Append to grid
+        dom.grid.appendChild(fragment);
+        state.gridLoadedCount = endIndex;
+
+        // Tell Masonry about new items
+        if (state.masonry && newTiles.length > 0) {
+            state.masonry.appended(newTiles);
+
+            // Re-layout after images load
+            imagesLoaded(newTiles, function() {
+                state.masonry.layout();
+            });
+        }
+
+        state.gridLoading = false;
+    }
+
+    function createTile(photo, index) {
+        const sizeClass = getTileSizeClass(photo.hash);
+
+        const tile = document.createElement('div');
+        tile.className = 'photo-tile ' + sizeClass;
+        tile.dataset.index = index;
+        tile.dataset.stem = photo.stem;
+
+        const img = document.createElement('img');
+        img.src = photo.thumbPath;
+        img.alt = photo.stem;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+
+        if (photo.width && photo.height) {
+            img.style.aspectRatio = photo.width + ' / ' + photo.height;
+        }
+
+        tile.appendChild(img);
+        return tile;
+    }
+
+    // ==========================================================================
+    // Filmstrip - Virtualized
+    // ==========================================================================
+
+    function setupFilmstrip() {
+        // Create inner track for virtualized content
+        dom.filmstripTrack = document.createElement('div');
+        dom.filmstripTrack.className = 'filmstrip-track';
+        dom.filmstripTrack.style.cssText = 'display:flex;gap:8px;position:relative;';
+
+        // Set total width to enable proper scrolling
+        const totalWidth = state.photos.length * FILMSTRIP_THUMB_WIDTH;
+        dom.filmstripTrack.style.width = totalWidth + 'px';
+
+        dom.filmstrip.appendChild(dom.filmstripTrack);
+
+        // Listen for scroll to update visible range
+        dom.filmstrip.addEventListener('scroll', updateFilmstripVisibleRange, { passive: true });
+    }
+
+    function updateFilmstripVisibleRange() {
+        const scrollLeft = dom.filmstrip.scrollLeft;
+        const viewportWidth = dom.filmstrip.clientWidth;
+
+        // Calculate visible range with buffer
+        const startIndex = Math.max(0, Math.floor(scrollLeft / FILMSTRIP_THUMB_WIDTH) - FILMSTRIP_BUFFER);
+        const endIndex = Math.min(
+            state.photos.length,
+            Math.ceil((scrollLeft + viewportWidth) / FILMSTRIP_THUMB_WIDTH) + FILMSTRIP_BUFFER
+        );
+
+        // Only update if range changed significantly
+        if (startIndex === state.filmstripStart && endIndex === state.filmstripEnd) {
+            return;
+        }
+
+        state.filmstripStart = startIndex;
+        state.filmstripEnd = endIndex;
+
+        renderFilmstripRange(startIndex, endIndex);
+    }
+
+    function renderFilmstripRange(start, end) {
+        // Clear existing thumbnails
+        dom.filmstripTrack.innerHTML = '';
+
+        const fragment = document.createDocumentFragment();
+
+        for (var i = start; i < end; i++) {
+            const photo = state.photos[i];
+
+            const thumb = document.createElement('div');
+            thumb.className = 'filmstrip-thumb' + (i === state.currentPhotoIndex ? ' active' : '');
+            thumb.dataset.index = i;
+            thumb.style.cssText = 'position:absolute;left:' + (i * FILMSTRIP_THUMB_WIDTH) + 'px;';
 
             const img = document.createElement('img');
             img.src = photo.thumbPath;
             img.alt = photo.stem;
-            img.loading = 'lazy';
 
-            // Set aspect ratio for pre-layout
-            if (photo.width && photo.height) {
-                img.style.aspectRatio = photo.width + ' / ' + photo.height;
-            }
+            thumb.appendChild(img);
+            fragment.appendChild(thumb);
+        }
 
-            tile.appendChild(img);
-            dom.grid.appendChild(tile);
-        });
+        dom.filmstripTrack.appendChild(fragment);
     }
 
-    function initMasonry() {
-        // Wait for images to load before initializing Masonry
-        imagesLoaded(dom.grid, function() {
-            state.masonry = new Masonry(dom.grid, {
-                itemSelector: '.photo-tile',
-                columnWidth: '.grid-sizer',
-                gutter: '.gutter-sizer',
-                fitWidth: true,        // Size container to fit items
-                transitionDuration: 0
-            });
+    function updateFilmstrip() {
+        // Update active state on visible thumbnails
+        var thumbs = dom.filmstripTrack.querySelectorAll('.filmstrip-thumb');
+        for (var i = 0; i < thumbs.length; i++) {
+            var idx = parseInt(thumbs[i].dataset.index, 10);
+            thumbs[i].classList.toggle('active', idx === state.currentPhotoIndex);
+        }
+        scrollFilmstripToActive();
+    }
+
+    function scrollFilmstripToActive() {
+        if (state.currentPhotoIndex < 0) return;
+
+        // Calculate position and scroll
+        const targetScroll = (state.currentPhotoIndex * FILMSTRIP_THUMB_WIDTH) -
+            (dom.filmstrip.clientWidth / 2) + (FILMSTRIP_THUMB_WIDTH / 2);
+
+        dom.filmstrip.scrollTo({
+            left: Math.max(0, targetScroll),
+            behavior: 'smooth'
         });
+
+        // Update visible range after scroll
+        setTimeout(updateFilmstripVisibleRange, 50);
     }
 
     // ==========================================================================
@@ -195,27 +348,18 @@
         state.currentPhotoIndex = index;
         const photo = state.photos[index];
 
-        // Update URL
         window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
 
-        // Show viewer
         dom.viewer.hidden = false;
         document.body.classList.add('viewer-open');
 
-        // Load image
         dom.viewerImage.src = photo.imagePath;
         dom.viewerImage.alt = photo.stem;
 
-        // Update navigation buttons
         updateNavButtons();
-
-        // Update filmstrip active state
+        updateFilmstripVisibleRange();
         updateFilmstrip();
-
-        // Update drawer content
         updateDrawerContent(photo);
-
-        // Preload adjacent images
         preloadAdjacentImages(index);
     }
 
@@ -228,7 +372,6 @@
         document.body.classList.remove('viewer-open');
         window.location.hash = '';
 
-        // Destroy map if exists
         if (state.map) {
             state.map.remove();
             state.map = null;
@@ -248,55 +391,12 @@
     }
 
     function preloadAdjacentImages(index) {
-        var preloadIndices = [index - 1, index + 1];
-        preloadIndices.forEach(function(i) {
+        [index - 1, index + 1, index - 2, index + 2].forEach(function(i) {
             if (i >= 0 && i < state.photos.length) {
                 var img = new Image();
                 img.src = state.photos[i].imagePath;
             }
         });
-    }
-
-    // ==========================================================================
-    // Filmstrip
-    // ==========================================================================
-
-    function buildFilmstrip() {
-        dom.filmstrip.innerHTML = '';
-
-        state.photos.forEach(function(photo, index) {
-            const thumb = document.createElement('div');
-            thumb.className = 'filmstrip-thumb';
-            thumb.dataset.index = index;
-
-            const img = document.createElement('img');
-            img.src = photo.thumbPath;
-            img.alt = photo.stem;
-            img.loading = 'lazy';
-
-            thumb.appendChild(img);
-            dom.filmstrip.appendChild(thumb);
-        });
-    }
-
-    function updateFilmstrip() {
-        // Just update active class, don't rebuild
-        var thumbs = dom.filmstrip.querySelectorAll('.filmstrip-thumb');
-        for (var i = 0; i < thumbs.length; i++) {
-            thumbs[i].classList.toggle('active', i === state.currentPhotoIndex);
-        }
-        scrollFilmstripToActive();
-    }
-
-    function scrollFilmstripToActive() {
-        const activeThumb = dom.filmstrip.querySelector('.filmstrip-thumb.active');
-        if (activeThumb) {
-            activeThumb.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
-        }
     }
 
     // ==========================================================================
@@ -308,7 +408,6 @@
         dom.viewer.classList.toggle('drawer-open', state.drawerOpen);
         dom.drawerToggle.classList.toggle('active', state.drawerOpen);
 
-        // Initialize map if opening and photo has GPS
         if (state.drawerOpen && state.currentPhotoIndex >= 0) {
             const photo = state.photos[state.currentPhotoIndex];
             if (photo.metadata.gps) {
@@ -317,7 +416,6 @@
                 }, 100);
             }
         } else if (!state.drawerOpen && state.map) {
-            // Destroy map when closing
             state.map.remove();
             state.map = null;
         }
@@ -327,7 +425,6 @@
         const meta = photo.metadata;
         let html = '';
 
-        // Photo name
         html += '<div class="meta-section">';
         html += '<h3>Photo</h3>';
         html += '<div class="meta-item">';
@@ -336,7 +433,6 @@
         html += '</div>';
         html += '</div>';
 
-        // Date
         if (meta.dateTaken) {
             html += '<div class="meta-section">';
             html += '<h3>Date</h3>';
@@ -347,7 +443,6 @@
             html += '</div>';
         }
 
-        // Camera info
         if (meta.camera || meta.lens) {
             html += '<div class="meta-section">';
             html += '<h3>Camera</h3>';
@@ -366,7 +461,6 @@
             html += '</div>';
         }
 
-        // Exposure
         if (meta.exposure) {
             const exp = meta.exposure;
             html += '<div class="meta-section">';
@@ -398,7 +492,6 @@
             html += '</div>';
         }
 
-        // Location
         if (meta.gps) {
             html += '<div class="meta-section">';
             html += '<h3>Location</h3>';
@@ -410,7 +503,6 @@
             html += '</div>';
         }
 
-        // Copyright
         if (meta.copyright) {
             html += '<div class="meta-section">';
             html += '<h3>Copyright</h3>';
@@ -420,7 +512,6 @@
             html += '</div>';
         }
 
-        // Download link
         html += '<a href="' + photo.originalPath + '" class="download-link" download>';
         html += 'Download Original';
         html += '</a>';
@@ -442,26 +533,21 @@
         const mapContainer = document.getElementById('map');
         if (!mapContainer) return;
 
-        // Destroy existing map
         if (state.map) {
             state.map.remove();
         }
 
-        // Create map
         state.map = L.map('map', {
             zoomControl: false,
             attributionControl: false
         }).setView([gps.latitude, gps.longitude], 14);
 
-        // Add OpenStreetMap tiles
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
         }).addTo(state.map);
 
-        // Add marker
         L.marker([gps.latitude, gps.longitude]).addTo(state.map);
 
-        // Invalidate size after drawer animation
         setTimeout(function() {
             state.map.invalidateSize();
         }, 300);
@@ -472,7 +558,7 @@
     // ==========================================================================
 
     function handleRoute() {
-        const hash = window.location.hash.slice(1); // Remove #
+        const hash = window.location.hash.slice(1);
 
         if (!hash) {
             if (state.currentPhotoIndex >= 0) {
@@ -487,7 +573,6 @@
             const index = state.photos.findIndex(function(p) {
                 return p.stem === stem;
             });
-            // Skip if already viewing this photo (avoid double-processing)
             if (index >= 0 && index !== state.currentPhotoIndex) {
                 openViewer(index);
             }
@@ -504,8 +589,6 @@
 
     function filterByAlbum(slug) {
         state.filterAlbum = slug;
-
-        // Update active album link
         document.querySelectorAll('.album-link').forEach(function(link) {
             link.classList.toggle('active', link.dataset.album === slug);
         });
@@ -516,7 +599,6 @@
     // ==========================================================================
 
     function setupEventListeners() {
-        // Grid clicks (event delegation)
         dom.grid.addEventListener('click', function(e) {
             const tile = e.target.closest('.photo-tile');
             if (tile) {
@@ -525,18 +607,12 @@
             }
         });
 
-        // Viewer controls
         dom.viewerClose.addEventListener('click', closeViewer);
         dom.viewerBackdrop.addEventListener('click', closeViewer);
-        dom.viewerPrev.addEventListener('click', function() {
-            navigatePhoto(-1);
-        });
-        dom.viewerNext.addEventListener('click', function() {
-            navigatePhoto(1);
-        });
+        dom.viewerPrev.addEventListener('click', function() { navigatePhoto(-1); });
+        dom.viewerNext.addEventListener('click', function() { navigatePhoto(1); });
         dom.drawerToggle.addEventListener('click', toggleDrawer);
 
-        // Filmstrip clicks (event delegation)
         dom.filmstrip.addEventListener('click', function(e) {
             const thumb = e.target.closest('.filmstrip-thumb');
             if (thumb) {
@@ -545,21 +621,15 @@
             }
         });
 
-        // Keyboard navigation
         document.addEventListener('keydown', handleKeydown);
-
-        // Hash change for routing
         window.addEventListener('hashchange', handleRoute);
 
-        // Scroll to hide/show header
         var lastScrollY = 0;
         window.addEventListener('scroll', function() {
             var currentScrollY = window.scrollY;
             if (currentScrollY > lastScrollY && currentScrollY > 60) {
-                // Scrolling down & past header
                 dom.header.classList.add('hidden');
             } else {
-                // Scrolling up
                 dom.header.classList.remove('hidden');
             }
             lastScrollY = currentScrollY;
@@ -567,7 +637,6 @@
     }
 
     function handleKeydown(e) {
-        // Only handle when viewer is open
         if (state.currentPhotoIndex < 0) return;
 
         switch (e.key) {
