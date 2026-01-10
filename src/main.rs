@@ -1,6 +1,7 @@
 mod builtin_themes;
 mod config;
 mod error;
+mod minify;
 mod photos;
 mod pipeline;
 mod processing;

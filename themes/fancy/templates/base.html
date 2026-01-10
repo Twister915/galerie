@@ -16,7 +16,7 @@
           crossorigin="">
 
     <!-- Theme CSS -->
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ static(path='style.css') }}">
 
     {% block head %}{% endblock head %}
 </head>
@@ -35,7 +35,7 @@
             crossorigin=""></script>
 
     <!-- Theme JS -->
-    <script src="/static/app.js"></script>
+    <script src="{{ static(path='app.js') }}"></script>
 
     {% block scripts %}{% endblock scripts %}
 </body>

@@ -1,16 +1,22 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde::Serialize;
-use tera::Context;
+use tera::{Context, Function, Value};
 
 use crate::config::Site;
 use crate::error::{Error, Result};
+use crate::minify;
 use crate::photos::{Album, Photo};
 use crate::processing;
 use crate::theme::{templates, StaticSource, Theme};
 use crate::builtin_themes;
+
+/// Mapping from original asset path to hashed output path.
+/// e.g., "style.css" -> "/static/style-abc12345.css"
+pub type AssetManifest = HashMap<String, String>;
 
 /// Site context passed to all templates.
 #[derive(Debug, Serialize)]
@@ -88,8 +94,13 @@ impl Pipeline {
         let images_dir = output_dir.join("images");
         fs::create_dir_all(&images_dir)?;
 
-        // Copy static assets
-        self.copy_static(&output_dir, &mut expected_files)?;
+        // Copy static assets and get manifest for template function
+        let asset_manifest = self.copy_static(&output_dir, &mut expected_files)?;
+
+        // Register the static() template function with the asset manifest
+        self.theme
+            .templates
+            .register_function("static", make_static_function(asset_manifest));
 
         // Process images (extract metadata, generate variants)
         // Cached images are skipped if output files with same hash exist
@@ -128,14 +139,27 @@ impl Pipeline {
         Ok(())
     }
 
-    /// Copy static assets from theme to output.
-    fn copy_static(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
+    /// Copy static assets from theme to output, returning the asset manifest.
+    fn copy_static(
+        &self,
+        output_dir: &Path,
+        expected: &mut HashSet<PathBuf>,
+    ) -> Result<AssetManifest> {
         let dest = output_dir.join("static");
+        let should_minify = self.config.minify;
+        let mut manifest = AssetManifest::new();
 
         match &self.theme.static_source {
             StaticSource::Directory(dir) => {
-                copy_dir_recursive(dir, &dest, expected)?;
-                tracing::debug!(from = %dir.display(), to = %dest.display(), "copied static assets");
+                fs::create_dir_all(&dest)?;
+                copy_dir_with_hashing(dir, &dest, "", expected, should_minify, &mut manifest)?;
+                tracing::debug!(
+                    from = %dir.display(),
+                    to = %dest.display(),
+                    minify = should_minify,
+                    assets = manifest.len(),
+                    "copied static assets"
+                );
             }
             StaticSource::Builtin(embedded_dir) => {
                 fs::create_dir_all(&dest)?;
@@ -147,16 +171,26 @@ impl Pipeline {
                     if name.starts_with('.') {
                         continue;
                     }
-                    let file_path = dest.join(name);
-                    fs::write(&file_path, file.contents())?;
+
+                    let contents = process_static_file(name, file.contents(), should_minify)?;
+                    let hashed_name = hash_filename(name, &contents);
+                    let file_path = dest.join(&hashed_name);
+
+                    fs::write(&file_path, contents)?;
                     expected.insert(file_path);
+                    manifest.insert(name.to_string(), format!("/static/{}", hashed_name));
                 }
-                tracing::debug!(to = %dest.display(), "copied embedded static assets");
+                tracing::debug!(
+                    to = %dest.display(),
+                    minify = should_minify,
+                    assets = manifest.len(),
+                    "copied embedded static assets"
+                );
             }
             StaticSource::None => {}
         }
 
-        Ok(())
+        Ok(manifest)
     }
 
     /// Render the site index page.
@@ -182,7 +216,10 @@ impl Pipeline {
             .collect();
         context.insert("photos", &all_photos);
 
-        let html = self.theme.templates.render(templates::INDEX, &context)?;
+        let mut html = self.theme.templates.render(templates::INDEX, &context)?;
+        if self.config.minify {
+            html = minify::html(&html)?;
+        }
 
         let dest = output_dir.join("index.html");
         fs::write(&dest, html)?;
@@ -226,7 +263,10 @@ impl Pipeline {
                 .collect();
             context.insert("photos", &photos_with_paths);
 
-            let html = self.theme.templates.render(templates::ALBUM, &context)?;
+            let mut html = self.theme.templates.render(templates::ALBUM, &context)?;
+            if self.config.minify {
+                html = minify::html(&html)?;
+            }
 
             let album_dir = output_dir.join(&album.path);
             fs::create_dir_all(&album_dir)?;
@@ -304,7 +344,10 @@ impl Pipeline {
                 );
             }
 
-            let html = self.theme.templates.render(templates::PHOTO, &context)?;
+            let mut html = self.theme.templates.render(templates::PHOTO, &context)?;
+            if self.config.minify {
+                html = minify::html(&html)?;
+            }
 
             // Determine output path
             let dest = if album.path.as_os_str().is_empty() {
@@ -451,22 +494,125 @@ struct PhotoWithPaths {
     html_path: String,
 }
 
-/// Recursively copy a directory, tracking all files in expected set.
-fn copy_dir_recursive(src: &Path, dest: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
+/// Recursively copy a directory with content-hashed filenames.
+fn copy_dir_with_hashing(
+    src: &Path,
+    dest: &Path,
+    relative_path: &str,
+    expected: &mut HashSet<PathBuf>,
+    should_minify: bool,
+    manifest: &mut AssetManifest,
+) -> Result<()> {
     fs::create_dir_all(dest)?;
 
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let src_path = entry.path();
-        let dest_path = dest.join(entry.file_name());
+        let file_name = entry.file_name();
+        let name = file_name.to_str().unwrap_or("");
+
+        // Skip hidden files
+        if name.starts_with('.') {
+            continue;
+        }
+
+        // Build the relative path for manifest keys
+        let entry_relative = if relative_path.is_empty() {
+            name.to_string()
+        } else {
+            format!("{}/{}", relative_path, name)
+        };
 
         if src_path.is_dir() {
-            copy_dir_recursive(&src_path, &dest_path, expected)?;
+            let dest_subdir = dest.join(name);
+            copy_dir_with_hashing(
+                &src_path,
+                &dest_subdir,
+                &entry_relative,
+                expected,
+                should_minify,
+                manifest,
+            )?;
         } else {
-            fs::copy(&src_path, &dest_path)?;
+            let contents = fs::read(&src_path)?;
+            let output = process_static_file(name, &contents, should_minify)?;
+            let hashed_name = hash_filename(name, &output);
+            let dest_path = dest.join(&hashed_name);
+
+            fs::write(&dest_path, output)?;
             expected.insert(dest_path);
+
+            // Build the hashed path for the manifest
+            let hashed_relative = if relative_path.is_empty() {
+                format!("/static/{}", hashed_name)
+            } else {
+                format!("/static/{}/{}", relative_path, hashed_name)
+            };
+            manifest.insert(entry_relative, hashed_relative);
         }
     }
 
     Ok(())
+}
+
+/// Generate a hashed filename: stem-hash.ext
+fn hash_filename(name: &str, contents: &[u8]) -> String {
+    let hash = blake3::hash(contents);
+    let hash_hex = &hash.to_hex()[..8];
+
+    // Split name into stem and extension
+    if let Some(dot_pos) = name.rfind('.') {
+        let stem = &name[..dot_pos];
+        let ext = &name[dot_pos + 1..];
+        format!("{}-{}.{}", stem, hash_hex, ext)
+    } else {
+        format!("{}-{}", name, hash_hex)
+    }
+}
+
+/// Create the Tera `static` function that resolves asset paths.
+fn make_static_function(manifest: AssetManifest) -> impl Function {
+    let manifest = Arc::new(manifest);
+
+    move |args: &HashMap<String, Value>| -> tera::Result<Value> {
+        let path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| tera::Error::msg("static() requires a 'path' argument"))?;
+
+        match manifest.get(path) {
+            Some(hashed_path) => Ok(Value::String(hashed_path.clone())),
+            None => Err(tera::Error::msg(format!(
+                "static asset not found: '{}'. Available: {:?}",
+                path,
+                manifest.keys().collect::<Vec<_>>()
+            ))),
+        }
+    }
+}
+
+/// Process a static file, optionally minifying based on extension.
+fn process_static_file(name: &str, contents: &[u8], should_minify: bool) -> Result<Vec<u8>> {
+    if !should_minify {
+        return Ok(contents.to_vec());
+    }
+
+    // Determine file type by extension
+    let ext = name.rsplit('.').next().unwrap_or("");
+
+    match ext {
+        "css" => {
+            let input = std::str::from_utf8(contents)
+                .map_err(|e| Error::Other(format!("invalid UTF-8 in CSS: {}", e)))?;
+            let minified = minify::css(input)?;
+            Ok(minified.into_bytes())
+        }
+        "js" => {
+            let input = std::str::from_utf8(contents)
+                .map_err(|e| Error::Other(format!("invalid UTF-8 in JS: {}", e)))?;
+            let minified = minify::js(input);
+            Ok(minified.into_bytes())
+        }
+        _ => Ok(contents.to_vec()),
+    }
 }

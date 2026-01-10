@@ -23,6 +23,9 @@ pub enum Error {
 
     #[error("no photos found in {}", path.display())]
     NoPhotos { path: PathBuf },
+
+    #[error("{0}")]
+    Other(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

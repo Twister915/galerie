@@ -26,6 +26,10 @@ pub struct Site {
     /// Directory for build output (relative to site root)
     #[serde(default = "default_build")]
     pub build: PathBuf,
+
+    /// Whether to minify HTML, CSS, and JS output (defaults to true)
+    #[serde(default = "default_minify")]
+    pub minify: bool,
 }
 
 fn default_theme() -> String {
@@ -38,6 +42,10 @@ fn default_photos() -> PathBuf {
 
 fn default_build() -> PathBuf {
     PathBuf::from("dist")
+}
+
+fn default_minify() -> bool {
+    true
 }
 
 #[cfg(test)]
