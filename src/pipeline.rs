@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -77,6 +78,9 @@ impl Pipeline {
 
         tracing::info!(output = %output_dir.display(), "building site");
 
+        // Track all files we generate for cleanup of stale files
+        let mut expected_files: HashSet<PathBuf> = HashSet::new();
+
         // Create output directory (don't delete - we cache processed images)
         fs::create_dir_all(&output_dir)?;
 
@@ -85,7 +89,7 @@ impl Pipeline {
         fs::create_dir_all(&images_dir)?;
 
         // Copy static assets
-        self.copy_static(&output_dir)?;
+        self.copy_static(&output_dir, &mut expected_files)?;
 
         // Process images (extract metadata, generate variants)
         // Cached images are skipped if output files with same hash exist
@@ -99,15 +103,24 @@ impl Pipeline {
             "photos processed"
         );
 
+        // Track expected image files
+        self.collect_expected_images(&images_dir, &mut expected_files);
+
         // Render pages
-        self.render_index(&output_dir)?;
+        self.render_index(&output_dir, &mut expected_files)?;
 
         if self.theme.has_album_template {
-            self.render_albums(&output_dir)?;
+            self.render_albums(&output_dir, &mut expected_files)?;
         }
 
         if self.theme.has_photo_template {
-            self.render_photos(&output_dir)?;
+            self.render_photos(&output_dir, &mut expected_files)?;
+        }
+
+        // Clean up stale files from previous builds
+        let removed = self.cleanup_stale_files(&output_dir, &expected_files)?;
+        if removed > 0 {
+            tracing::info!(removed, "cleaned up stale files");
         }
 
         tracing::info!("build complete");
@@ -116,12 +129,12 @@ impl Pipeline {
     }
 
     /// Copy static assets from theme to output.
-    fn copy_static(&self, output_dir: &Path) -> Result<()> {
+    fn copy_static(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
         let dest = output_dir.join("static");
 
         match &self.theme.static_source {
             StaticSource::Directory(dir) => {
-                copy_dir_recursive(dir, &dest)?;
+                copy_dir_recursive(dir, &dest, expected)?;
                 tracing::debug!(from = %dir.display(), to = %dest.display(), "copied static assets");
             }
             StaticSource::Builtin(embedded_dir) => {
@@ -134,7 +147,9 @@ impl Pipeline {
                     if name.starts_with('.') {
                         continue;
                     }
-                    fs::write(dest.join(name), file.contents())?;
+                    let file_path = dest.join(name);
+                    fs::write(&file_path, file.contents())?;
+                    expected.insert(file_path);
                 }
                 tracing::debug!(to = %dest.display(), "copied embedded static assets");
             }
@@ -145,7 +160,7 @@ impl Pipeline {
     }
 
     /// Render the site index page.
-    fn render_index(&self, output_dir: &Path) -> Result<()> {
+    fn render_index(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
         let mut context = self.base_context();
         context.insert("root", &self.root);
 
@@ -171,6 +186,7 @@ impl Pipeline {
 
         let dest = output_dir.join("index.html");
         fs::write(&dest, html)?;
+        expected.insert(dest.clone());
 
         tracing::debug!(path = %dest.display(), "rendered index");
 
@@ -178,8 +194,8 @@ impl Pipeline {
     }
 
     /// Render album pages (if album.html template exists).
-    fn render_albums(&self, output_dir: &Path) -> Result<()> {
-        self.render_album_recursive(&self.root, output_dir, true)?;
+    fn render_albums(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
+        self.render_album_recursive(&self.root, output_dir, true, expected)?;
         Ok(())
     }
 
@@ -188,6 +204,7 @@ impl Pipeline {
         album: &Album,
         output_dir: &Path,
         is_root: bool,
+        expected: &mut HashSet<PathBuf>,
     ) -> Result<()> {
         // Skip root album (it's handled by index.html)
         if !is_root {
@@ -216,25 +233,31 @@ impl Pipeline {
 
             let dest = album_dir.join("index.html");
             fs::write(&dest, html)?;
+            expected.insert(dest.clone());
 
             tracing::debug!(album = %album.name, path = %dest.display(), "rendered album");
         }
 
         // Recurse into children
         for child in &album.children {
-            self.render_album_recursive(child, output_dir, false)?;
+            self.render_album_recursive(child, output_dir, false, expected)?;
         }
 
         Ok(())
     }
 
     /// Render individual photo pages (if photo.html template exists).
-    fn render_photos(&self, output_dir: &Path) -> Result<()> {
-        self.render_photos_in_album(&self.root, output_dir)?;
+    fn render_photos(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
+        self.render_photos_in_album(&self.root, output_dir, expected)?;
         Ok(())
     }
 
-    fn render_photos_in_album(&self, album: &Album, output_dir: &Path) -> Result<()> {
+    fn render_photos_in_album(
+        &self,
+        album: &Album,
+        output_dir: &Path,
+        expected: &mut HashSet<PathBuf>,
+    ) -> Result<()> {
         let photos = &album.photos;
 
         for (i, photo) in photos.iter().enumerate() {
@@ -293,13 +316,14 @@ impl Pipeline {
             };
 
             fs::write(&dest, html)?;
+            expected.insert(dest.clone());
 
             tracing::trace!(photo = %photo.stem, path = %dest.display(), "rendered photo");
         }
 
         // Recurse into children
         for child in &album.children {
-            self.render_photos_in_album(child, output_dir)?;
+            self.render_photos_in_album(child, output_dir, expected)?;
         }
 
         Ok(())
@@ -343,6 +367,77 @@ impl Pipeline {
 
         None
     }
+
+    /// Collect expected image files based on current photos.
+    fn collect_expected_images(&self, images_dir: &Path, expected: &mut HashSet<PathBuf>) {
+        self.collect_album_images(&self.root, images_dir, expected);
+    }
+
+    fn collect_album_images(&self, album: &Album, images_dir: &Path, expected: &mut HashSet<PathBuf>) {
+        // Images for this album go into images/ or images/{album_path}/
+        let album_images_dir = if album.path.as_os_str().is_empty() {
+            images_dir.to_path_buf()
+        } else {
+            images_dir.join(&album.path)
+        };
+
+        for photo in &album.photos {
+            // Matches processing.rs naming: {stem}-{hash}-{variant}.{ext}
+            expected.insert(album_images_dir.join(format!(
+                "{}-{}-thumb.webp",
+                photo.stem, photo.hash
+            )));
+            expected.insert(album_images_dir.join(format!(
+                "{}-{}-full.webp",
+                photo.stem, photo.hash
+            )));
+            expected.insert(album_images_dir.join(format!(
+                "{}-{}-original.{}",
+                photo.stem, photo.hash, photo.extension
+            )));
+        }
+
+        for child in &album.children {
+            self.collect_album_images(child, images_dir, expected);
+        }
+    }
+
+    /// Remove files from output directory that aren't in the expected set.
+    fn cleanup_stale_files(&self, output_dir: &Path, expected: &HashSet<PathBuf>) -> Result<usize> {
+        let mut removed = 0;
+        self.cleanup_recursive(output_dir, expected, &mut removed)?;
+        Ok(removed)
+    }
+
+    fn cleanup_recursive(
+        &self,
+        dir: &Path,
+        expected: &HashSet<PathBuf>,
+        removed: &mut usize,
+    ) -> Result<()> {
+        let entries: Vec<_> = fs::read_dir(dir)?.collect::<std::result::Result<_, _>>()?;
+
+        for entry in entries {
+            let path = entry.path();
+
+            if path.is_dir() {
+                // Recurse into subdirectory
+                self.cleanup_recursive(&path, expected, removed)?;
+
+                // Remove directory if empty
+                if fs::read_dir(&path)?.next().is_none() {
+                    fs::remove_dir(&path)?;
+                    tracing::debug!(path = %path.display(), "removed empty directory");
+                }
+            } else if !expected.contains(&path) {
+                fs::remove_file(&path)?;
+                tracing::debug!(path = %path.display(), "removed stale file");
+                *removed += 1;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Photo with pre-computed paths for templates.
@@ -356,8 +451,8 @@ struct PhotoWithPaths {
     html_path: String,
 }
 
-/// Recursively copy a directory.
-fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<()> {
+/// Recursively copy a directory, tracking all files in expected set.
+fn copy_dir_recursive(src: &Path, dest: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
     fs::create_dir_all(dest)?;
 
     for entry in fs::read_dir(src)? {
@@ -366,9 +461,10 @@ fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<()> {
         let dest_path = dest.join(entry.file_name());
 
         if src_path.is_dir() {
-            copy_dir_recursive(&src_path, &dest_path)?;
+            copy_dir_recursive(&src_path, &dest_path, expected)?;
         } else {
             fs::copy(&src_path, &dest_path)?;
+            expected.insert(dest_path);
         }
     }
 
