@@ -28,35 +28,84 @@
         <span data-i18n="footer.built_with_suffix"></span>
     </footer>
 
-    <!-- i18n data -->
-    <script id="i18n-data" type="application/json">
-    {{ i18n | json_encode() | safe }}
+    <!-- Data URLs for async loading -->
+    <script>
+    var I18N_URLS = {{ data_urls.i18n | json_encode() | safe }};
+    var I18N_CONFIG = {
+        languages: {{ languages | json_encode() | safe }},
+        default: "{{ default_lang }}"
+    };
     </script>
     <script>
     (function() {
-        var i18n = JSON.parse(document.getElementById('i18n-data').textContent);
-        var defaultLang = '{{ default_lang }}';
+        var i18nData = {};  // Map of lang code -> translations
 
-        function detectLang() {
+        function getI18nCacheKey(lang) {
+            return 'galerie-i18n-' + I18N_URLS[lang];
+        }
+
+        function loadI18nLang(lang, callback) {
+            var url = I18N_URLS[lang];
+            if (!url) {
+                callback();
+                return;
+            }
+
+            var cacheKey = getI18nCacheKey(lang);
+            var cached = null;
+            try { cached = localStorage.getItem(cacheKey); } catch(e) {}
+
+            if (cached) {
+                try {
+                    i18nData[lang] = JSON.parse(cached);
+                    callback();
+                    return;
+                } catch(e) {}
+            }
+
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    i18nData[lang] = data;
+                    try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) {}
+                    callback();
+                })
+                .catch(function(err) {
+                    console.error('Failed to load i18n for ' + lang + ':', err);
+                    callback();
+                });
+        }
+
+        function detectLangFromBrowser() {
             var langs = navigator.languages || [navigator.language];
             for (var i = 0; i < langs.length; i++) {
                 var browserLang = langs[i];
                 var normalized = browserLang.replace('-', '_');
-                if (i18n[normalized]) return normalized;
+                if (I18N_URLS[normalized]) return normalized;
 
                 var prefix = browserLang.split('-')[0];
-                for (var lang in i18n) {
+                for (var lang in I18N_URLS) {
                     if (lang.indexOf(prefix) === 0) return lang;
                 }
             }
-            return defaultLang;
+            return I18N_CONFIG.default;
         }
 
         function getLang() {
-            return localStorage.getItem('lang') || detectLang();
+            return localStorage.getItem('lang') || detectLangFromBrowser();
         }
 
         function setLang(lang) {
+            if (!i18nData[lang]) {
+                loadI18nLang(lang, function() {
+                    applyLangChange(lang);
+                });
+            } else {
+                applyLangChange(lang);
+            }
+        }
+
+        function applyLangChange(lang) {
             localStorage.setItem('lang', lang);
             applyTranslations();
             updatePicker();
@@ -64,11 +113,11 @@
 
         function t(key) {
             var lang = getLang();
-            if (i18n[lang] && typeof i18n[lang][key] === 'string') {
-                return i18n[lang][key];
+            if (i18nData[lang] && typeof i18nData[lang][key] === 'string') {
+                return i18nData[lang][key];
             }
-            if (i18n[defaultLang] && typeof i18n[defaultLang][key] === 'string') {
-                return i18n[defaultLang][key];
+            if (i18nData[I18N_CONFIG.default] && typeof i18nData[I18N_CONFIG.default][key] === 'string') {
+                return i18nData[I18N_CONFIG.default][key];
             }
             return key;
         }
@@ -103,8 +152,23 @@
                 });
             })(buttons[i]);
         }
-        applyTranslations();
-        updatePicker();
+
+        // Load current language and default language, then apply
+        var currentLang = getLang();
+        var pending = 1;
+        function done() {
+            pending--;
+            if (pending === 0) {
+                applyTranslations();
+                updatePicker();
+            }
+        }
+
+        loadI18nLang(currentLang, done);
+        if (currentLang !== I18N_CONFIG.default) {
+            pending++;
+            loadI18nLang(I18N_CONFIG.default, done);
+        }
     })();
     </script>
 </body>

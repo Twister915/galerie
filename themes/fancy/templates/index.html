@@ -80,58 +80,5 @@
     </nav>
 </div>
 
-<!-- Photo data embedded as JSON -->
-<script id="photo-data" type="application/json">
-{
-    "site": {
-        "title": {{ site.title | json_encode() | safe }},
-        "domain": {{ site.domain | json_encode() | safe }}
-    },
-    "albums": [
-        {% for album in root.children %}
-        {
-            "name": {{ album.name | json_encode() | safe }},
-            "slug": {{ album.slug | json_encode() | safe }},
-            "photoCount": {{ album.photos | length }}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ],
-    "photos": [
-        {% for photo in photos %}
-        {
-            "stem": {{ photo.stem | json_encode() | safe }},
-            "hash": {{ photo.hash | json_encode() | safe }},
-            "width": {{ photo.width }},
-            "height": {{ photo.height }},
-            "imagePath": "/{{ photo.image_path }}",
-            "thumbPath": "/{{ photo.thumb_path }}",
-            "originalPath": "/{{ photo.original_path }}",
-            "htmlPath": "/{{ photo.html_path }}",
-            "metadata": {
-                "dateTaken": {{ photo.metadata.date_taken | json_encode() | safe }},
-                "camera": {{ photo.metadata.camera | json_encode() | safe }},
-                "lens": {{ photo.metadata.lens | json_encode() | safe }},
-                "copyright": {{ photo.metadata.copyright | json_encode() | safe }},
-                "gps": {% if photo.metadata.gps %}{
-                    "latitude": {{ photo.metadata.gps.latitude | json_encode() | safe }},
-                    "longitude": {{ photo.metadata.gps.longitude | json_encode() | safe }},
-                    "display": {{ photo.metadata.gps.display | json_encode() | safe }},
-                    "city": {{ photo.metadata.gps.city | json_encode() | safe }},
-                    "region": {{ photo.metadata.gps.region | json_encode() | safe }},
-                    "country": {{ photo.metadata.gps.country | json_encode() | safe }},
-                    "countryCode": {{ photo.metadata.gps.country_code | json_encode() | safe }},
-                    "flag": {{ photo.metadata.gps.flag | json_encode() | safe }}
-                }{% else %}null{% endif %},
-                "exposure": {% if photo.metadata.exposure %}{
-                    "aperture": {{ photo.metadata.exposure.aperture | json_encode() | safe }},
-                    "shutterSpeed": {{ photo.metadata.exposure.shutter_speed | json_encode() | safe }},
-                    "iso": {{ photo.metadata.exposure.iso | json_encode() | safe }},
-                    "focalLength": {{ photo.metadata.exposure.focal_length | json_encode() | safe }}
-                }{% else %}null{% endif %}
-            }
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ]
-}
-</script>
+<!-- Photo and i18n data loaded asynchronously from JSON files -->
 {% endblock body %}

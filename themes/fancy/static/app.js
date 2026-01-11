@@ -2,6 +2,7 @@
  * Galerie Fancy Theme - Single Page Application
  *
  * Architecture:
+ * - Async data loading from static JSON files
  * - State management via a central state object
  * - Hash-based routing (#/photo/stem, #/album/slug)
  * - Components: Grid, Viewer, Filmstrip, Drawer, Map
@@ -16,15 +17,15 @@
     // Configuration
     // ==========================================================================
 
-    const GRID_BATCH_SIZE = 40;           // Photos to load per batch
-    const FILMSTRIP_BUFFER = 10;          // Extra thumbnails to render outside viewport
-    const FILMSTRIP_THUMB_WIDTH = 68;     // Thumbnail width + gap for positioning
+    var GRID_BATCH_SIZE = 40;           // Photos to load per batch
+    var FILMSTRIP_BUFFER = 10;          // Extra thumbnails to render outside viewport
+    var FILMSTRIP_THUMB_WIDTH = 68;     // Thumbnail width + gap for positioning
 
     // ==========================================================================
     // State
     // ==========================================================================
 
-    const state = {
+    var state = {
         photos: [],         // Original order (for filmstrip/navigation)
         gridOrder: [],      // Indices sorted by hash (for grid display)
         albums: [],
@@ -44,31 +45,136 @@
     };
 
     // ==========================================================================
+    // Data Loading
+    // ==========================================================================
+
+    var i18nData = {};  // Map of lang code -> translations
+    var galleryData = null;
+
+    // Cache key for gallery (includes URL hash for automatic invalidation)
+    var GALLERY_CACHE_KEY = 'galerie-gallery-' + GALLERY_URL;
+
+    // Get cache key for a specific language
+    function getI18nCacheKey(lang) {
+        return 'galerie-i18n-' + I18N_URLS[lang];
+    }
+
+    // Load translations for a specific language
+    function loadI18nLang(lang) {
+        var url = I18N_URLS[lang];
+        if (!url) {
+            return Promise.resolve();
+        }
+
+        var cacheKey = getI18nCacheKey(lang);
+        var cached = null;
+
+        try {
+            cached = localStorage.getItem(cacheKey);
+        } catch (e) { /* localStorage not available */ }
+
+        if (cached) {
+            try {
+                i18nData[lang] = JSON.parse(cached);
+                return Promise.resolve();
+            } catch (e) {
+                cached = null;
+            }
+        }
+
+        return fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                i18nData[lang] = data;
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                } catch (e) { /* localStorage full or not available */ }
+            });
+    }
+
+    function loadData() {
+        var promises = [];
+
+        // Load i18n for current language and default language
+        var currentLang = localStorage.getItem('lang') || detectLangFromBrowser();
+        promises.push(loadI18nLang(currentLang));
+
+        // Also load default language as fallback (if different)
+        if (currentLang !== I18N_CONFIG.default) {
+            promises.push(loadI18nLang(I18N_CONFIG.default));
+        }
+
+        // Load gallery
+        var galleryCached = null;
+        try {
+            galleryCached = localStorage.getItem(GALLERY_CACHE_KEY);
+        } catch (e) { /* localStorage not available */ }
+
+        if (galleryCached) {
+            try {
+                galleryData = JSON.parse(galleryCached);
+            } catch (e) {
+                galleryCached = null;
+            }
+        }
+
+        if (!galleryCached) {
+            promises.push(
+                fetch(GALLERY_URL)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        galleryData = data;
+                        try {
+                            localStorage.setItem(GALLERY_CACHE_KEY, JSON.stringify(data));
+                        } catch (e) { /* localStorage full or not available */ }
+                    })
+            );
+        }
+
+        return Promise.all(promises);
+    }
+
+    // ==========================================================================
     // i18n (Internationalization)
     // ==========================================================================
 
-    const i18nData = JSON.parse(document.getElementById('i18n-data').textContent);
-    const i18nConfig = JSON.parse(document.getElementById('i18n-config').textContent);
-
-    function detectLang() {
+    // Detect language from browser settings (before translations are loaded)
+    function detectLangFromBrowser() {
         var langs = navigator.languages || [navigator.language];
         for (var i = 0; i < langs.length; i++) {
             var browserLang = langs[i];
             var normalized = browserLang.replace('-', '_');
-            if (i18nData[normalized]) return normalized;
+            if (I18N_URLS[normalized]) return normalized;
             var prefix = browserLang.split('-')[0];
-            for (var lang in i18nData) {
+            for (var lang in I18N_URLS) {
                 if (lang.indexOf(prefix) === 0) return lang;
             }
         }
-        return i18nConfig.default;
+        return I18N_CONFIG.default;
     }
 
     function getLang() {
-        return localStorage.getItem('lang') || detectLang();
+        return localStorage.getItem('lang') || detectLangFromBrowser();
     }
 
     function setLang(lang) {
+        // If language not loaded yet, fetch it first
+        if (!i18nData[lang]) {
+            document.body.classList.add('loading-lang');
+            loadI18nLang(lang).then(function() {
+                document.body.classList.remove('loading-lang');
+                applyLangChange(lang);
+            }).catch(function() {
+                document.body.classList.remove('loading-lang');
+                // Fall back to applying anyway
+                applyLangChange(lang);
+            });
+        } else {
+            applyLangChange(lang);
+        }
+    }
+
+    function applyLangChange(lang) {
         localStorage.setItem('lang', lang);
         document.documentElement.lang = lang;
         applyTranslations();
@@ -91,8 +197,8 @@
         if (i18nData[lang] && typeof i18nData[lang][key] === 'string') {
             return i18nData[lang][key];
         }
-        if (i18nData[i18nConfig.default] && typeof i18nData[i18nConfig.default][key] === 'string') {
-            return i18nData[i18nConfig.default][key];
+        if (i18nData[I18N_CONFIG.default] && typeof i18nData[I18N_CONFIG.default][key] === 'string') {
+            return i18nData[I18N_CONFIG.default][key];
         }
         return key;
     }
@@ -152,7 +258,7 @@
     // DOM Elements (cached)
     // ==========================================================================
 
-    const dom = {
+    var dom = {
         header: null,
         gallery: null,
         grid: null,
@@ -174,28 +280,22 @@
     // Initialization
     // ==========================================================================
 
-    function init() {
-        const dataScript = document.getElementById('photo-data');
-        if (!dataScript) {
-            console.error('Photo data not found');
+    function initApp() {
+        if (!galleryData) {
+            console.error('Gallery data not loaded');
             return;
         }
 
-        try {
-            const data = JSON.parse(dataScript.textContent);
-            state.photos = data.photos;
-            state.albums = data.albums;
-            state.site = data.site;
+        // Populate state from loaded data
+        state.photos = galleryData.photos;
+        state.albums = galleryData.albums;
+        state.site = galleryData.site;
 
-            // Create grid order: indices sorted by hashed-hash for visual variety
-            state.gridOrder = state.photos
-                .map(function(photo, index) { return { index: index, sortKey: simpleHash(photo.hash) }; })
-                .sort(function(a, b) { return a.sortKey - b.sortKey; })
-                .map(function(item) { return item.index; });
-        } catch (e) {
-            console.error('Failed to parse photo data:', e);
-            return;
-        }
+        // Create grid order: indices sorted by hashed-hash for visual variety
+        state.gridOrder = state.photos
+            .map(function(photo, index) { return { index: index, sortKey: simpleHash(photo.hash) }; })
+            .sort(function(a, b) { return a.sortKey - b.sortKey; })
+            .map(function(item) { return item.index; });
 
         cacheDomElements();
         setupGrid();
@@ -270,7 +370,7 @@
     // ==========================================================================
 
     function getTileSizeClass(hash) {
-        const value = parseInt(hash.substring(0, 2), 16);
+        var value = parseInt(hash.substring(0, 2), 16);
         if (value < 25) return 'size-4x';
         if (value < 102) return 'size-2x';
         return 'size-1x';
@@ -328,15 +428,15 @@
 
         state.gridLoading = true;
 
-        const startIndex = state.gridLoadedCount;
-        const endIndex = Math.min(startIndex + GRID_BATCH_SIZE, state.gridOrder.length);
-        const fragment = document.createDocumentFragment();
-        const newTiles = [];
+        var startIndex = state.gridLoadedCount;
+        var endIndex = Math.min(startIndex + GRID_BATCH_SIZE, state.gridOrder.length);
+        var fragment = document.createDocumentFragment();
+        var newTiles = [];
 
         for (var i = startIndex; i < endIndex; i++) {
-            const photoIndex = state.gridOrder[i];
-            const photo = state.photos[photoIndex];
-            const tile = createTile(photo, photoIndex);
+            var photoIndex = state.gridOrder[i];
+            var photo = state.photos[photoIndex];
+            var tile = createTile(photo, photoIndex);
             fragment.appendChild(tile);
             newTiles.push(tile);
         }
@@ -359,14 +459,14 @@
     }
 
     function createTile(photo, index) {
-        const sizeClass = getTileSizeClass(photo.hash);
+        var sizeClass = getTileSizeClass(photo.hash);
 
-        const tile = document.createElement('div');
+        var tile = document.createElement('div');
         tile.className = 'photo-tile ' + sizeClass;
         tile.dataset.index = index;
         tile.dataset.stem = photo.stem;
 
-        const img = document.createElement('img');
+        var img = document.createElement('img');
         img.src = photo.thumbPath;
         img.alt = photo.stem;
         img.loading = 'lazy';
@@ -391,7 +491,7 @@
         dom.filmstripTrack.style.cssText = 'display:flex;gap:8px;position:relative;';
 
         // Set total width to enable proper scrolling
-        const totalWidth = state.photos.length * FILMSTRIP_THUMB_WIDTH;
+        var totalWidth = state.photos.length * FILMSTRIP_THUMB_WIDTH;
         dom.filmstripTrack.style.width = totalWidth + 'px';
 
         dom.filmstrip.appendChild(dom.filmstripTrack);
@@ -401,12 +501,12 @@
     }
 
     function updateFilmstripVisibleRange() {
-        const scrollLeft = dom.filmstrip.scrollLeft;
-        const viewportWidth = dom.filmstrip.clientWidth;
+        var scrollLeft = dom.filmstrip.scrollLeft;
+        var viewportWidth = dom.filmstrip.clientWidth;
 
         // Calculate visible range with buffer
-        const startIndex = Math.max(0, Math.floor(scrollLeft / FILMSTRIP_THUMB_WIDTH) - FILMSTRIP_BUFFER);
-        const endIndex = Math.min(
+        var startIndex = Math.max(0, Math.floor(scrollLeft / FILMSTRIP_THUMB_WIDTH) - FILMSTRIP_BUFFER);
+        var endIndex = Math.min(
             state.photos.length,
             Math.ceil((scrollLeft + viewportWidth) / FILMSTRIP_THUMB_WIDTH) + FILMSTRIP_BUFFER
         );
@@ -426,17 +526,17 @@
         // Clear existing thumbnails
         dom.filmstripTrack.innerHTML = '';
 
-        const fragment = document.createDocumentFragment();
+        var fragment = document.createDocumentFragment();
 
         for (var i = start; i < end; i++) {
-            const photo = state.photos[i];
+            var photo = state.photos[i];
 
-            const thumb = document.createElement('div');
+            var thumb = document.createElement('div');
             thumb.className = 'filmstrip-thumb' + (i === state.currentPhotoIndex ? ' active' : '');
             thumb.dataset.index = i;
             thumb.style.cssText = 'position:absolute;left:' + (i * FILMSTRIP_THUMB_WIDTH) + 'px;';
 
-            const img = document.createElement('img');
+            var img = document.createElement('img');
             img.src = photo.thumbPath;
             img.alt = photo.stem;
 
@@ -461,7 +561,7 @@
         if (state.currentPhotoIndex < 0) return;
 
         // Calculate position and scroll
-        const targetScroll = (state.currentPhotoIndex * FILMSTRIP_THUMB_WIDTH) -
+        var targetScroll = (state.currentPhotoIndex * FILMSTRIP_THUMB_WIDTH) -
             (dom.filmstrip.clientWidth / 2) + (FILMSTRIP_THUMB_WIDTH / 2);
 
         dom.filmstrip.scrollTo({
@@ -481,7 +581,7 @@
         if (index < 0 || index >= state.photos.length) return;
 
         state.currentPhotoIndex = index;
-        const photo = state.photos[index];
+        var photo = state.photos[index];
 
         window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
 
@@ -527,7 +627,7 @@
     }
 
     function navigatePhoto(direction) {
-        const newIndex = state.currentPhotoIndex + direction;
+        var newIndex = state.currentPhotoIndex + direction;
         if (newIndex >= 0 && newIndex < state.photos.length) {
             openViewer(newIndex);
         }
@@ -557,7 +657,7 @@
         dom.drawerToggle.classList.toggle('active', state.drawerOpen);
 
         if (state.drawerOpen && state.currentPhotoIndex >= 0) {
-            const photo = state.photos[state.currentPhotoIndex];
+            var photo = state.photos[state.currentPhotoIndex];
             if (photo.metadata.gps && photo.metadata.gps.latitude !== null && photo.metadata.gps.longitude !== null) {
                 setTimeout(function() {
                     initMap(photo.metadata.gps);
@@ -570,8 +670,8 @@
     }
 
     function updateDrawerContent(photo) {
-        const meta = photo.metadata;
-        let html = '';
+        var meta = photo.metadata;
+        var html = '';
 
         html += '<div class="meta-section">';
         html += '<h3>' + t('section.photo') + '</h3>';
@@ -610,7 +710,7 @@
         }
 
         if (meta.exposure) {
-            const exp = meta.exposure;
+            var exp = meta.exposure;
             html += '<div class="meta-section">';
             html += '<h3>' + t('section.exposure') + '</h3>';
             if (exp.aperture) {
@@ -691,7 +791,7 @@
     }
 
     function escapeHtml(text) {
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
@@ -701,7 +801,7 @@
     // ==========================================================================
 
     function initMap(gps) {
-        const mapContainer = document.getElementById('map');
+        var mapContainer = document.getElementById('map');
         if (!mapContainer) return;
 
         if (state.map) {
@@ -731,7 +831,7 @@
     // ==========================================================================
 
     function handleRoute() {
-        const hash = window.location.hash.slice(1);
+        var hash = window.location.hash.slice(1);
 
         if (!hash) {
             if (state.currentPhotoIndex >= 0) {
@@ -740,21 +840,25 @@
             return;
         }
 
-        const photoMatch = hash.match(/^\/photo\/(.+)$/);
+        var photoMatch = hash.match(/^\/photo\/(.+)$/);
         if (photoMatch) {
-            const stem = decodeURIComponent(photoMatch[1]);
-            const index = state.photos.findIndex(function(p) {
-                return p.stem === stem;
-            });
+            var stem = decodeURIComponent(photoMatch[1]);
+            var index = -1;
+            for (var i = 0; i < state.photos.length; i++) {
+                if (state.photos[i].stem === stem) {
+                    index = i;
+                    break;
+                }
+            }
             if (index >= 0 && index !== state.currentPhotoIndex) {
                 openViewer(index);
             }
             return;
         }
 
-        const albumMatch = hash.match(/^\/album\/(.+)$/);
+        var albumMatch = hash.match(/^\/album\/(.+)$/);
         if (albumMatch) {
-            const slug = decodeURIComponent(albumMatch[1]);
+            var slug = decodeURIComponent(albumMatch[1]);
             filterByAlbum(slug);
             return;
         }
@@ -762,9 +866,10 @@
 
     function filterByAlbum(slug) {
         state.filterAlbum = slug;
-        document.querySelectorAll('.album-link').forEach(function(link) {
-            link.classList.toggle('active', link.dataset.album === slug);
-        });
+        var links = document.querySelectorAll('.album-link');
+        for (var i = 0; i < links.length; i++) {
+            links[i].classList.toggle('active', links[i].dataset.album === slug);
+        }
     }
 
     // ==========================================================================
@@ -773,9 +878,9 @@
 
     function setupEventListeners() {
         dom.grid.addEventListener('click', function(e) {
-            const tile = e.target.closest('.photo-tile');
+            var tile = e.target.closest('.photo-tile');
             if (tile) {
-                const index = parseInt(tile.dataset.index, 10);
+                var index = parseInt(tile.dataset.index, 10);
                 openViewer(index);
             }
         });
@@ -787,9 +892,9 @@
         dom.drawerToggle.addEventListener('click', toggleDrawer);
 
         dom.filmstrip.addEventListener('click', function(e) {
-            const thumb = e.target.closest('.filmstrip-thumb');
+            var thumb = e.target.closest('.filmstrip-thumb');
             if (thumb) {
-                const index = parseInt(thumb.dataset.index, 10);
+                var index = parseInt(thumb.dataset.index, 10);
                 openViewer(index);
             }
         });
@@ -843,10 +948,24 @@
     // Start
     // ==========================================================================
 
+    function start() {
+        // Show loading state
+        document.body.classList.add('loading');
+
+        loadData().then(function() {
+            document.body.classList.remove('loading');
+            initApp();
+        }).catch(function(err) {
+            console.error('Failed to load gallery data:', err);
+            document.body.classList.remove('loading');
+            document.body.classList.add('error');
+        });
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', start);
     } else {
-        init();
+        start();
     }
 
 })();

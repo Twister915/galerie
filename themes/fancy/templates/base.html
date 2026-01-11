@@ -34,12 +34,14 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
 
-    <!-- i18n data -->
-    <script id="i18n-data" type="application/json">
-    {{ i18n | json_encode() | safe }}
-    </script>
-    <script id="i18n-config" type="application/json">
-    {"languages": {{ languages | json_encode() | safe }}, "default": "{{ default_lang }}"}
+    <!-- Data URLs for async loading -->
+    <script>
+    var I18N_URLS = {{ data_urls.i18n | json_encode() | safe }};
+    var GALLERY_URL = "{{ data_urls.gallery }}";
+    var I18N_CONFIG = {
+        languages: {{ languages | json_encode() | safe }},
+        default: "{{ default_lang }}"
+    };
     </script>
 
     <!-- Theme JS -->

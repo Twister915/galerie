@@ -23,11 +23,87 @@ pub type AssetManifest = HashMap<String, String>;
 const VERSION: &str = env!("GIT_VERSION");
 
 /// Site context passed to all templates.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct SiteContext {
     domain: String,
     title: String,
     version: &'static str,
+}
+
+/// Manifest of generated data files with their hashed URLs.
+#[derive(Debug, Default, Serialize)]
+struct DataManifest {
+    /// Map of language code to i18n JSON URL (e.g., "en" -> "/static/i18n/en-abc12345.json")
+    i18n: HashMap<String, String>,
+    /// URL to gallery data JSON file (e.g., "/static/gallery-def67890.json")
+    gallery: String,
+}
+
+/// Gallery data structure for JSON serialization.
+#[derive(Debug, Serialize)]
+struct GalleryData {
+    site: SiteContext,
+    albums: Vec<AlbumData>,
+    photos: Vec<PhotoData>,
+}
+
+/// Album data for gallery JSON.
+#[derive(Debug, Serialize)]
+struct AlbumData {
+    name: String,
+    slug: String,
+    path: String,
+}
+
+/// Photo data for gallery JSON.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PhotoData {
+    stem: String,
+    hash: String,
+    width: u32,
+    height: u32,
+    image_path: String,
+    thumb_path: String,
+    original_path: String,
+    html_path: String,
+    metadata: PhotoMetadataData,
+}
+
+/// Photo metadata for gallery JSON.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PhotoMetadataData {
+    date_taken: Option<String>,
+    camera: Option<String>,
+    lens: Option<String>,
+    copyright: Option<String>,
+    gps: Option<GpsData>,
+    exposure: Option<ExposureData>,
+}
+
+/// GPS data for gallery JSON.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GpsData {
+    latitude: Option<f64>,
+    longitude: Option<f64>,
+    display: Option<String>,
+    city: Option<String>,
+    region: Option<String>,
+    country: Option<String>,
+    country_code: Option<String>,
+    flag: Option<String>,
+}
+
+/// Exposure data for gallery JSON.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExposureData {
+    aperture: Option<String>,
+    shutter_speed: Option<String>,
+    iso: Option<u32>,
+    focal_length: Option<String>,
 }
 
 /// The pipeline combines configuration, theme, and photos to build a site.
@@ -99,17 +175,8 @@ impl Pipeline {
         let images_dir = output_dir.join("images");
         fs::create_dir_all(&images_dir)?;
 
-        // Copy static assets and get manifest for template function
-        let asset_manifest = self.copy_static(&output_dir, &mut expected_files)?;
-
-        // Register the static() template function with the asset manifest
-        self.theme
-            .templates
-            .register_function("static", make_static_function(asset_manifest));
-
         // Process images (extract metadata, generate variants)
-        // Cached images are skipped if output files with same hash exist
-        // Files are written directly during processing
+        // Must happen before data file generation so photo metadata is populated
         tracing::info!("processing photos");
         let stats = processing::process_album(&mut self.root, &images_dir, self.config.gps)?;
         tracing::info!(
@@ -123,15 +190,26 @@ impl Pipeline {
         // Track expected image files
         self.collect_expected_images(&images_dir, &mut expected_files);
 
+        // Generate static data files (i18n and gallery JSON)
+        let data_manifest = self.generate_data_files(&mut expected_files)?;
+
+        // Copy static assets and get manifest for template function
+        let asset_manifest = self.copy_static(&output_dir, &mut expected_files)?;
+
+        // Register the static() template function with the asset manifest
+        self.theme
+            .templates
+            .register_function("static", make_static_function(asset_manifest));
+
         // Render pages
-        self.render_index(&output_dir, &mut expected_files)?;
+        self.render_index(&output_dir, &data_manifest, &mut expected_files)?;
 
         if self.theme.has_album_template {
-            self.render_albums(&output_dir, &mut expected_files)?;
+            self.render_albums(&output_dir, &data_manifest, &mut expected_files)?;
         }
 
         if self.theme.has_photo_template {
-            self.render_photos(&output_dir, &mut expected_files)?;
+            self.render_photos(&output_dir, &data_manifest, &mut expected_files)?;
         }
 
         // Clean up stale files from previous builds
@@ -200,8 +278,13 @@ impl Pipeline {
     }
 
     /// Render the site index page.
-    fn render_index(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
-        let mut context = self.base_context();
+    fn render_index(
+        &self,
+        output_dir: &Path,
+        data_manifest: &DataManifest,
+        expected: &mut HashSet<PathBuf>,
+    ) -> Result<()> {
+        let mut context = self.base_context(data_manifest);
         context.insert("root", &self.root);
 
         // Collect all photos with their paths pre-computed
@@ -237,8 +320,13 @@ impl Pipeline {
     }
 
     /// Render album pages (if album.html template exists).
-    fn render_albums(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
-        self.render_album_recursive(&self.root, output_dir, true, expected)?;
+    fn render_albums(
+        &self,
+        output_dir: &Path,
+        data_manifest: &DataManifest,
+        expected: &mut HashSet<PathBuf>,
+    ) -> Result<()> {
+        self.render_album_recursive(&self.root, output_dir, data_manifest, true, expected)?;
         Ok(())
     }
 
@@ -246,12 +334,13 @@ impl Pipeline {
         &self,
         album: &Album,
         output_dir: &Path,
+        data_manifest: &DataManifest,
         is_root: bool,
         expected: &mut HashSet<PathBuf>,
     ) -> Result<()> {
         // Skip root album (it's handled by index.html)
         if !is_root {
-            let mut context = self.base_context();
+            let mut context = self.base_context(data_manifest);
             context.insert("root", &self.root);
             context.insert("album", album);
 
@@ -286,15 +375,20 @@ impl Pipeline {
 
         // Recurse into children
         for child in &album.children {
-            self.render_album_recursive(child, output_dir, false, expected)?;
+            self.render_album_recursive(child, output_dir, data_manifest, false, expected)?;
         }
 
         Ok(())
     }
 
     /// Render individual photo pages (if photo.html template exists).
-    fn render_photos(&self, output_dir: &Path, expected: &mut HashSet<PathBuf>) -> Result<()> {
-        self.render_photos_in_album(&self.root, output_dir, expected)?;
+    fn render_photos(
+        &self,
+        output_dir: &Path,
+        data_manifest: &DataManifest,
+        expected: &mut HashSet<PathBuf>,
+    ) -> Result<()> {
+        self.render_photos_in_album(&self.root, output_dir, data_manifest, expected)?;
         Ok(())
     }
 
@@ -302,6 +396,7 @@ impl Pipeline {
         &self,
         album: &Album,
         output_dir: &Path,
+        data_manifest: &DataManifest,
         expected: &mut HashSet<PathBuf>,
     ) -> Result<()> {
         let photos = &album.photos;
@@ -310,7 +405,7 @@ impl Pipeline {
             let prev_photo = if i > 0 { Some(&photos[i - 1]) } else { None };
             let next_photo = photos.get(i + 1);
 
-            let mut context = self.base_context();
+            let mut context = self.base_context(data_manifest);
             context.insert("root", &self.root);
             context.insert("album", album);
 
@@ -372,14 +467,14 @@ impl Pipeline {
 
         // Recurse into children
         for child in &album.children {
-            self.render_photos_in_album(child, output_dir, expected)?;
+            self.render_photos_in_album(child, output_dir, data_manifest, expected)?;
         }
 
         Ok(())
     }
 
-    /// Create base context with site info.
-    fn base_context(&self) -> Context {
+    /// Create base context with site info and data URLs.
+    fn base_context(&self, data_manifest: &DataManifest) -> Context {
         let mut context = Context::new();
         context.insert(
             "site",
@@ -394,8 +489,8 @@ impl Pipeline {
             },
         );
 
-        // Add i18n data for client-side language switching
-        context.insert("i18n", &i18n::get_all_translations());
+        // Add data file URLs for async loading
+        context.insert("data_urls", data_manifest);
         context.insert("languages", &self.config.languages());
         context.insert("default_lang", &self.config.default_lang());
 
@@ -455,6 +550,130 @@ impl Pipeline {
 
         for child in &album.children {
             self.collect_album_images(child, images_dir, expected);
+        }
+    }
+
+    /// Generate static data files (i18n and gallery JSON) and return their manifest.
+    fn generate_data_files(&self, expected: &mut HashSet<PathBuf>) -> Result<DataManifest> {
+        let static_dir = self.site_dir.join(&self.config.build).join("static");
+        fs::create_dir_all(&static_dir)?;
+
+        let mut manifest = DataManifest::default();
+
+        // Generate per-language i18n JSON files
+        let i18n_dir = static_dir.join("i18n");
+        fs::create_dir_all(&i18n_dir)?;
+
+        let all_translations = i18n::get_all_translations();
+        for (lang_code, translations) in &all_translations {
+            let lang_json = serde_json::to_string(translations)
+                .map_err(|e| Error::Other(format!("failed to serialize i18n for {}: {}", lang_code, e)))?;
+            let lang_hash = &blake3::hash(lang_json.as_bytes()).to_hex()[..8];
+            let lang_filename = format!("{}-{}.json", lang_code, lang_hash);
+            let lang_path = i18n_dir.join(&lang_filename);
+            fs::write(&lang_path, &lang_json)?;
+            expected.insert(lang_path);
+            manifest.i18n.insert(
+                lang_code.clone(),
+                format!("/static/i18n/{}", lang_filename),
+            );
+        }
+
+        // Generate gallery JSON (photos and albums)
+        let gallery_data = self.build_gallery_data();
+        let gallery_json = serde_json::to_string(&gallery_data)
+            .map_err(|e| Error::Other(format!("failed to serialize gallery: {}", e)))?;
+        let gallery_hash = &blake3::hash(gallery_json.as_bytes()).to_hex()[..8];
+        let gallery_filename = format!("gallery-{}.json", gallery_hash);
+        let gallery_path = static_dir.join(&gallery_filename);
+        fs::write(&gallery_path, &gallery_json)?;
+        expected.insert(gallery_path);
+        manifest.gallery = format!("/static/{}", gallery_filename);
+
+        tracing::debug!(
+            i18n_languages = manifest.i18n.len(),
+            gallery = %manifest.gallery,
+            "generated data files"
+        );
+
+        Ok(manifest)
+    }
+
+    /// Build gallery data structure for JSON serialization.
+    fn build_gallery_data(&self) -> GalleryData {
+        let site = SiteContext {
+            title: self
+                .config
+                .title
+                .clone()
+                .unwrap_or_else(|| self.config.domain.clone()),
+            domain: self.config.domain.clone(),
+            version: VERSION,
+        };
+
+        // Collect all albums (excluding root)
+        let albums: Vec<AlbumData> = self
+            .root
+            .children
+            .iter()
+            .map(|a| AlbumData {
+                name: a.name.clone(),
+                slug: a.slug.clone(),
+                path: a.path.to_string_lossy().to_string(),
+            })
+            .collect();
+
+        // Collect all photos with computed paths
+        let photos: Vec<PhotoData> = self
+            .root
+            .all_photos()
+            .iter()
+            .map(|p| {
+                let album_path = self.find_album_path_for_photo(p);
+                PhotoData {
+                    stem: p.stem.clone(),
+                    hash: p.hash.clone(),
+                    width: p.width,
+                    height: p.height,
+                    image_path: p.image_path(&album_path),
+                    thumb_path: p.thumb_path(&album_path),
+                    original_path: p.original_path(&album_path, self.config.gps),
+                    html_path: p.html_path(&album_path),
+                    metadata: self.convert_photo_metadata(&p.metadata),
+                }
+            })
+            .collect();
+
+        GalleryData {
+            site,
+            albums,
+            photos,
+        }
+    }
+
+    /// Convert photo metadata to JSON-serializable structure.
+    fn convert_photo_metadata(&self, metadata: &crate::photos::PhotoMetadata) -> PhotoMetadataData {
+        PhotoMetadataData {
+            date_taken: metadata.date_taken.clone(),
+            camera: metadata.camera.clone(),
+            lens: metadata.lens.clone(),
+            copyright: metadata.copyright.clone(),
+            gps: metadata.gps.as_ref().map(|g| GpsData {
+                latitude: g.latitude,
+                longitude: g.longitude,
+                display: g.display.clone(),
+                city: g.city.clone(),
+                region: g.region.clone(),
+                country: g.country.clone(),
+                country_code: g.country_code.clone(),
+                flag: g.flag.clone(),
+            }),
+            exposure: metadata.exposure.as_ref().map(|e| ExposureData {
+                aperture: e.aperture.clone(),
+                shutter_speed: e.shutter_speed.clone(),
+                iso: e.iso,
+                focal_length: e.focal_length.clone(),
+            }),
         }
     }
 

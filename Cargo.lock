@@ -984,6 +984,7 @@ dependencies = [
  "rayon",
  "reverse_geocoder",
  "serde",
+ "serde_json",
  "tempfile",
  "tera",
  "test-case",
