@@ -125,6 +125,89 @@ body.viewer-open {
     color: var(--text-primary);
 }
 
+/* Language Dropdown */
+.lang-dropdown {
+    position: relative;
+}
+
+.lang-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.lang-dropdown-trigger:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.lang-dropdown.open .lang-dropdown-trigger {
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.lang-dropdown-arrow {
+    transition: transform var(--transition-fast);
+}
+
+.lang-dropdown.open .lang-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 140px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+    z-index: calc(var(--z-header) + 10);
+}
+
+.lang-dropdown.open .lang-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.lang-dropdown-item:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.lang-dropdown-item.active {
+    color: var(--accent);
+}
+
 /* --------------------------------------------------------------------------
    Gallery / Masonry Grid
    -------------------------------------------------------------------------- */

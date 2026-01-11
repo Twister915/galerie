@@ -12,6 +12,9 @@ body {
 }
 
 header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 1rem 2rem;
     background: #fff;
     border-bottom: 1px solid #eee;
@@ -21,6 +24,33 @@ header {
     color: #333;
     text-decoration: none;
     font-weight: 600;
+}
+
+/* Language Picker */
+.lang-picker {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.lang-picker button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    color: #666;
+    background: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lang-picker button:hover {
+    border-color: #999;
+}
+
+.lang-picker button.active {
+    color: #333;
+    background: #f0f0f0;
+    border-color: #333;
 }
 
 main {

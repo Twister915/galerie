@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// GPS privacy mode for controlling location data visibility.
@@ -26,6 +26,22 @@ impl GpsMode {
             GpsMode::Off | GpsMode::General => "-nogps",
         }
     }
+}
+
+/// Language configuration for i18n support.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LangConfig {
+    /// Language code (e.g., "en", "zh_CN")
+    pub code: String,
+    /// Display name for language switcher (e.g., "English", "简体中文")
+    pub name: String,
+}
+
+fn default_languages() -> Vec<LangConfig> {
+    vec![LangConfig {
+        code: "en".to_string(),
+        name: "English".to_string(),
+    }]
 }
 
 /// Site configuration loaded from site.toml
@@ -61,6 +77,22 @@ pub struct Site {
     /// GPS privacy mode (defaults to "on")
     #[serde(default)]
     pub gps: GpsMode,
+
+    /// Languages to generate (defaults to English only)
+    #[serde(default = "default_languages")]
+    pub languages: Vec<LangConfig>,
+
+    /// Default language code (defaults to first in languages list)
+    pub default_language: Option<String>,
+}
+
+impl Site {
+    /// Returns the default language code.
+    pub fn default_lang(&self) -> &str {
+        self.default_language
+            .as_deref()
+            .unwrap_or_else(|| self.languages.first().map(|l| l.code.as_str()).unwrap_or("en"))
+    }
 }
 
 fn default_theme() -> String {

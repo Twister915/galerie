@@ -6,13 +6,14 @@ use std::sync::Arc;
 use serde::Serialize;
 use tera::{Context, Function, Value};
 
+use crate::builtin_themes;
 use crate::config::Site;
 use crate::error::{Error, Result};
+use crate::i18n;
 use crate::minify;
 use crate::photos::{Album, Photo};
 use crate::processing;
 use crate::theme::{templates, StaticSource, Theme};
-use crate::builtin_themes;
 
 /// Mapping from original asset path to hashed output path.
 /// e.g., "style.css" -> "/static/style-abc12345.css"
@@ -387,6 +388,12 @@ impl Pipeline {
                 domain: self.config.domain.clone(),
             },
         );
+
+        // Add i18n data for client-side language switching
+        context.insert("i18n", &i18n::get_all_translations());
+        context.insert("languages", &self.config.languages);
+        context.insert("default_lang", self.config.default_lang());
+
         context
     }
 

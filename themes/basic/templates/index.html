@@ -5,7 +5,7 @@
 {% block content %}
 {% if root.children %}
 <section class="albums">
-    <h2>Albums</h2>
+    <h2 data-i18n="section.albums">Albums</h2>
     <div class="album-grid">
         {% for album in root.children %}
         <a href="/{{ album.slug }}/" class="album-card">

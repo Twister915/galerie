@@ -34,6 +34,14 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
 
+    <!-- i18n data -->
+    <script id="i18n-data" type="application/json">
+    {{ i18n | json_encode() | safe }}
+    </script>
+    <script id="i18n-config" type="application/json">
+    {"languages": {{ languages | json_encode() | safe }}, "default": "{{ default_lang }}"}
+    </script>
+
     <!-- Theme JS -->
     <script src="{{ static(path='app.js') }}"></script>
 
