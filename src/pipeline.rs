@@ -19,11 +19,15 @@ use crate::theme::{templates, StaticSource, Theme};
 /// e.g., "style.css" -> "/static/style-abc12345.css"
 pub type AssetManifest = HashMap<String, String>;
 
+/// Version injected at build time.
+const VERSION: &str = env!("GIT_VERSION");
+
 /// Site context passed to all templates.
 #[derive(Debug, Serialize)]
 struct SiteContext {
     domain: String,
     title: String,
+    version: &'static str,
 }
 
 /// The pipeline combines configuration, theme, and photos to build a site.
@@ -386,6 +390,7 @@ impl Pipeline {
                     .clone()
                     .unwrap_or_else(|| self.config.domain.clone()),
                 domain: self.config.domain.clone(),
+                version: VERSION,
             },
         );
 

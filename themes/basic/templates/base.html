@@ -21,6 +21,11 @@
         {% block content %}{% endblock content %}
     </main>
 
+    <footer class="site-footer">
+        <a href="https://github.com/Twister915/galerie" target="_blank" rel="noopener">galerie</a>
+        <span class="version">{{ site.version }}</span>
+    </footer>
+
     <!-- i18n data -->
     <script id="i18n-data" type="application/json">
     {{ i18n | json_encode() | safe }}
