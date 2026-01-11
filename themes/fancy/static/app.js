@@ -508,6 +508,20 @@
         if (meta.gps) {
             html += '<div class="meta-section">';
             html += '<h3>Location</h3>';
+            if (meta.gps.city) {
+                var locationParts = [meta.gps.city];
+                if (meta.gps.region) locationParts.push(meta.gps.region);
+                html += '<div class="meta-item">';
+                html += '<span class="meta-label">Place</span>';
+                html += '<span class="meta-value">' + escapeHtml(locationParts.join(', ')) + '</span>';
+                html += '</div>';
+            }
+            if (meta.gps.country) {
+                html += '<div class="meta-item">';
+                html += '<span class="meta-label">Country</span>';
+                html += '<span class="meta-value">' + (meta.gps.flag || '') + ' ' + escapeHtml(meta.gps.country) + '</span>';
+                html += '</div>';
+            }
             html += '<div class="meta-item">';
             html += '<span class="meta-label">Coordinates</span>';
             html += '<span class="meta-value">' + escapeHtml(meta.gps.display) + '</span>';

@@ -82,13 +82,23 @@ pub struct PhotoMetadata {
     pub exposure: Option<ExposureInfo>,
 }
 
-/// GPS coordinates from EXIF data.
+/// GPS coordinates and reverse-geocoded location from EXIF data.
 #[derive(Debug, Clone, Serialize)]
 pub struct GpsCoords {
     pub latitude: f64,
     pub longitude: f64,
-    /// Formatted display string (e.g., "35.6762° N, 139.6503° E")
+    /// Formatted coordinates string (e.g., "35.6762° N, 139.6503° E")
     pub display: String,
+    /// City or locality name
+    pub city: Option<String>,
+    /// State, province, or administrative region
+    pub region: Option<String>,
+    /// Country name
+    pub country: Option<String>,
+    /// ISO 3166-1 alpha-2 country code (e.g., "US", "JP")
+    pub country_code: Option<String>,
+    /// Country flag emoji (e.g., "🇺🇸", "🇯🇵")
+    pub flag: Option<String>,
 }
 
 impl GpsCoords {
@@ -102,11 +112,275 @@ impl GpsCoords {
             longitude.abs(),
             lon_dir
         );
+
+        // Reverse geocode to get location info
+        let geocoder = reverse_geocoder::ReverseGeocoder::new();
+        let result = geocoder.search((latitude, longitude));
+
+        let cc = &result.record.cc;
+        let flag_emoji = country_code_to_flag(cc);
+        let country_name = country_code_to_name(cc);
+
+        let city = Some(result.record.name.to_string());
+        let region = if result.record.admin1.is_empty() {
+            None
+        } else {
+            Some(result.record.admin1.to_string())
+        };
+        let country = country_name.map(|s| s.to_string());
+        let country_code = Some(cc.to_string());
+        let flag = Some(flag_emoji);
+
         Self {
             latitude,
             longitude,
             display,
+            city,
+            region,
+            country,
+            country_code,
+            flag,
         }
+    }
+}
+
+/// Convert ISO 3166-1 alpha-2 country code to flag emoji.
+/// Each letter is converted to a regional indicator symbol.
+fn country_code_to_flag(cc: &str) -> String {
+    cc.chars()
+        .filter_map(|c| {
+            let c = c.to_ascii_uppercase();
+            if c.is_ascii_uppercase() {
+                // Regional indicator symbols start at U+1F1E6 for 'A'
+                let offset = c as u32 - 'A' as u32;
+                char::from_u32(0x1F1E6 + offset)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Convert ISO 3166-1 alpha-2 country code to country name.
+fn country_code_to_name(cc: &str) -> Option<&'static str> {
+    match cc {
+        "AD" => Some("Andorra"),
+        "AE" => Some("United Arab Emirates"),
+        "AF" => Some("Afghanistan"),
+        "AG" => Some("Antigua and Barbuda"),
+        "AI" => Some("Anguilla"),
+        "AL" => Some("Albania"),
+        "AM" => Some("Armenia"),
+        "AO" => Some("Angola"),
+        "AQ" => Some("Antarctica"),
+        "AR" => Some("Argentina"),
+        "AS" => Some("American Samoa"),
+        "AT" => Some("Austria"),
+        "AU" => Some("Australia"),
+        "AW" => Some("Aruba"),
+        "AZ" => Some("Azerbaijan"),
+        "BA" => Some("Bosnia and Herzegovina"),
+        "BB" => Some("Barbados"),
+        "BD" => Some("Bangladesh"),
+        "BE" => Some("Belgium"),
+        "BF" => Some("Burkina Faso"),
+        "BG" => Some("Bulgaria"),
+        "BH" => Some("Bahrain"),
+        "BI" => Some("Burundi"),
+        "BJ" => Some("Benin"),
+        "BM" => Some("Bermuda"),
+        "BN" => Some("Brunei"),
+        "BO" => Some("Bolivia"),
+        "BR" => Some("Brazil"),
+        "BS" => Some("Bahamas"),
+        "BT" => Some("Bhutan"),
+        "BW" => Some("Botswana"),
+        "BY" => Some("Belarus"),
+        "BZ" => Some("Belize"),
+        "CA" => Some("Canada"),
+        "CD" => Some("DR Congo"),
+        "CF" => Some("Central African Republic"),
+        "CG" => Some("Congo"),
+        "CH" => Some("Switzerland"),
+        "CI" => Some("Ivory Coast"),
+        "CL" => Some("Chile"),
+        "CM" => Some("Cameroon"),
+        "CN" => Some("China"),
+        "CO" => Some("Colombia"),
+        "CR" => Some("Costa Rica"),
+        "CU" => Some("Cuba"),
+        "CV" => Some("Cape Verde"),
+        "CY" => Some("Cyprus"),
+        "CZ" => Some("Czechia"),
+        "DE" => Some("Germany"),
+        "DJ" => Some("Djibouti"),
+        "DK" => Some("Denmark"),
+        "DM" => Some("Dominica"),
+        "DO" => Some("Dominican Republic"),
+        "DZ" => Some("Algeria"),
+        "EC" => Some("Ecuador"),
+        "EE" => Some("Estonia"),
+        "EG" => Some("Egypt"),
+        "ER" => Some("Eritrea"),
+        "ES" => Some("Spain"),
+        "ET" => Some("Ethiopia"),
+        "FI" => Some("Finland"),
+        "FJ" => Some("Fiji"),
+        "FK" => Some("Falkland Islands"),
+        "FM" => Some("Micronesia"),
+        "FO" => Some("Faroe Islands"),
+        "FR" => Some("France"),
+        "GA" => Some("Gabon"),
+        "GB" => Some("United Kingdom"),
+        "GD" => Some("Grenada"),
+        "GE" => Some("Georgia"),
+        "GH" => Some("Ghana"),
+        "GI" => Some("Gibraltar"),
+        "GL" => Some("Greenland"),
+        "GM" => Some("Gambia"),
+        "GN" => Some("Guinea"),
+        "GQ" => Some("Equatorial Guinea"),
+        "GR" => Some("Greece"),
+        "GT" => Some("Guatemala"),
+        "GU" => Some("Guam"),
+        "GW" => Some("Guinea-Bissau"),
+        "GY" => Some("Guyana"),
+        "HK" => Some("Hong Kong"),
+        "HN" => Some("Honduras"),
+        "HR" => Some("Croatia"),
+        "HT" => Some("Haiti"),
+        "HU" => Some("Hungary"),
+        "ID" => Some("Indonesia"),
+        "IE" => Some("Ireland"),
+        "IL" => Some("Israel"),
+        "IN" => Some("India"),
+        "IQ" => Some("Iraq"),
+        "IR" => Some("Iran"),
+        "IS" => Some("Iceland"),
+        "IT" => Some("Italy"),
+        "JM" => Some("Jamaica"),
+        "JO" => Some("Jordan"),
+        "JP" => Some("Japan"),
+        "KE" => Some("Kenya"),
+        "KG" => Some("Kyrgyzstan"),
+        "KH" => Some("Cambodia"),
+        "KI" => Some("Kiribati"),
+        "KM" => Some("Comoros"),
+        "KN" => Some("Saint Kitts and Nevis"),
+        "KP" => Some("North Korea"),
+        "KR" => Some("South Korea"),
+        "KW" => Some("Kuwait"),
+        "KY" => Some("Cayman Islands"),
+        "KZ" => Some("Kazakhstan"),
+        "LA" => Some("Laos"),
+        "LB" => Some("Lebanon"),
+        "LC" => Some("Saint Lucia"),
+        "LI" => Some("Liechtenstein"),
+        "LK" => Some("Sri Lanka"),
+        "LR" => Some("Liberia"),
+        "LS" => Some("Lesotho"),
+        "LT" => Some("Lithuania"),
+        "LU" => Some("Luxembourg"),
+        "LV" => Some("Latvia"),
+        "LY" => Some("Libya"),
+        "MA" => Some("Morocco"),
+        "MC" => Some("Monaco"),
+        "MD" => Some("Moldova"),
+        "ME" => Some("Montenegro"),
+        "MG" => Some("Madagascar"),
+        "MH" => Some("Marshall Islands"),
+        "MK" => Some("North Macedonia"),
+        "ML" => Some("Mali"),
+        "MM" => Some("Myanmar"),
+        "MN" => Some("Mongolia"),
+        "MO" => Some("Macau"),
+        "MR" => Some("Mauritania"),
+        "MT" => Some("Malta"),
+        "MU" => Some("Mauritius"),
+        "MV" => Some("Maldives"),
+        "MW" => Some("Malawi"),
+        "MX" => Some("Mexico"),
+        "MY" => Some("Malaysia"),
+        "MZ" => Some("Mozambique"),
+        "NA" => Some("Namibia"),
+        "NC" => Some("New Caledonia"),
+        "NE" => Some("Niger"),
+        "NG" => Some("Nigeria"),
+        "NI" => Some("Nicaragua"),
+        "NL" => Some("Netherlands"),
+        "NO" => Some("Norway"),
+        "NP" => Some("Nepal"),
+        "NR" => Some("Nauru"),
+        "NZ" => Some("New Zealand"),
+        "OM" => Some("Oman"),
+        "PA" => Some("Panama"),
+        "PE" => Some("Peru"),
+        "PF" => Some("French Polynesia"),
+        "PG" => Some("Papua New Guinea"),
+        "PH" => Some("Philippines"),
+        "PK" => Some("Pakistan"),
+        "PL" => Some("Poland"),
+        "PR" => Some("Puerto Rico"),
+        "PS" => Some("Palestine"),
+        "PT" => Some("Portugal"),
+        "PW" => Some("Palau"),
+        "PY" => Some("Paraguay"),
+        "QA" => Some("Qatar"),
+        "RO" => Some("Romania"),
+        "RS" => Some("Serbia"),
+        "RU" => Some("Russia"),
+        "RW" => Some("Rwanda"),
+        "SA" => Some("Saudi Arabia"),
+        "SB" => Some("Solomon Islands"),
+        "SC" => Some("Seychelles"),
+        "SD" => Some("Sudan"),
+        "SE" => Some("Sweden"),
+        "SG" => Some("Singapore"),
+        "SI" => Some("Slovenia"),
+        "SK" => Some("Slovakia"),
+        "SL" => Some("Sierra Leone"),
+        "SM" => Some("San Marino"),
+        "SN" => Some("Senegal"),
+        "SO" => Some("Somalia"),
+        "SR" => Some("Suriname"),
+        "SS" => Some("South Sudan"),
+        "ST" => Some("Sao Tome and Principe"),
+        "SV" => Some("El Salvador"),
+        "SY" => Some("Syria"),
+        "SZ" => Some("Eswatini"),
+        "TC" => Some("Turks and Caicos"),
+        "TD" => Some("Chad"),
+        "TG" => Some("Togo"),
+        "TH" => Some("Thailand"),
+        "TJ" => Some("Tajikistan"),
+        "TL" => Some("Timor-Leste"),
+        "TM" => Some("Turkmenistan"),
+        "TN" => Some("Tunisia"),
+        "TO" => Some("Tonga"),
+        "TR" => Some("Turkey"),
+        "TT" => Some("Trinidad and Tobago"),
+        "TV" => Some("Tuvalu"),
+        "TW" => Some("Taiwan"),
+        "TZ" => Some("Tanzania"),
+        "UA" => Some("Ukraine"),
+        "UG" => Some("Uganda"),
+        "US" => Some("United States"),
+        "UY" => Some("Uruguay"),
+        "UZ" => Some("Uzbekistan"),
+        "VA" => Some("Vatican City"),
+        "VC" => Some("Saint Vincent and the Grenadines"),
+        "VE" => Some("Venezuela"),
+        "VG" => Some("British Virgin Islands"),
+        "VI" => Some("U.S. Virgin Islands"),
+        "VN" => Some("Vietnam"),
+        "VU" => Some("Vanuatu"),
+        "WS" => Some("Samoa"),
+        "XK" => Some("Kosovo"),
+        "YE" => Some("Yemen"),
+        "ZA" => Some("South Africa"),
+        "ZM" => Some("Zambia"),
+        "ZW" => Some("Zimbabwe"),
+        _ => None,
     }
 }
 

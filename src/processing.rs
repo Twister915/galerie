@@ -276,7 +276,15 @@ fn extract_exposure(exif: &exif::Exif) -> Option<ExposureInfo> {
 
     let shutter_speed = exif
         .get_field(exif::Tag::ExposureTime, exif::In::PRIMARY)
-        .map(|f| f.display_value().to_string());
+        .map(|f| {
+            let value = f.display_value().to_string();
+            // Add "s" suffix for whole seconds (no fraction)
+            if value.contains('/') {
+                value
+            } else {
+                format!("{}s", value)
+            }
+        });
 
     let iso = exif
         .get_field(exif::Tag::PhotographicSensitivity, exif::In::PRIMARY)

@@ -90,7 +90,15 @@
                 "camera": {{ photo.metadata.camera | json_encode() | safe }},
                 "lens": {{ photo.metadata.lens | json_encode() | safe }},
                 "copyright": {{ photo.metadata.copyright | json_encode() | safe }},
-                "gps": {% if photo.metadata.gps %}{"latitude": {{ photo.metadata.gps.latitude }}, "longitude": {{ photo.metadata.gps.longitude }}, "display": {{ photo.metadata.gps.display | json_encode() | safe }}}{% else %}null{% endif %},
+                "gps": {% if photo.metadata.gps %}{
+                    "latitude": {{ photo.metadata.gps.latitude }},
+                    "longitude": {{ photo.metadata.gps.longitude }},
+                    "display": {{ photo.metadata.gps.display | json_encode() | safe }},
+                    "city": {{ photo.metadata.gps.city | json_encode() | safe }},
+                    "region": {{ photo.metadata.gps.region | json_encode() | safe }},
+                    "country": {{ photo.metadata.gps.country | json_encode() | safe }},
+                    "flag": {{ photo.metadata.gps.flag | json_encode() | safe }}
+                }{% else %}null{% endif %},
                 "exposure": {% if photo.metadata.exposure %}{
                     "aperture": {{ photo.metadata.exposure.aperture | json_encode() | safe }},
                     "shutterSpeed": {{ photo.metadata.exposure.shutter_speed | json_encode() | safe }},
