@@ -24,6 +24,7 @@
     var SWIPE_THRESHOLD = 50;           // Minimum distance for swipe gesture
     var SWIPE_TIME_LIMIT = 300;         // Max time for swipe gesture (ms)
     var CONTROLS_HIDE_DELAY = 2000;     // Auto-hide controls after 2 seconds
+    var NAVIGATION_DEBOUNCE = 100;      // Debounce navigation inputs (ms)
 
     // ==========================================================================
     // State
@@ -52,7 +53,9 @@
         slideshowPlaying: false,
         slideshowInterval: null,
         // Navigation generation counter (to ignore stale crossfade callbacks)
-        navigationGen: 0
+        navigationGen: 0,
+        // Debounce: timestamp of last navigation
+        lastNavigationTime: 0
     };
 
     // Touch handling state
@@ -563,8 +566,11 @@
             thumb.style.cssText = 'position:absolute;left:' + (i * FILMSTRIP_THUMB_WIDTH) + 'px;';
 
             var img = document.createElement('img');
-            img.src = photo.thumbPath;
+            // Use micro thumbnails for filmstrip (smaller, faster loading)
+            // Low priority so main image loads first
+            img.src = photo.microThumbPath;
             img.alt = photo.stem;
+            img.fetchPriority = 'low';
 
             thumb.appendChild(img);
             fragment.appendChild(thumb);
@@ -623,33 +629,52 @@
         var currentImg = dom.viewerImage.classList.contains('active') ? dom.viewerImage : dom.viewerImageNext;
         var nextImg = currentImg === dom.viewerImage ? dom.viewerImageNext : dom.viewerImage;
 
-        // Use cross-fade in big picture mode (after first image load)
+        // Helper to update filmstrip after main image starts loading
+        var filmstripUpdated = false;
+        function updateFilmstripDeferred() {
+            if (filmstripUpdated) return;
+            filmstripUpdated = true;
+            updateFilmstripVisibleRange();
+            updateFilmstrip();
+        }
+
+        // Use crossfade only in big picture mode for photo-to-photo transitions
         var useCrossfade = state.bigPictureMode && !isFirstOpen && dom.viewerImageContainer;
 
         if (useCrossfade) {
             dom.viewerImageContainer.classList.add('crossfade');
+        } else if (dom.viewerImageContainer) {
+            dom.viewerImageContainer.classList.remove('crossfade');
+        }
+
+        // Set aspect ratio so thumbnail scales to full image size
+        var aspectRatio = photo.width + ' / ' + photo.height;
+        currentImg.style.aspectRatio = aspectRatio;
+        nextImg.style.aspectRatio = aspectRatio;
+
+        // Track loading state
+        var thumbLoaded = false;
+        var fullLoaded = false;
+
+        if (useCrossfade) {
+            // Big picture mode: crossfade between photos
             dom.viewerImageContainer.classList.remove('loading');
 
-            // Preload new image, then load into element and wait for it to render
             var preload = new Image();
+            preload.fetchPriority = 'high';
             preload.onload = function() {
-                // Ignore if a newer navigation has started
                 if (state.navigationGen !== thisGen) return;
 
-                // Set src on the actual img element
                 nextImg.src = photo.imagePath;
                 nextImg.alt = photo.stem;
+                updateFilmstripDeferred();
 
-                // Wait for the img element to load (should be instant from cache)
-                // This ensures the browser has rendered it before we fade
                 if (nextImg.complete) {
-                    // Already loaded (cached), swap immediately
                     currentImg.classList.remove('active');
                     nextImg.classList.add('active');
                 } else {
                     nextImg.onload = function() {
                         nextImg.onload = null;
-                        // Check generation again after async load
                         if (state.navigationGen !== thisGen) return;
                         currentImg.classList.remove('active');
                         nextImg.classList.add('active');
@@ -657,54 +682,81 @@
                 }
             };
             preload.onerror = function() {
-                // Ignore if a newer navigation has started
                 if (state.navigationGen !== thisGen) return;
                 nextImg.src = photo.imagePath;
                 nextImg.alt = photo.stem;
                 currentImg.classList.remove('active');
                 nextImg.classList.add('active');
+                updateFilmstripDeferred();
             };
             preload.src = photo.imagePath;
         } else {
-            // Standard loading with spinner
-            if (dom.viewerImageContainer) {
-                dom.viewerImageContainer.classList.remove('crossfade');
-                dom.viewerImageContainer.classList.add('loading');
-            }
+            // Normal mode: show thumb immediately, snap to full when ready
+            // Use a single image element - no crossfade for thumb -> full
 
-            var newImg = new Image();
-            newImg.onload = function() {
-                // Ignore if a newer navigation has started
+            // Step 1: Show thumbnail immediately (usually cached from grid)
+            var thumbImg = new Image();
+            thumbImg.onload = function() {
                 if (state.navigationGen !== thisGen) return;
+                thumbLoaded = true;
+
+                // If full image already loaded, skip showing thumb
+                if (fullLoaded) return;
+
+                // Show thumbnail
+                dom.viewerImage.src = photo.thumbPath;
+                dom.viewerImage.alt = photo.stem;
+                dom.viewerImage.classList.add('active');
+                if (dom.viewerImageNext) {
+                    dom.viewerImageNext.classList.remove('active');
+                }
+
+                if (dom.viewerImageContainer) {
+                    dom.viewerImageContainer.classList.remove('loading');
+                }
+            };
+            thumbImg.src = photo.thumbPath;
+
+            // Step 2: Load full image, snap to it when ready (no crossfade)
+            var fullImg = new Image();
+            fullImg.fetchPriority = 'high';
+            fullImg.onload = function() {
+                if (state.navigationGen !== thisGen) return;
+                fullLoaded = true;
+
+                // Just swap src on same element - instant snap, no crossfade
                 dom.viewerImage.src = photo.imagePath;
                 dom.viewerImage.alt = photo.stem;
                 dom.viewerImage.classList.add('active');
                 if (dom.viewerImageNext) {
                     dom.viewerImageNext.classList.remove('active');
                 }
+
+                updateFilmstripDeferred();
+
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
             };
-            newImg.onerror = function() {
-                // Ignore if a newer navigation has started
+            fullImg.onerror = function() {
                 if (state.navigationGen !== thisGen) return;
-                dom.viewerImage.src = photo.imagePath;
-                dom.viewerImage.alt = photo.stem;
-                dom.viewerImage.classList.add('active');
-                if (dom.viewerImageNext) {
-                    dom.viewerImageNext.classList.remove('active');
-                }
+                updateFilmstripDeferred();
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
             };
-            newImg.src = photo.imagePath;
+            fullImg.src = photo.imagePath;
+
+            // If neither loads quickly, show spinner
+            setTimeout(function() {
+                if (state.navigationGen !== thisGen) return;
+                if (!thumbLoaded && !fullLoaded && dom.viewerImageContainer) {
+                    dom.viewerImageContainer.classList.add('loading');
+                }
+            }, 100);
         }
 
         updateNavButtons();
-        updateFilmstripVisibleRange();
-        updateFilmstrip();
         updateDrawerContent(photo);
         preloadAdjacentImages(index);
 
@@ -743,6 +795,13 @@
     }
 
     function navigatePhoto(direction) {
+        // Debounce rapid navigation inputs
+        var now = Date.now();
+        if (now - state.lastNavigationTime < NAVIGATION_DEBOUNCE) {
+            return;
+        }
+        state.lastNavigationTime = now;
+
         var newIndex = state.currentPhotoIndex + direction;
         if (newIndex >= 0 && newIndex < state.photos.length) {
             openViewer(newIndex);

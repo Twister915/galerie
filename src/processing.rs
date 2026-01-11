@@ -3,7 +3,8 @@
 //! Processes photos to generate:
 //! - BLAKE3 content hash for cache-busting
 //! - EXIF metadata extraction
-//! - Thumbnail (600px WebP, lossy)
+//! - Micro thumbnail (120px WebP, lossy) for filmstrips
+//! - Thumbnail (600px WebP, lossy) for grid display
 //! - Full-size web image (2400px max WebP, lossy)
 //! - Original copy
 //!
@@ -28,6 +29,8 @@ use crate::error::Result;
 use crate::photos::{Album, ExposureInfo, GpsCoords, Photo, PhotoMetadata};
 
 // Hardcoded defaults - can be made configurable later if needed
+const MICRO_THUMB_SIZE: u32 = 120;
+const MICRO_THUMB_QUALITY: f32 = 70.0;
 const THUMB_SIZE: u32 = 600;
 const THUMB_QUALITY: f32 = 80.0;
 const FULL_SIZE: u32 = 2400;
@@ -152,6 +155,8 @@ fn process_photo(
     photo.height = height;
 
     // Build output paths
+    let micro_thumb_path =
+        images_dir.join(format!("{}-{}-micro.webp", photo.stem, photo.hash));
     let thumb_path = images_dir.join(format!("{}-{}-thumb.webp", photo.stem, photo.hash));
     let full_path = images_dir.join(format!("{}-{}-full.webp", photo.stem, photo.hash));
     let original_path = images_dir.join(format!(
@@ -160,11 +165,12 @@ fn process_photo(
     ));
 
     // Check what needs to be generated
+    let need_micro = !micro_thumb_path.exists();
     let need_thumb = !thumb_path.exists();
     let need_full = !full_path.exists();
     let need_original = !original_path.exists();
 
-    if !need_thumb && !need_full && !need_original {
+    if !need_micro && !need_thumb && !need_full && !need_original {
         tracing::debug!(photo = %photo.stem, hash = %photo.hash, "cached");
         return Ok(PhotoProcessingResult {
             generated_webp: false,
@@ -174,15 +180,21 @@ fn process_photo(
 
     tracing::debug!(
         photo = %photo.stem,
+        need_micro,
         need_thumb,
         need_full,
         need_original,
         "processing"
     );
 
-    // Only decode image if we need thumb or full
-    if need_thumb || need_full {
+    // Only decode image if we need any webp variant
+    if need_micro || need_thumb || need_full {
         let img = image::load_from_memory(&original_data)?;
+
+        if need_micro {
+            let micro_data = generate_variant(&img, MICRO_THUMB_SIZE, MICRO_THUMB_QUALITY)?;
+            fs::write(&micro_thumb_path, &micro_data)?;
+        }
 
         if need_thumb {
             let thumb_data = generate_variant(&img, THUMB_SIZE, THUMB_QUALITY)?;

@@ -65,6 +65,7 @@ struct PhotoData {
     height: u32,
     image_path: String,
     thumb_path: String,
+    micro_thumb_path: String,
     original_path: String,
     html_path: String,
     metadata: PhotoMetadataData,
@@ -298,6 +299,7 @@ impl Pipeline {
                     photo: (*p).clone(),
                     image_path: p.image_path(&album_path),
                     thumb_path: p.thumb_path(&album_path),
+                    micro_thumb_path: p.micro_thumb_path(&album_path),
                     original_path: p.original_path(&album_path, self.config.gps),
                     html_path: p.html_path(&album_path),
                 }
@@ -352,6 +354,7 @@ impl Pipeline {
                     photo: p.clone(),
                     image_path: p.image_path(&album.path),
                     thumb_path: p.thumb_path(&album.path),
+                    micro_thumb_path: p.micro_thumb_path(&album.path),
                     original_path: p.original_path(&album.path, self.config.gps),
                     html_path: p.html_path(&album.path),
                 })
@@ -414,6 +417,7 @@ impl Pipeline {
                 photo: photo.clone(),
                 image_path: photo.image_path(&album.path),
                 thumb_path: photo.thumb_path(&album.path),
+                micro_thumb_path: photo.micro_thumb_path(&album.path),
                 original_path: photo.original_path(&album.path, self.config.gps),
                 html_path: photo.html_path(&album.path),
             };
@@ -427,6 +431,7 @@ impl Pipeline {
                         photo: p.clone(),
                         image_path: p.image_path(&album.path),
                         thumb_path: p.thumb_path(&album.path),
+                        micro_thumb_path: p.micro_thumb_path(&album.path),
                         original_path: p.original_path(&album.path, self.config.gps),
                         html_path: p.html_path(&album.path),
                     },
@@ -439,6 +444,7 @@ impl Pipeline {
                         photo: p.clone(),
                         image_path: p.image_path(&album.path),
                         thumb_path: p.thumb_path(&album.path),
+                        micro_thumb_path: p.micro_thumb_path(&album.path),
                         original_path: p.original_path(&album.path, self.config.gps),
                         html_path: p.html_path(&album.path),
                     },
@@ -534,6 +540,10 @@ impl Pipeline {
 
         for photo in &album.photos {
             // Matches processing.rs naming: {stem}-{hash}-{variant}.{ext}
+            expected.insert(album_images_dir.join(format!(
+                "{}-{}-micro.webp",
+                photo.stem, photo.hash
+            )));
             expected.insert(album_images_dir.join(format!(
                 "{}-{}-thumb.webp",
                 photo.stem, photo.hash
@@ -637,6 +647,7 @@ impl Pipeline {
                     height: p.height,
                     image_path: p.image_path(&album_path),
                     thumb_path: p.thumb_path(&album_path),
+                    micro_thumb_path: p.micro_thumb_path(&album_path),
                     original_path: p.original_path(&album_path, self.config.gps),
                     html_path: p.html_path(&album_path),
                     metadata: self.convert_photo_metadata(&p.metadata),
@@ -722,6 +733,7 @@ struct PhotoWithPaths {
     photo: Photo,
     image_path: String,
     thumb_path: String,
+    micro_thumb_path: String,
     original_path: String,
     html_path: String,
 }

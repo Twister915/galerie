@@ -349,6 +349,8 @@ body.viewer-open {
 .viewer-image {
     max-width: 100%;
     max-height: calc(100vh - var(--filmstrip-height) - 100px);
+    width: auto;
+    height: auto;
     object-fit: contain;
     user-select: none;
     transition: opacity var(--transition-normal);
@@ -373,6 +375,10 @@ body.viewer-open {
     display: block;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+    /* Scale to fill container while respecting max constraints and aspect-ratio */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .viewer-image-container.crossfade .viewer-image.active {

@@ -492,6 +492,25 @@ impl Photo {
         }
     }
 
+    /// URL path to the micro thumbnail WebP (e.g., "images/album/photo-abc123-micro.webp")
+    ///
+    /// Micro thumbnails are very small (120px) for use in filmstrips and other UI
+    /// elements where fast loading is more important than detail.
+    pub fn micro_thumb_path(&self, album_path: &Path) -> String {
+        let encoded_stem = url_encode(&self.stem);
+        if album_path.as_os_str().is_empty() {
+            format!("images/{}-{}-micro.webp", encoded_stem, self.hash)
+        } else {
+            let encoded_album = url_encode_path(&album_path.display().to_string());
+            format!(
+                "images/{}/{}-{}-micro.webp",
+                encoded_album,
+                encoded_stem,
+                self.hash
+            )
+        }
+    }
+
     /// URL path to the original image (e.g., "images/album/photo-abc123-original.jpg")
     ///
     /// When GPS mode is not `On`, the filename includes `-nogps` suffix to indicate
