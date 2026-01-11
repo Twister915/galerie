@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::i18n;
+
 /// GPS privacy mode for controlling location data visibility.
 #[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -34,13 +36,22 @@ pub struct LangConfig {
     /// Language code (e.g., "en", "zh_CN")
     pub code: String,
     /// Display name for language switcher (e.g., "English", "简体中文")
+    /// If not specified, looked up from built-in language list.
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+/// Resolved language config with guaranteed name.
+#[derive(Debug, Clone, Serialize)]
+pub struct ResolvedLangConfig {
+    pub code: String,
     pub name: String,
 }
 
 fn default_languages() -> Vec<LangConfig> {
     vec![LangConfig {
         code: "en".to_string(),
-        name: "English".to_string(),
+        name: None,
     }]
 }
 
@@ -79,8 +90,13 @@ pub struct Site {
     pub gps: GpsMode,
 
     /// Languages to generate (defaults to English only)
+    /// Ignored if `all_languages` is true.
     #[serde(default = "default_languages")]
     pub languages: Vec<LangConfig>,
+
+    /// Enable all supported languages (overrides `languages` list)
+    #[serde(default)]
+    pub all_languages: bool,
 
     /// Default language code (defaults to first in languages list)
     pub default_language: Option<String>,
@@ -88,10 +104,50 @@ pub struct Site {
 
 impl Site {
     /// Returns the default language code.
-    pub fn default_lang(&self) -> &str {
+    pub fn default_lang(&self) -> String {
         self.default_language
-            .as_deref()
-            .unwrap_or_else(|| self.languages.first().map(|l| l.code.as_str()).unwrap_or("en"))
+            .clone()
+            .unwrap_or_else(|| {
+                self.languages
+                    .first()
+                    .map(|l| l.code.clone())
+                    .unwrap_or_else(|| "en".to_string())
+            })
+    }
+
+    /// Returns the languages to use, respecting `all_languages` flag.
+    /// Names are resolved from built-in list if not specified.
+    pub fn languages(&self) -> Vec<ResolvedLangConfig> {
+        let builtin: std::collections::HashMap<&str, &str> = i18n::all_supported_languages()
+            .into_iter()
+            .map(|l| (l.code, l.name))
+            .collect();
+
+        if self.all_languages {
+            i18n::all_supported_languages()
+                .into_iter()
+                .map(|l| ResolvedLangConfig {
+                    code: l.code.to_string(),
+                    name: l.name.to_string(),
+                })
+                .collect()
+        } else {
+            self.languages
+                .iter()
+                .map(|l| {
+                    let name = l.name.clone().unwrap_or_else(|| {
+                        builtin
+                            .get(l.code.as_str())
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| l.code.clone())
+                    });
+                    ResolvedLangConfig {
+                        code: l.code.clone(),
+                        name,
+                    }
+                })
+                .collect()
+        }
     }
 }
 

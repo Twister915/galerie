@@ -396,8 +396,8 @@ impl Pipeline {
 
         // Add i18n data for client-side language switching
         context.insert("i18n", &i18n::get_all_translations());
-        context.insert("languages", &self.config.languages);
-        context.insert("default_lang", self.config.default_lang());
+        context.insert("languages", &self.config.languages());
+        context.insert("default_lang", &self.config.default_lang());
 
         context
     }

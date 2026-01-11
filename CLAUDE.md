@@ -70,3 +70,46 @@ Key principles:
 - Block format for dependencies with features
 
 Reference the full style guide when writing new modules or making architectural decisions.
+
+## Internationalization (i18n)
+
+galerie supports 13 languages. When making changes that involve user-facing text, you MUST:
+
+1. **Never hardcode user-facing strings** in templates or JavaScript. Use translation keys instead.
+
+2. **Add new translation keys** to `src/i18n.rs` in ALL language functions when adding new UI text:
+   - `translations_en()` - English
+   - `translations_zh_cn()` - Simplified Chinese
+   - `translations_es()` - Spanish
+   - `translations_fr()` - French
+   - `translations_nl()` - Dutch
+   - `translations_de()` - German
+   - `translations_uk()` - Ukrainian
+   - `translations_ru()` - Russian
+   - `translations_ja()` - Japanese
+   - `translations_ar()` - Arabic
+   - `translations_hi()` - Hindi
+   - `translations_he()` - Hebrew
+   - `translations_it()` - Italian
+
+3. **Use proper key namespacing**:
+   - `nav.*` - Navigation elements
+   - `section.*` - Section headers
+   - `field.*` - Field labels
+   - `action.*` - Action buttons
+   - `footer.*` - Footer text
+   - `country.*` - Country names (ISO 3166-1 alpha-2 codes)
+
+4. **Handle word order differences**: Some languages (Japanese, Chinese, Hindi) place verbs after nouns. Use `footer.built_with` (prefix) and `footer.built_with_suffix` (suffix) pattern when needed.
+
+5. **In templates**: Use `data-i18n` attributes for static text:
+   ```html
+   <span data-i18n="nav.previous">Previous</span>
+   ```
+
+6. **In JavaScript**: Use the `t()` function:
+   ```javascript
+   var label = t('field.camera');
+   ```
+
+7. **For country names**: The GPS data includes `countryCode` (ISO alpha-2). Use `t('country.' + countryCode)` to get localized country names.

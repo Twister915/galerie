@@ -22,8 +22,10 @@
     </main>
 
     <footer class="site-footer">
+        <span data-i18n="footer.built_with">Built with</span>
         <a href="https://github.com/Twister915/galerie" target="_blank" rel="noopener">galerie</a>
         <span class="version">{{ site.version }}</span>
+        <span data-i18n="footer.built_with_suffix"></span>
     </footer>
 
     <!-- i18n data -->
@@ -62,7 +64,13 @@
 
         function t(key) {
             var lang = getLang();
-            return (i18n[lang] && i18n[lang][key]) || (i18n[defaultLang] && i18n[defaultLang][key]) || key;
+            if (i18n[lang] && typeof i18n[lang][key] === 'string') {
+                return i18n[lang][key];
+            }
+            if (i18n[defaultLang] && typeof i18n[defaultLang][key] === 'string') {
+                return i18n[defaultLang][key];
+            }
+            return key;
         }
 
         function applyTranslations() {

@@ -90,6 +90,15 @@ minify = true
 # Optional: GPS privacy mode (defaults to "on")
 # See "GPS Privacy" section below
 gps = "general"
+
+# Optional: enable all 13 supported languages
+all_languages = true
+
+# Or specify languages individually (names auto-detected)
+# [[languages]]
+# code = "en"
+# [[languages]]
+# code = "zh_CN"
 ```
 
 ## GPS Privacy
@@ -257,6 +266,99 @@ When `gps = "general"`, the `latitude`, `longitude`, and `display` fields are `n
 <link rel="stylesheet" href="{{ static(path='style.css') }}">
 <!-- Output: /static/style-abc123.css -->
 ```
+
+## Internationalization (i18n)
+
+galerie includes a client-side internationalization system supporting 13 languages out of the box.
+
+### Supported Languages
+
+| Code | Language | Code | Language |
+|------|----------|------|----------|
+| en | English | ru | Russian |
+| zh_CN | Simplified Chinese | ja | Japanese |
+| es | Spanish | ar | Arabic |
+| fr | French | hi | Hindi |
+| nl | Dutch | he | Hebrew |
+| de | German | it | Italian |
+| uk | Ukrainian | | |
+
+### Configuration
+
+**Enable all 13 languages:**
+
+```toml
+all_languages = true
+```
+
+**Or select specific languages** (display names are auto-detected):
+
+```toml
+[[languages]]
+code = "en"
+
+[[languages]]
+code = "zh_CN"
+
+[[languages]]
+code = "ja"
+```
+
+**Override display names** if needed:
+
+```toml
+[[languages]]
+code = "en"
+name = "English (US)"
+```
+
+If neither `all_languages` nor `languages` is specified, the site defaults to English only and no language picker is shown.
+
+### How It Works
+
+- **Client-side switching**: All translations are embedded in the HTML as JSON. Language switching happens instantly via JavaScript without page reloads.
+- **Browser detection**: On first visit, the user's browser language preferences are checked and the best matching language is auto-selected.
+- **Persistence**: User's language choice is saved in `localStorage` and persists across sessions.
+- **Fallback**: If a translation key is missing in the selected language, English is used as fallback.
+
+### What Gets Translated
+
+- **UI elements**: Navigation labels, section headers, field names, action buttons
+- **Country names**: ~50 common countries are translated in all languages
+- **Footer branding**: "Built with galerie" adapts to each language's word order
+
+### Theme Integration
+
+Both built-in themes (`basic` and `fancy`) support i18n. For the `fancy` theme:
+- A dropdown language picker appears in the header when multiple languages are configured
+- The info drawer metadata labels are translated
+- Country names in GPS location data are localized
+
+For custom themes, use the `data-i18n` attribute on elements:
+
+```html
+<span data-i18n="nav.previous">Previous</span>
+```
+
+Or use the `t()` function in JavaScript:
+
+```javascript
+var label = t('field.camera');  // Returns translated "Camera"
+```
+
+### Available Translation Keys
+
+**Navigation**: `nav.previous`, `nav.next`, `nav.index`, `nav.close`
+
+**Sections**: `section.albums`, `section.photo`, `section.date`, `section.camera`, `section.exposure`, `section.location`, `section.copyright`
+
+**Fields**: `field.name`, `field.taken`, `field.camera`, `field.lens`, `field.aperture`, `field.shutter`, `field.iso`, `field.focal_length`, `field.place`, `field.country`, `field.coordinates`
+
+**Actions**: `action.download`, `action.toggle_info`
+
+**Footer**: `footer.built_with`, `footer.built_with_suffix`
+
+**Countries**: `country.{CODE}` where CODE is ISO 3166-1 alpha-2 (e.g., `country.US`, `country.JP`)
 
 ## Image Processing
 

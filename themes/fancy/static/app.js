@@ -71,6 +71,7 @@
     function setLang(lang) {
         localStorage.setItem('lang', lang);
         document.documentElement.lang = lang;
+        applyTranslations();
         // Re-render current content
         if (state.currentPhotoIndex >= 0) {
             updateDrawerContent(state.photos[state.currentPhotoIndex]);
@@ -78,11 +79,22 @@
         updateLangPicker();
     }
 
+    function applyTranslations() {
+        var elements = document.querySelectorAll('[data-i18n]');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].textContent = t(elements[i].getAttribute('data-i18n'));
+        }
+    }
+
     function t(key) {
         var lang = getLang();
-        return (i18nData[lang] && i18nData[lang][key])
-            || (i18nData[i18nConfig.default] && i18nData[i18nConfig.default][key])
-            || key;
+        if (i18nData[lang] && typeof i18nData[lang][key] === 'string') {
+            return i18nData[lang][key];
+        }
+        if (i18nData[i18nConfig.default] && typeof i18nData[i18nConfig.default][key] === 'string') {
+            return i18nData[i18nConfig.default][key];
+        }
+        return key;
     }
 
     function updateLangPicker() {
@@ -194,8 +206,9 @@
     }
 
     function setupLangPicker() {
-        // Set document language
+        // Set document language and apply translations
         document.documentElement.lang = getLang();
+        applyTranslations();
 
         var dropdown = document.getElementById('lang-dropdown');
         var trigger = document.getElementById('lang-dropdown-trigger');
@@ -639,9 +652,15 @@
                 html += '</div>';
             }
             if (meta.gps.country) {
+                // Use translated country name if available, otherwise fall back to raw name
+                var countryName = meta.gps.countryCode
+                    ? (t('country.' + meta.gps.countryCode) !== 'country.' + meta.gps.countryCode
+                        ? t('country.' + meta.gps.countryCode)
+                        : meta.gps.country)
+                    : meta.gps.country;
                 html += '<div class="meta-item">';
                 html += '<span class="meta-label">' + t('field.country') + '</span>';
-                html += '<span class="meta-value">' + (meta.gps.flag || '') + ' ' + escapeHtml(meta.gps.country) + '</span>';
+                html += '<span class="meta-value">' + (meta.gps.flag || '') + ' ' + escapeHtml(countryName) + '</span>';
                 html += '</div>';
             }
             // Only show coordinates and map if display is present (not in "general" mode)
