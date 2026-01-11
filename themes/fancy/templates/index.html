@@ -91,8 +91,8 @@
                 "lens": {{ photo.metadata.lens | json_encode() | safe }},
                 "copyright": {{ photo.metadata.copyright | json_encode() | safe }},
                 "gps": {% if photo.metadata.gps %}{
-                    "latitude": {{ photo.metadata.gps.latitude }},
-                    "longitude": {{ photo.metadata.gps.longitude }},
+                    "latitude": {{ photo.metadata.gps.latitude | json_encode() | safe }},
+                    "longitude": {{ photo.metadata.gps.longitude | json_encode() | safe }},
                     "display": {{ photo.metadata.gps.display | json_encode() | safe }},
                     "city": {{ photo.metadata.gps.city | json_encode() | safe }},
                     "region": {{ photo.metadata.gps.region | json_encode() | safe }},

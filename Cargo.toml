@@ -9,7 +9,7 @@ tracing = "0.1"
 toml = "0.8"
 image = "0.25"
 walkdir = "2"
-kamadak-exif = "0.5"
+little_exif = "0.6"
 tera = "1"
 tiny_http = "0.12"
 rayon = "1"
@@ -53,6 +53,12 @@ opt-level = 3
 opt-level = 3
 
 [profile.dev.package.libwebp-sys]
+opt-level = 3
+
+[profile.dev.package.little_exif]
+opt-level = 3
+
+[profile.dev.package.reverse_geocoder]
 opt-level = 3
 
 [profile.release]

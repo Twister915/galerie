@@ -86,7 +86,27 @@ build = "public"
 
 # Optional: whether to minify output (defaults to true)
 minify = true
+
+# Optional: GPS privacy mode (defaults to "on")
+# See "GPS Privacy" section below
+gps = "general"
 ```
+
+## GPS Privacy
+
+Control how GPS location data is handled with the `gps` setting:
+
+| Mode | Coordinates | City/Country | Map | Original EXIF |
+|------|-------------|--------------|-----|---------------|
+| `on` | Shown | Shown | Yes | Preserved |
+| `general` | Hidden | Shown | No | GPS stripped |
+| `off` | Hidden | Hidden | No | GPS stripped |
+
+**`on`** (default): Full GPS data. Coordinates are displayed, maps are shown, and original files retain their GPS EXIF tags. Use this for public landmarks or when location privacy isn't a concern.
+
+**`general`**: Location privacy with context. Shows city, region, and country (via reverse geocoding) but hides exact coordinates and maps. GPS EXIF is stripped from downloadable originals. Good for travel galleries where you want location context without revealing exact positions.
+
+**`off`**: Maximum privacy. No GPS data is shown or preserved. Use this when location data should be completely removed.
 
 ## Commands
 
@@ -210,8 +230,13 @@ photo.metadata = {
     camera: "Canon EOS R5",
     lens: "RF 24-70mm F2.8L IS USM",
     gps: {
-        latitude: 35.6762,
-        longitude: 139.6503
+        latitude: 35.6762,       // null when gps = "general" or "off"
+        longitude: 139.6503,     // null when gps = "general" or "off"
+        display: "35.6762, 139.6503",  // null when gps = "general" or "off"
+        city: "Shibuya",
+        region: "Tokyo",
+        country: "Japan",
+        flag: "🇯🇵"
     },
     exposure: {
         aperture: "f/2.8",
@@ -221,6 +246,8 @@ photo.metadata = {
     }
 }
 ```
+
+When `gps = "general"`, the `latitude`, `longitude`, and `display` fields are `null`, but `city`, `region`, `country`, and `flag` are still populated. When `gps = "off"`, the entire `gps` object is `null`.
 
 ### Template Functions
 
@@ -289,7 +316,8 @@ cargo clippy
 Core processing:
 - `image` - Image decoding and resizing
 - `webp` - WebP encoding
-- `kamadak-exif` - EXIF metadata extraction
+- `little_exif` - EXIF metadata extraction and modification
+- `reverse_geocoder` - Offline reverse geocoding for GPS privacy modes
 - `blake3` - Fast content hashing
 
 Templating and output:

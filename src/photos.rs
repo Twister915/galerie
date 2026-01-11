@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::config::GpsMode;
 use crate::error::{Error, Result};
 
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif"];
@@ -85,10 +86,12 @@ pub struct PhotoMetadata {
 /// GPS coordinates and reverse-geocoded location from EXIF data.
 #[derive(Debug, Clone, Serialize)]
 pub struct GpsCoords {
-    pub latitude: f64,
-    pub longitude: f64,
-    /// Formatted coordinates string (e.g., "35.6762° N, 139.6503° E")
-    pub display: String,
+    /// Latitude in decimal degrees (None if coordinates are hidden for privacy)
+    pub latitude: Option<f64>,
+    /// Longitude in decimal degrees (None if coordinates are hidden for privacy)
+    pub longitude: Option<f64>,
+    /// Formatted coordinates string (e.g., "35.6762° N, 139.6503° E"), None if hidden
+    pub display: Option<String>,
     /// City or locality name
     pub city: Option<String>,
     /// State, province, or administrative region
@@ -102,6 +105,7 @@ pub struct GpsCoords {
 }
 
 impl GpsCoords {
+    /// Create GPS coords with full coordinate information (for gps = "on" mode).
     pub fn new(latitude: f64, longitude: f64) -> Self {
         let lat_dir = if latitude >= 0.0 { 'N' } else { 'S' };
         let lon_dir = if longitude >= 0.0 { 'E' } else { 'W' };
@@ -132,9 +136,44 @@ impl GpsCoords {
         let flag = Some(flag_emoji);
 
         Self {
-            latitude,
-            longitude,
-            display,
+            latitude: Some(latitude),
+            longitude: Some(longitude),
+            display: Some(display),
+            city,
+            region,
+            country,
+            country_code,
+            flag,
+        }
+    }
+
+    /// Create GPS coords with only general location info (for gps = "general" mode).
+    ///
+    /// Performs reverse geocoding but omits precise coordinates.
+    /// The coordinate fields are None to indicate they should not be shown.
+    pub fn new_general(latitude: f64, longitude: f64) -> Self {
+        // Reverse geocode to get location info
+        let geocoder = reverse_geocoder::ReverseGeocoder::new();
+        let result = geocoder.search((latitude, longitude));
+
+        let cc = &result.record.cc;
+        let flag_emoji = country_code_to_flag(cc);
+        let country_name = country_code_to_name(cc);
+
+        let city = Some(result.record.name.to_string());
+        let region = if result.record.admin1.is_empty() {
+            None
+        } else {
+            Some(result.record.admin1.to_string())
+        };
+        let country = country_name.map(|s| s.to_string());
+        let country_code = Some(cc.to_string());
+        let flag = Some(flag_emoji);
+
+        Self {
+            latitude: None,
+            longitude: None,
+            display: None,
             city,
             region,
             country,
@@ -454,18 +493,22 @@ impl Photo {
     }
 
     /// URL path to the original image (e.g., "images/album/photo-abc123-original.jpg")
-    pub fn original_path(&self, album_path: &Path) -> String {
+    ///
+    /// When GPS mode is not `On`, the filename includes `-nogps` suffix to indicate
+    /// GPS EXIF data has been stripped.
+    pub fn original_path(&self, album_path: &Path, gps_mode: GpsMode) -> String {
         let encoded_stem = url_encode(&self.stem);
+        let suffix = gps_mode.original_suffix();
         if album_path.as_os_str().is_empty() {
-            format!("images/{}-{}-original.{}", encoded_stem, self.hash, self.extension)
+            format!(
+                "images/{}-{}-original{}.{}",
+                encoded_stem, self.hash, suffix, self.extension
+            )
         } else {
             let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
-                "images/{}/{}-{}-original.{}",
-                encoded_album,
-                encoded_stem,
-                self.hash,
-                self.extension
+                "images/{}/{}-{}-original{}.{}",
+                encoded_album, encoded_stem, self.hash, suffix, self.extension
             )
         }
     }
@@ -665,7 +708,8 @@ mod tests {
         let root_path = PathBuf::new();
         assert_eq!(photo.image_path(&root_path), "images/test-abc12345-full.webp");
         assert_eq!(photo.thumb_path(&root_path), "images/test-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&root_path), "images/test-abc12345-original.jpg");
+        assert_eq!(photo.original_path(&root_path, GpsMode::On), "images/test-abc12345-original.jpg");
+        assert_eq!(photo.original_path(&root_path, GpsMode::Off), "images/test-abc12345-original-nogps.jpg");
         assert_eq!(photo.html_path(&root_path), "test.html");
     }
 
@@ -684,7 +728,7 @@ mod tests {
         let album_path = PathBuf::from("vacation");
         assert_eq!(photo.image_path(&album_path), "images/vacation/test-def67890-full.webp");
         assert_eq!(photo.thumb_path(&album_path), "images/vacation/test-def67890-thumb.webp");
-        assert_eq!(photo.original_path(&album_path), "images/vacation/test-def67890-original.jpg");
+        assert_eq!(photo.original_path(&album_path, GpsMode::On), "images/vacation/test-def67890-original.jpg");
         assert_eq!(photo.html_path(&album_path), "vacation/test.html");
     }
 
@@ -703,13 +747,13 @@ mod tests {
         let root_path = PathBuf::new();
         assert_eq!(photo.image_path(&root_path), "images/Beach%20Day-abc12345-full.webp");
         assert_eq!(photo.thumb_path(&root_path), "images/Beach%20Day-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&root_path), "images/Beach%20Day-abc12345-original.jpg");
+        assert_eq!(photo.original_path(&root_path, GpsMode::On), "images/Beach%20Day-abc12345-original.jpg");
         assert_eq!(photo.html_path(&root_path), "Beach%20Day.html");
 
         let album_path = PathBuf::from("My Vacation");
         assert_eq!(photo.image_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-full.webp");
         assert_eq!(photo.thumb_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-original.jpg");
+        assert_eq!(photo.original_path(&album_path, GpsMode::On), "images/My%20Vacation/Beach%20Day-abc12345-original.jpg");
         assert_eq!(photo.html_path(&album_path), "My%20Vacation/Beach%20Day.html");
     }
 

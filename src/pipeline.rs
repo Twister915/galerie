@@ -106,11 +106,12 @@ impl Pipeline {
         // Cached images are skipped if output files with same hash exist
         // Files are written directly during processing
         tracing::info!("processing photos");
-        let stats = processing::process_album(&mut self.root, &images_dir)?;
+        let stats = processing::process_album(&mut self.root, &images_dir, self.config.gps)?;
         tracing::info!(
             total = stats.total,
             cached = stats.cached,
             generated = stats.generated,
+            copied = stats.copied,
             "photos processed"
         );
 
@@ -209,7 +210,7 @@ impl Pipeline {
                     photo: (*p).clone(),
                     image_path: p.image_path(&album_path),
                     thumb_path: p.thumb_path(&album_path),
-                    original_path: p.original_path(&album_path),
+                    original_path: p.original_path(&album_path, self.config.gps),
                     html_path: p.html_path(&album_path),
                 }
             })
@@ -257,7 +258,7 @@ impl Pipeline {
                     photo: p.clone(),
                     image_path: p.image_path(&album.path),
                     thumb_path: p.thumb_path(&album.path),
-                    original_path: p.original_path(&album.path),
+                    original_path: p.original_path(&album.path, self.config.gps),
                     html_path: p.html_path(&album.path),
                 })
                 .collect();
@@ -313,7 +314,7 @@ impl Pipeline {
                 photo: photo.clone(),
                 image_path: photo.image_path(&album.path),
                 thumb_path: photo.thumb_path(&album.path),
-                original_path: photo.original_path(&album.path),
+                original_path: photo.original_path(&album.path, self.config.gps),
                 html_path: photo.html_path(&album.path),
             };
             context.insert("photo", &photo_ctx);
@@ -326,7 +327,7 @@ impl Pipeline {
                         photo: p.clone(),
                         image_path: p.image_path(&album.path),
                         thumb_path: p.thumb_path(&album.path),
-                        original_path: p.original_path(&album.path),
+                        original_path: p.original_path(&album.path, self.config.gps),
                         html_path: p.html_path(&album.path),
                     },
                 );
@@ -338,7 +339,7 @@ impl Pipeline {
                         photo: p.clone(),
                         image_path: p.image_path(&album.path),
                         thumb_path: p.thumb_path(&album.path),
-                        original_path: p.original_path(&album.path),
+                        original_path: p.original_path(&album.path, self.config.gps),
                         html_path: p.html_path(&album.path),
                     },
                 );
@@ -435,8 +436,8 @@ impl Pipeline {
                 photo.stem, photo.hash
             )));
             expected.insert(album_images_dir.join(format!(
-                "{}-{}-original.{}",
-                photo.stem, photo.hash, photo.extension
+                "{}-{}-original{}.{}",
+                photo.stem, photo.hash, self.config.gps.original_suffix(), photo.extension
             )));
         }
 

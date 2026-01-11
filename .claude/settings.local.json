@@ -12,7 +12,13 @@
       "WebFetch(domain:tera.netlify.app)",
       "WebFetch(domain:keats.github.io)",
       "WebFetch(domain:github.com)",
-      "Bash(time cargo run:*)"
+      "Bash(time cargo run:*)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cargo check:*)",
+      "Bash(cargo doc:*)",
+      "Bash(grep:*)"
     ]
   }
 }

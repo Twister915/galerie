@@ -18,8 +18,10 @@ The system is structured as a pipeline/plugin architecture, where different modu
 - **Platform:** Cross-platform CLI (macOS, Linux, Windows)
 - **Core dependencies:**
   - `image` - Image processing and format conversion
+  - `webp` - WebP encoding for thumbnails and full-size images
   - `walkdir` - Recursive directory traversal
-  - `kamadak-exif` - Pure Rust EXIF metadata extraction
+  - `little_exif` - EXIF metadata extraction and modification (read/write)
+  - `reverse_geocoder` - Offline reverse geocoding for GPS privacy modes
   - `tera` - Template engine (Jinja2-style)
   - `clap` - CLI argument parsing
   - `toml` - Configuration file parsing

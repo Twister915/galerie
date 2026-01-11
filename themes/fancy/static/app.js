@@ -362,13 +362,13 @@
         updateDrawerContent(photo);
         preloadAdjacentImages(index);
 
-        // Reinitialize map if drawer is open and photo has GPS
+        // Reinitialize map if drawer is open and photo has GPS with coordinates
         if (state.drawerOpen) {
             if (state.map) {
                 state.map.remove();
                 state.map = null;
             }
-            if (photo.metadata.gps) {
+            if (photo.metadata.gps && photo.metadata.gps.latitude !== null && photo.metadata.gps.longitude !== null) {
                 setTimeout(function() {
                     initMap(photo.metadata.gps);
                 }, 100);
@@ -423,7 +423,7 @@
 
         if (state.drawerOpen && state.currentPhotoIndex >= 0) {
             const photo = state.photos[state.currentPhotoIndex];
-            if (photo.metadata.gps) {
+            if (photo.metadata.gps && photo.metadata.gps.latitude !== null && photo.metadata.gps.longitude !== null) {
                 setTimeout(function() {
                     initMap(photo.metadata.gps);
                 }, 100);
@@ -522,11 +522,14 @@
                 html += '<span class="meta-value">' + (meta.gps.flag || '') + ' ' + escapeHtml(meta.gps.country) + '</span>';
                 html += '</div>';
             }
-            html += '<div class="meta-item">';
-            html += '<span class="meta-label">Coordinates</span>';
-            html += '<span class="meta-value">' + escapeHtml(meta.gps.display) + '</span>';
-            html += '</div>';
-            html += '<div class="map-container" id="map"></div>';
+            // Only show coordinates and map if display is present (not in "general" mode)
+            if (meta.gps.display !== null) {
+                html += '<div class="meta-item">';
+                html += '<span class="meta-label">Coordinates</span>';
+                html += '<span class="meta-value">' + escapeHtml(meta.gps.display) + '</span>';
+                html += '</div>';
+                html += '<div class="map-container" id="map"></div>';
+            }
             html += '</div>';
         }
 
