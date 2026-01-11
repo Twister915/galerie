@@ -973,10 +973,8 @@
         dom.drawerToggle.classList.remove('active');
         document.body.classList.remove('viewer-open');
 
-        // Save scroll position before clearing hash (browsers reset scroll on empty hash)
-        var scrollY = window.scrollY;
-        window.location.hash = '';
-        window.scrollTo(0, scrollY);
+        // Use replaceState to clear hash without triggering scroll-to-top behavior
+        history.replaceState(null, '', window.location.pathname + window.location.search);
 
         if (state.map) {
             state.map.remove();
