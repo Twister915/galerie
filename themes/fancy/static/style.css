@@ -636,9 +636,15 @@ body.viewer-open {
     padding: 0;
 }
 
+.photo-viewer.big-picture-mode .viewer-image-container {
+    width: 100vw;
+    height: 100vh;
+}
+
 .photo-viewer.big-picture-mode .viewer-image {
-    max-height: 100vh;
-    max-width: 100vw;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .photo-viewer.big-picture-mode .viewer-controls,

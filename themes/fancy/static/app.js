@@ -790,37 +790,66 @@
         var fullLoaded = false;
 
         if (useCrossfade) {
-            // Big picture mode: crossfade between photos
+            // Big picture mode: show thumb immediately, crossfade to full when ready
             dom.viewerImageContainer.classList.remove('loading');
 
-            var preload = new Image();
-            preload.fetchPriority = 'high';
-            preload.onload = function() {
+            // Step 1: Show thumbnail immediately on the next image element
+            var thumbImg = new Image();
+            thumbImg.onload = function() {
                 if (state.navigationGen !== thisGen) return;
+                thumbLoaded = true;
 
-                nextImg.src = photo.imagePath;
-                nextImg.alt = photo.stem;
+                // If full image already loaded, skip showing thumb
+                if (fullLoaded) return;
 
-                if (nextImg.complete) {
-                    currentImg.classList.remove('active');
-                    nextImg.classList.add('active');
-                } else {
-                    nextImg.onload = function() {
-                        nextImg.onload = null;
-                        if (state.navigationGen !== thisGen) return;
-                        currentImg.classList.remove('active');
-                        nextImg.classList.add('active');
-                    };
-                }
-            };
-            preload.onerror = function() {
-                if (state.navigationGen !== thisGen) return;
-                nextImg.src = photo.imagePath;
+                // Show thumbnail with crossfade
+                nextImg.src = photo.thumbPath;
                 nextImg.alt = photo.stem;
                 currentImg.classList.remove('active');
                 nextImg.classList.add('active');
             };
-            preload.src = photo.imagePath;
+            thumbImg.src = photo.thumbPath;
+
+            // Step 2: Load full image with progress tracking
+            var progressStarted = false;
+
+            setTimeout(function() {
+                if (state.navigationGen !== thisGen) return;
+                if (!fullLoaded) {
+                    progressStarted = true;
+                    showProgress();
+                }
+            }, 150);
+
+            currentImageDownload = loadImageWithProgress(photo.imagePath, function(percent) {
+                if (state.navigationGen !== thisGen) return;
+                if (progressStarted) {
+                    updateProgress(percent);
+                }
+            });
+
+            currentImageDownload.promise.then(function(blobUrl) {
+                currentImageDownload = null;
+                if (state.navigationGen !== thisGen) {
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
+                fullLoaded = true;
+                hideProgress();
+
+                // Swap to full-res on the same element (no crossfade for thumb->full)
+                nextImg.src = blobUrl;
+                nextImg.alt = photo.stem;
+                // Ensure it's active
+                if (!nextImg.classList.contains('active')) {
+                    currentImg.classList.remove('active');
+                    nextImg.classList.add('active');
+                }
+            }).catch(function() {
+                currentImageDownload = null;
+                if (state.navigationGen !== thisGen) return;
+                hideProgress();
+            });
         } else {
             // Normal mode: show thumb immediately, snap to full when ready
             // Use a single image element - no crossfade for thumb -> full
