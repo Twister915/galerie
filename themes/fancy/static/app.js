@@ -347,14 +347,15 @@
 
     /**
      * Load an image with progress tracking using XMLHttpRequest.
-     * Returns a promise that resolves with a blob URL for the image.
+     * Returns an object with a promise and an abort function.
      * @param {string} url - Image URL to load
      * @param {function} onProgress - Progress callback (receives percent 0-100)
-     * @returns {Promise<string>} - Resolves with blob URL
+     * @returns {{promise: Promise<string>, abort: function}} - Promise resolves with blob URL
      */
     function loadImageWithProgress(url, onProgress) {
-        return new Promise(function(resolve, reject) {
-            var xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest();
+
+        var promise = new Promise(function(resolve, reject) {
             xhr.open('GET', url, true);
             xhr.responseType = 'blob';
 
@@ -378,9 +379,21 @@
                 reject(new Error('Network error loading image'));
             };
 
+            xhr.onabort = function() {
+                reject(new Error('Download aborted'));
+            };
+
             xhr.send();
         });
+
+        return {
+            promise: promise,
+            abort: function() { xhr.abort(); }
+        };
     }
+
+    // Current full-res image download (for aborting on navigation)
+    var currentImageDownload = null;
 
     // ==========================================================================
     // DOM Elements (cached)
@@ -731,7 +744,11 @@
         state.navigationGen++;
         var thisGen = state.navigationGen;
 
-        // Reset progress bar from previous image
+        // Abort any pending full-res download and reset progress bar
+        if (currentImageDownload) {
+            currentImageDownload.abort();
+            currentImageDownload = null;
+        }
         hideProgress();
 
         window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
@@ -834,12 +851,15 @@
                 }
             }, 150);
 
-            loadImageWithProgress(photo.imagePath, function(percent) {
+            currentImageDownload = loadImageWithProgress(photo.imagePath, function(percent) {
                 if (state.navigationGen !== thisGen) return;
                 if (progressStarted) {
                     updateProgress(percent);
                 }
-            }).then(function(blobUrl) {
+            });
+
+            currentImageDownload.promise.then(function(blobUrl) {
+                currentImageDownload = null;
                 if (state.navigationGen !== thisGen) {
                     URL.revokeObjectURL(blobUrl);
                     return;
@@ -859,6 +879,7 @@
                     dom.viewerImageContainer.classList.remove('loading');
                 }
             }).catch(function() {
+                currentImageDownload = null;
                 if (state.navigationGen !== thisGen) return;
                 hideProgress();
                 if (dom.viewerImageContainer) {
@@ -901,6 +922,11 @@
             exitBigPictureMode();
         }
 
+        // Abort any pending download
+        if (currentImageDownload) {
+            currentImageDownload.abort();
+            currentImageDownload = null;
+        }
         hideProgress();
         state.currentPhotoIndex = -1;
         state.drawerOpen = false;
