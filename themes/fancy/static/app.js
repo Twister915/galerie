@@ -275,6 +275,47 @@
         return hash >>> 0;
     }
 
+    /**
+     * Calculate the display dimensions for an image in the viewer.
+     * Returns {width, height} that fills available space while maintaining aspect ratio.
+     */
+    function calculateViewerImageSize(photoWidth, photoHeight) {
+        // Get filmstrip height from CSS variable
+        var filmstripHeight = 80; // default
+        var computed = getComputedStyle(document.documentElement);
+        var filmstripVar = computed.getPropertyValue('--filmstrip-height');
+        if (filmstripVar) {
+            filmstripHeight = parseInt(filmstripVar, 10) || 80;
+        }
+
+        // Available space (matching CSS constraints)
+        // max-height: calc(100vh - var(--filmstrip-height) - 100px)
+        // max-width: ~90% of viewport (accounting for nav buttons)
+        var maxHeight = window.innerHeight - filmstripHeight - 100;
+        var maxWidth = window.innerWidth * 0.9;
+
+        // If drawer is open, reduce available width
+        if (state.drawerOpen) {
+            maxWidth = maxWidth - 320; // drawer width
+        }
+
+        // Calculate dimensions that fit within constraints while maintaining aspect ratio
+        var aspectRatio = photoWidth / photoHeight;
+        var width, height;
+
+        // Try fitting by height first
+        height = maxHeight;
+        width = height * aspectRatio;
+
+        // If too wide, fit by width instead
+        if (width > maxWidth) {
+            width = maxWidth;
+            height = width / aspectRatio;
+        }
+
+        return { width: Math.round(width), height: Math.round(height) };
+    }
+
     // ==========================================================================
     // DOM Elements (cached)
     // ==========================================================================
@@ -629,15 +670,6 @@
         var currentImg = dom.viewerImage.classList.contains('active') ? dom.viewerImage : dom.viewerImageNext;
         var nextImg = currentImg === dom.viewerImage ? dom.viewerImageNext : dom.viewerImage;
 
-        // Helper to update filmstrip after main image starts loading
-        var filmstripUpdated = false;
-        function updateFilmstripDeferred() {
-            if (filmstripUpdated) return;
-            filmstripUpdated = true;
-            updateFilmstripVisibleRange();
-            updateFilmstrip();
-        }
-
         // Use crossfade only in big picture mode for photo-to-photo transitions
         var useCrossfade = state.bigPictureMode && !isFirstOpen && dom.viewerImageContainer;
 
@@ -647,10 +679,12 @@
             dom.viewerImageContainer.classList.remove('crossfade');
         }
 
-        // Set aspect ratio so thumbnail scales to full image size
-        var aspectRatio = photo.width + ' / ' + photo.height;
-        currentImg.style.aspectRatio = aspectRatio;
-        nextImg.style.aspectRatio = aspectRatio;
+        // Calculate and set explicit dimensions so thumbnail displays at same size as full image
+        var imgSize = calculateViewerImageSize(photo.width, photo.height);
+        currentImg.style.width = imgSize.width + 'px';
+        currentImg.style.height = imgSize.height + 'px';
+        nextImg.style.width = imgSize.width + 'px';
+        nextImg.style.height = imgSize.height + 'px';
 
         // Track loading state
         var thumbLoaded = false;
@@ -667,7 +701,6 @@
 
                 nextImg.src = photo.imagePath;
                 nextImg.alt = photo.stem;
-                updateFilmstripDeferred();
 
                 if (nextImg.complete) {
                     currentImg.classList.remove('active');
@@ -687,7 +720,6 @@
                 nextImg.alt = photo.stem;
                 currentImg.classList.remove('active');
                 nextImg.classList.add('active');
-                updateFilmstripDeferred();
             };
             preload.src = photo.imagePath;
         } else {
@@ -732,15 +764,12 @@
                     dom.viewerImageNext.classList.remove('active');
                 }
 
-                updateFilmstripDeferred();
-
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
             };
             fullImg.onerror = function() {
                 if (state.navigationGen !== thisGen) return;
-                updateFilmstripDeferred();
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
@@ -757,6 +786,8 @@
         }
 
         updateNavButtons();
+        updateFilmstripVisibleRange();
+        updateFilmstrip();
         updateDrawerContent(photo);
         preloadAdjacentImages(index);
 
