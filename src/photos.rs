@@ -6,6 +6,34 @@ use crate::error::{Error, Result};
 
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif"];
 
+/// URL-encode a string for use in URL paths.
+/// Encodes spaces and other special characters while preserving alphanumerics,
+/// hyphens, underscores, periods, and tildes.
+fn url_encode(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => {
+                result.push(c);
+            }
+            _ => {
+                for byte in c.to_string().as_bytes() {
+                    result.push_str(&format!("%{:02X}", byte));
+                }
+            }
+        }
+    }
+    result
+}
+
+/// URL-encode a path, encoding each segment but preserving '/' separators.
+fn url_encode_path(path: &str) -> String {
+    path.split('/')
+        .map(url_encode)
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 /// A single photo in the gallery.
 #[derive(Debug, Clone, Serialize)]
 pub struct Photo {
@@ -100,13 +128,15 @@ impl Photo {
 
     /// URL path to the full-size WebP image (e.g., "images/album/photo-abc123-full.webp")
     pub fn image_path(&self, album_path: &Path) -> String {
+        let encoded_stem = url_encode(&self.stem);
         if album_path.as_os_str().is_empty() {
-            format!("images/{}-{}-full.webp", self.stem, self.hash)
+            format!("images/{}-{}-full.webp", encoded_stem, self.hash)
         } else {
+            let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-full.webp",
-                album_path.display(),
-                self.stem,
+                encoded_album,
+                encoded_stem,
                 self.hash
             )
         }
@@ -114,13 +144,15 @@ impl Photo {
 
     /// URL path to the thumbnail WebP (e.g., "images/album/photo-abc123-thumb.webp")
     pub fn thumb_path(&self, album_path: &Path) -> String {
+        let encoded_stem = url_encode(&self.stem);
         if album_path.as_os_str().is_empty() {
-            format!("images/{}-{}-thumb.webp", self.stem, self.hash)
+            format!("images/{}-{}-thumb.webp", encoded_stem, self.hash)
         } else {
+            let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-thumb.webp",
-                album_path.display(),
-                self.stem,
+                encoded_album,
+                encoded_stem,
                 self.hash
             )
         }
@@ -128,13 +160,15 @@ impl Photo {
 
     /// URL path to the original image (e.g., "images/album/photo-abc123-original.jpg")
     pub fn original_path(&self, album_path: &Path) -> String {
+        let encoded_stem = url_encode(&self.stem);
         if album_path.as_os_str().is_empty() {
-            format!("images/{}-{}-original.{}", self.stem, self.hash, self.extension)
+            format!("images/{}-{}-original.{}", encoded_stem, self.hash, self.extension)
         } else {
+            let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-original.{}",
-                album_path.display(),
-                self.stem,
+                encoded_album,
+                encoded_stem,
                 self.hash,
                 self.extension
             )
@@ -143,10 +177,12 @@ impl Photo {
 
     /// URL path to the photo's HTML page (e.g., "album/photo.html")
     pub fn html_path(&self, album_path: &Path) -> String {
+        let encoded_stem = url_encode(&self.stem);
         if album_path.as_os_str().is_empty() {
-            format!("{}.html", self.stem)
+            format!("{}.html", encoded_stem)
         } else {
-            format!("{}/{}.html", album_path.display(), self.stem)
+            let encoded_album = url_encode_path(&album_path.display().to_string());
+            format!("{}/{}.html", encoded_album, encoded_stem)
         }
     }
 }
@@ -355,6 +391,39 @@ mod tests {
         assert_eq!(photo.thumb_path(&album_path), "images/vacation/test-def67890-thumb.webp");
         assert_eq!(photo.original_path(&album_path), "images/vacation/test-def67890-original.jpg");
         assert_eq!(photo.html_path(&album_path), "vacation/test.html");
+    }
+
+    #[test]
+    fn photo_paths_with_spaces() {
+        let photo = Photo {
+            source: PathBuf::from("/photos/My Vacation/Beach Day.jpg"),
+            stem: "Beach Day".to_string(),
+            extension: "jpg".to_string(),
+            hash: "abc12345".to_string(),
+            width: 4000,
+            height: 3000,
+            metadata: PhotoMetadata::default(),
+        };
+
+        let root_path = PathBuf::new();
+        assert_eq!(photo.image_path(&root_path), "images/Beach%20Day-abc12345-full.webp");
+        assert_eq!(photo.thumb_path(&root_path), "images/Beach%20Day-abc12345-thumb.webp");
+        assert_eq!(photo.original_path(&root_path), "images/Beach%20Day-abc12345-original.jpg");
+        assert_eq!(photo.html_path(&root_path), "Beach%20Day.html");
+
+        let album_path = PathBuf::from("My Vacation");
+        assert_eq!(photo.image_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-full.webp");
+        assert_eq!(photo.thumb_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-thumb.webp");
+        assert_eq!(photo.original_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-original.jpg");
+        assert_eq!(photo.html_path(&album_path), "My%20Vacation/Beach%20Day.html");
+    }
+
+    #[test]
+    fn url_encode_special_chars() {
+        assert_eq!(url_encode("hello world"), "hello%20world");
+        assert_eq!(url_encode("test&file"), "test%26file");
+        assert_eq!(url_encode("photo#1"), "photo%231");
+        assert_eq!(url_encode("normal-file_name.jpg"), "normal-file_name.jpg");
     }
 
     #[test]

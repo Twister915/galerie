@@ -361,6 +361,19 @@
         updateFilmstrip();
         updateDrawerContent(photo);
         preloadAdjacentImages(index);
+
+        // Reinitialize map if drawer is open and photo has GPS
+        if (state.drawerOpen) {
+            if (state.map) {
+                state.map.remove();
+                state.map = null;
+            }
+            if (photo.metadata.gps) {
+                setTimeout(function() {
+                    initMap(photo.metadata.gps);
+                }, 100);
+            }
+        }
     }
 
     function closeViewer() {
