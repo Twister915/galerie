@@ -397,6 +397,30 @@ body.viewer-open {
     z-index: 1;
 }
 
+/* Full-res image download progress bar */
+.viewer-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.viewer-progress.active {
+    opacity: 1;
+}
+
+.viewer-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 100ms ease-out;
+}
+
 /* Navigation arrows */
 .viewer-nav {
     position: absolute;

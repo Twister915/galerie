@@ -316,6 +316,72 @@
         return { width: Math.round(width), height: Math.round(height) };
     }
 
+    /**
+     * Show the download progress bar and reset it to 0%
+     */
+    function showProgress() {
+        if (dom.viewerProgress && dom.viewerProgressBar) {
+            dom.viewerProgressBar.style.width = '0%';
+            dom.viewerProgress.classList.add('active');
+        }
+    }
+
+    /**
+     * Update the download progress bar
+     * @param {number} percent - Progress percentage (0-100)
+     */
+    function updateProgress(percent) {
+        if (dom.viewerProgressBar) {
+            dom.viewerProgressBar.style.width = percent + '%';
+        }
+    }
+
+    /**
+     * Hide the download progress bar
+     */
+    function hideProgress() {
+        if (dom.viewerProgress) {
+            dom.viewerProgress.classList.remove('active');
+        }
+    }
+
+    /**
+     * Load an image with progress tracking using XMLHttpRequest.
+     * Returns a promise that resolves with a blob URL for the image.
+     * @param {string} url - Image URL to load
+     * @param {function} onProgress - Progress callback (receives percent 0-100)
+     * @returns {Promise<string>} - Resolves with blob URL
+     */
+    function loadImageWithProgress(url, onProgress) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'blob';
+
+            xhr.onprogress = function(e) {
+                if (e.lengthComputable && onProgress) {
+                    var percent = Math.round((e.loaded / e.total) * 100);
+                    onProgress(percent);
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var blobUrl = URL.createObjectURL(xhr.response);
+                    resolve(blobUrl);
+                } else {
+                    reject(new Error('Failed to load image: ' + xhr.status));
+                }
+            };
+
+            xhr.onerror = function() {
+                reject(new Error('Network error loading image'));
+            };
+
+            xhr.send();
+        });
+    }
+
     // ==========================================================================
     // DOM Elements (cached)
     // ==========================================================================
@@ -339,7 +405,9 @@
         filmstripTrack: null,
         loadingSentinel: null,
         bigPictureToggle: null,
-        slideshowToggle: null
+        slideshowToggle: null,
+        viewerProgress: null,
+        viewerProgressBar: null
     };
 
     // ==========================================================================
@@ -433,6 +501,8 @@
         dom.filmstrip = document.getElementById('filmstrip');
         dom.bigPictureToggle = document.getElementById('big-picture-toggle');
         dom.slideshowToggle = document.getElementById('slideshow-toggle');
+        dom.viewerProgress = document.getElementById('viewer-progress');
+        dom.viewerProgressBar = document.getElementById('viewer-progress-bar');
     }
 
     // ==========================================================================
@@ -661,6 +731,9 @@
         state.navigationGen++;
         var thisGen = state.navigationGen;
 
+        // Reset progress bar from previous image
+        hideProgress();
+
         window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
 
         dom.viewer.hidden = false;
@@ -749,15 +822,33 @@
             };
             thumbImg.src = photo.thumbPath;
 
-            // Step 2: Load full image, snap to it when ready (no crossfade)
-            var fullImg = new Image();
-            fullImg.fetchPriority = 'high';
-            fullImg.onload = function() {
+            // Step 2: Load full image with progress tracking
+            var progressStarted = false;
+
+            // Start progress bar after a short delay (only if still loading)
+            setTimeout(function() {
                 if (state.navigationGen !== thisGen) return;
+                if (!fullLoaded) {
+                    progressStarted = true;
+                    showProgress();
+                }
+            }, 150);
+
+            loadImageWithProgress(photo.imagePath, function(percent) {
+                if (state.navigationGen !== thisGen) return;
+                if (progressStarted) {
+                    updateProgress(percent);
+                }
+            }).then(function(blobUrl) {
+                if (state.navigationGen !== thisGen) {
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
                 fullLoaded = true;
+                hideProgress();
 
                 // Just swap src on same element - instant snap, no crossfade
-                dom.viewerImage.src = photo.imagePath;
+                dom.viewerImage.src = blobUrl;
                 dom.viewerImage.alt = photo.stem;
                 dom.viewerImage.classList.add('active');
                 if (dom.viewerImageNext) {
@@ -767,14 +858,13 @@
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
-            };
-            fullImg.onerror = function() {
+            }).catch(function() {
                 if (state.navigationGen !== thisGen) return;
+                hideProgress();
                 if (dom.viewerImageContainer) {
                     dom.viewerImageContainer.classList.remove('loading');
                 }
-            };
-            fullImg.src = photo.imagePath;
+            });
 
             // If neither loads quickly, show spinner
             setTimeout(function() {
@@ -811,6 +901,7 @@
             exitBigPictureMode();
         }
 
+        hideProgress();
         state.currentPhotoIndex = -1;
         state.drawerOpen = false;
         dom.viewer.hidden = true;
