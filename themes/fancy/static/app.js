@@ -562,7 +562,9 @@
         L.marker([gps.latitude, gps.longitude]).addTo(state.map);
 
         setTimeout(function() {
-            state.map.invalidateSize();
+            if (state.map) {
+                state.map.invalidateSize();
+            }
         }, 300);
     }
 
