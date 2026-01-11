@@ -770,11 +770,20 @@
         }
 
         // Calculate and set explicit dimensions so thumbnail displays at same size as full image
-        var imgSize = calculateViewerImageSize(photo.width, photo.height);
-        currentImg.style.width = imgSize.width + 'px';
-        currentImg.style.height = imgSize.height + 'px';
-        nextImg.style.width = imgSize.width + 'px';
-        nextImg.style.height = imgSize.height + 'px';
+        // Skip in big picture mode - let CSS handle full-screen sizing
+        if (!state.bigPictureMode) {
+            var imgSize = calculateViewerImageSize(photo.width, photo.height);
+            currentImg.style.width = imgSize.width + 'px';
+            currentImg.style.height = imgSize.height + 'px';
+            nextImg.style.width = imgSize.width + 'px';
+            nextImg.style.height = imgSize.height + 'px';
+        } else {
+            // Clear any explicit dimensions for big picture mode
+            currentImg.style.width = '';
+            currentImg.style.height = '';
+            nextImg.style.width = '';
+            nextImg.style.height = '';
+        }
 
         // Track loading state
         var thumbLoaded = false;
@@ -982,6 +991,14 @@
         state.bigPictureMode = true;
         dom.viewer.classList.add('big-picture-mode');
 
+        // Clear explicit dimensions so CSS can handle full-screen sizing
+        dom.viewerImage.style.width = '';
+        dom.viewerImage.style.height = '';
+        if (dom.viewerImageNext) {
+            dom.viewerImageNext.style.width = '';
+            dom.viewerImageNext.style.height = '';
+        }
+
         // Close drawer if open
         if (state.drawerOpen) {
             state.drawerOpen = false;
@@ -1009,6 +1026,18 @@
         // Remove crossfade mode
         if (dom.viewerImageContainer) {
             dom.viewerImageContainer.classList.remove('crossfade');
+        }
+
+        // Restore explicit dimensions for normal viewer mode
+        if (state.currentPhotoIndex >= 0) {
+            var photo = state.photos[state.currentPhotoIndex];
+            var imgSize = calculateViewerImageSize(photo.width, photo.height);
+            dom.viewerImage.style.width = imgSize.width + 'px';
+            dom.viewerImage.style.height = imgSize.height + 'px';
+            if (dom.viewerImageNext) {
+                dom.viewerImageNext.style.width = imgSize.width + 'px';
+                dom.viewerImageNext.style.height = imgSize.height + 'px';
+            }
         }
 
         if (document.fullscreenElement) {
@@ -1433,6 +1462,25 @@
                 dom.header.classList.remove('hidden');
             }
             lastScrollY = currentScrollY;
+        }, { passive: true });
+
+        // Resize handler to update image dimensions
+        var resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Only recalculate in normal mode (not big picture mode)
+                if (state.currentPhotoIndex >= 0 && !state.bigPictureMode) {
+                    var photo = state.photos[state.currentPhotoIndex];
+                    var imgSize = calculateViewerImageSize(photo.width, photo.height);
+                    dom.viewerImage.style.width = imgSize.width + 'px';
+                    dom.viewerImage.style.height = imgSize.height + 'px';
+                    if (dom.viewerImageNext) {
+                        dom.viewerImageNext.style.width = imgSize.width + 'px';
+                        dom.viewerImageNext.style.height = imgSize.height + 'px';
+                    }
+                }
+            }, 100);
         }, { passive: true });
     }
 
