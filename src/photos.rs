@@ -87,6 +87,27 @@ pub struct PhotoMetadata {
 pub struct GpsCoords {
     pub latitude: f64,
     pub longitude: f64,
+    /// Formatted display string (e.g., "35.6762° N, 139.6503° E")
+    pub display: String,
+}
+
+impl GpsCoords {
+    pub fn new(latitude: f64, longitude: f64) -> Self {
+        let lat_dir = if latitude >= 0.0 { 'N' } else { 'S' };
+        let lon_dir = if longitude >= 0.0 { 'E' } else { 'W' };
+        let display = format!(
+            "{:.4}° {}, {:.4}° {}",
+            latitude.abs(),
+            lat_dir,
+            longitude.abs(),
+            lon_dir
+        );
+        Self {
+            latitude,
+            longitude,
+            display,
+        }
+    }
 }
 
 /// Camera exposure settings from EXIF data.

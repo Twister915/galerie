@@ -232,10 +232,7 @@ fn extract_exif(data: &[u8]) -> PhotoMetadata {
 fn extract_gps(exif: &exif::Exif) -> Option<GpsCoords> {
     let lat = extract_gps_coord(exif, exif::Tag::GPSLatitude, exif::Tag::GPSLatitudeRef)?;
     let lon = extract_gps_coord(exif, exif::Tag::GPSLongitude, exif::Tag::GPSLongitudeRef)?;
-    Some(GpsCoords {
-        latitude: lat,
-        longitude: lon,
-    })
+    Some(GpsCoords::new(lat, lon))
 }
 
 /// Extract a single GPS coordinate (latitude or longitude).

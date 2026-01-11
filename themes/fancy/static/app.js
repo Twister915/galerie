@@ -510,7 +510,7 @@
             html += '<h3>Location</h3>';
             html += '<div class="meta-item">';
             html += '<span class="meta-label">Coordinates</span>';
-            html += '<span class="meta-value">' + meta.gps.latitude.toFixed(4) + ', ' + meta.gps.longitude.toFixed(4) + '</span>';
+            html += '<span class="meta-value">' + escapeHtml(meta.gps.display) + '</span>';
             html += '</div>';
             html += '<div class="map-container" id="map"></div>';
             html += '</div>';
