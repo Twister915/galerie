@@ -73,7 +73,7 @@ Reference the full style guide when writing new modules or making architectural 
 
 ## Internationalization (i18n)
 
-galerie supports 13 languages. When making changes that involve user-facing text, you MUST:
+galerie supports 14 languages. When making changes that involve user-facing text, you MUST:
 
 1. **Never hardcode user-facing strings** in templates or JavaScript. Use translation keys instead.
 
@@ -91,6 +91,7 @@ galerie supports 13 languages. When making changes that involve user-facing text
    - `translations_hi()` - Hindi
    - `translations_he()` - Hebrew
    - `translations_it()` - Italian
+   - `translations_ko()` - Korean
 
 3. **Use proper key namespacing**:
    - `nav.*` - Navigation elements
@@ -100,7 +101,7 @@ galerie supports 13 languages. When making changes that involve user-facing text
    - `footer.*` - Footer text
    - `country.*` - Country names (ISO 3166-1 alpha-2 codes)
 
-4. **Handle word order differences**: Some languages (Japanese, Chinese, Hindi) place verbs after nouns. Use `footer.built_with` (prefix) and `footer.built_with_suffix` (suffix) pattern when needed.
+4. **Handle word order differences**: Some languages (Japanese, Chinese, Hindi, Korean) place verbs after nouns. Use `footer.built_with` (prefix) and `footer.built_with_suffix` (suffix) pattern when needed.
 
 5. **In templates**: Use `data-i18n` attributes for static text:
    ```html

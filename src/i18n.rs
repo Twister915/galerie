@@ -26,6 +26,7 @@ pub fn all_supported_languages() -> Vec<LanguageInfo> {
         LanguageInfo { code: "hi", name: "हिन्दी" },
         LanguageInfo { code: "he", name: "עברית" },
         LanguageInfo { code: "it", name: "Italiano" },
+        LanguageInfo { code: "ko", name: "한국어" },
     ]
 }
 
@@ -45,6 +46,7 @@ pub fn get_all_translations() -> AllTranslations {
     all.insert("hi".to_string(), translations_hi());
     all.insert("he".to_string(), translations_he());
     all.insert("it".to_string(), translations_it());
+    all.insert("ko".to_string(), translations_ko());
     all
 }
 
@@ -1160,6 +1162,92 @@ fn translations_it() -> Translations {
         ("country.IE", "Irlanda"),
         ("country.PL", "Polonia"),
         ("country.CZ", "Cechia"),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v.to_string()))
+    .collect()
+}
+
+fn translations_ko() -> Translations {
+    [
+        // Navigation
+        ("nav.previous", "이전"),
+        ("nav.next", "다음"),
+        ("nav.index", "목록"),
+        ("nav.close", "닫기"),
+        // Sections
+        ("section.albums", "앨범"),
+        ("section.photo", "사진"),
+        ("section.date", "날짜"),
+        ("section.camera", "카메라"),
+        ("section.exposure", "노출"),
+        ("section.location", "위치"),
+        ("section.copyright", "저작권"),
+        // Fields
+        ("field.name", "이름"),
+        ("field.taken", "촬영일"),
+        ("field.camera", "카메라"),
+        ("field.lens", "렌즈"),
+        ("field.aperture", "조리개"),
+        ("field.shutter", "셔터"),
+        ("field.iso", "ISO"),
+        ("field.focal_length", "초점거리"),
+        ("field.place", "장소"),
+        ("field.country", "국가"),
+        ("field.coordinates", "좌표"),
+        // Actions
+        ("action.download", "원본 다운로드"),
+        ("action.toggle_info", "정보 표시"),
+        // Footer
+        ("footer.built_with", ""),
+        ("footer.built_with_suffix", "로 제작"),
+        // Countries
+        ("country.CN", "중국"),
+        ("country.US", "미국"),
+        ("country.JP", "일본"),
+        ("country.KR", "대한민국"),
+        ("country.TW", "대만"),
+        ("country.HK", "홍콩"),
+        ("country.MO", "마카오"),
+        ("country.GB", "영국"),
+        ("country.FR", "프랑스"),
+        ("country.DE", "독일"),
+        ("country.IT", "이탈리아"),
+        ("country.ES", "스페인"),
+        ("country.PT", "포르투갈"),
+        ("country.NL", "네덜란드"),
+        ("country.BE", "벨기에"),
+        ("country.CH", "스위스"),
+        ("country.AT", "오스트리아"),
+        ("country.AU", "호주"),
+        ("country.NZ", "뉴질랜드"),
+        ("country.CA", "캐나다"),
+        ("country.MX", "멕시코"),
+        ("country.BR", "브라질"),
+        ("country.AR", "아르헨티나"),
+        ("country.TH", "태국"),
+        ("country.VN", "베트남"),
+        ("country.SG", "싱가포르"),
+        ("country.MY", "말레이시아"),
+        ("country.ID", "인도네시아"),
+        ("country.PH", "필리핀"),
+        ("country.IN", "인도"),
+        ("country.RU", "러시아"),
+        ("country.UA", "우크라이나"),
+        ("country.AE", "아랍에미리트"),
+        ("country.SA", "사우디아라비아"),
+        ("country.IL", "이스라엘"),
+        ("country.EG", "이집트"),
+        ("country.ZA", "남아프리카공화국"),
+        ("country.GR", "그리스"),
+        ("country.TR", "튀르키예"),
+        ("country.SE", "스웨덴"),
+        ("country.NO", "노르웨이"),
+        ("country.DK", "덴마크"),
+        ("country.FI", "핀란드"),
+        ("country.IE", "아일랜드"),
+        ("country.PL", "폴란드"),
+        ("country.CZ", "체코"),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v.to_string()))

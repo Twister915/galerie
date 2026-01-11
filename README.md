@@ -4,6 +4,7 @@ A fast, minimal static site generator for photo galleries. Takes a directory of 
 
 ## Features
 
+- **14 languages supported**: English, Chinese, Spanish, French, Dutch, German, Ukrainian, Russian, Japanese, Arabic, Hindi, Hebrew, Italian, and Korean with instant client-side switching
 - **Automatic image optimization**: Generates WebP thumbnails (600px) and full-size web images (2400px) from any JPEG, PNG, WebP, or GIF source
 - **EXIF metadata extraction**: Pulls date taken, camera, lens, GPS coordinates, and exposure settings from photos
 - **Hierarchical albums**: Directory structure becomes album hierarchy automatically
@@ -269,23 +270,30 @@ When `gps = "general"`, the `latitude`, `longitude`, and `display` fields are `n
 
 ## Internationalization (i18n)
 
-galerie includes a client-side internationalization system supporting 13 languages out of the box.
+galerie includes a client-side internationalization system supporting 14 languages out of the box.
 
 ### Supported Languages
 
-| Code | Language | Code | Language |
-|------|----------|------|----------|
-| en | English | ru | Russian |
-| zh_CN | Simplified Chinese | ja | Japanese |
-| es | Spanish | ar | Arabic |
-| fr | French | hi | Hindi |
-| nl | Dutch | he | Hebrew |
-| de | German | it | Italian |
-| uk | Ukrainian | | |
+| Code | Language |
+|------|----------|
+| en | English |
+| zh_CN | Simplified Chinese (简体中文) |
+| es | Spanish (Español) |
+| fr | French (Français) |
+| nl | Dutch (Nederlands) |
+| de | German (Deutsch) |
+| uk | Ukrainian (Українська) |
+| ru | Russian (Русский) |
+| ja | Japanese (日本語) |
+| ar | Arabic (العربية) |
+| hi | Hindi (हिन्दी) |
+| he | Hebrew (עברית) |
+| it | Italian (Italiano) |
+| ko | Korean (한국어) |
 
 ### Configuration
 
-**Enable all 13 languages:**
+**Enable all 14 languages:**
 
 ```toml
 all_languages = true
