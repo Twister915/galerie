@@ -482,6 +482,15 @@ body.viewer-open {
 
 .drawer-content {
     padding: var(--gap-lg);
+    /* Extra top padding to clear the viewer control buttons (X, info, etc.) */
+    padding-top: 70px;
+}
+
+@media (max-width: 1024px) {
+    /* On tablet/mobile, drawer slides up from bottom - no overlap with controls */
+    .drawer-content {
+        padding-top: var(--gap-lg);
+    }
 }
 
 /* Metadata sections */
