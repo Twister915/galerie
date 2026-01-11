@@ -20,6 +20,10 @@
     var GRID_BATCH_SIZE = 40;           // Photos to load per batch
     var FILMSTRIP_BUFFER = 10;          // Extra thumbnails to render outside viewport
     var FILMSTRIP_THUMB_WIDTH = 68;     // Thumbnail width + gap for positioning
+    var SLIDESHOW_DELAY = 5000;         // 5 seconds between photos in slideshow
+    var SWIPE_THRESHOLD = 50;           // Minimum distance for swipe gesture
+    var SWIPE_TIME_LIMIT = 300;         // Max time for swipe gesture (ms)
+    var CONTROLS_HIDE_DELAY = 2000;     // Auto-hide controls after 2 seconds
 
     // ==========================================================================
     // State
@@ -41,7 +45,21 @@
         gridObserver: null,
         // Filmstrip virtualization
         filmstripStart: 0,
-        filmstripEnd: 0
+        filmstripEnd: 0,
+        // Big picture / slideshow mode
+        bigPictureMode: false,
+        controlsTimeout: null,
+        slideshowPlaying: false,
+        slideshowInterval: null,
+        // Navigation generation counter (to ignore stale crossfade callbacks)
+        navigationGen: 0
+    };
+
+    // Touch handling state
+    var touchState = {
+        startX: 0,
+        startY: 0,
+        startTime: 0
     };
 
     // ==========================================================================
@@ -265,6 +283,8 @@
         viewer: null,
         viewerBackdrop: null,
         viewerImage: null,
+        viewerImageNext: null,
+        viewerImageContainer: null,
         viewerClose: null,
         viewerPrev: null,
         viewerNext: null,
@@ -273,7 +293,9 @@
         drawerContent: null,
         filmstrip: null,
         filmstripTrack: null,
-        loadingSentinel: null
+        loadingSentinel: null,
+        bigPictureToggle: null,
+        slideshowToggle: null
     };
 
     // ==========================================================================
@@ -356,6 +378,8 @@
         dom.viewer = document.getElementById('photo-viewer');
         dom.viewerBackdrop = document.getElementById('viewer-backdrop');
         dom.viewerImage = document.getElementById('viewer-image');
+        dom.viewerImageNext = document.getElementById('viewer-image-next');
+        dom.viewerImageContainer = dom.viewerImage ? dom.viewerImage.parentElement : null;
         dom.viewerClose = document.getElementById('viewer-close');
         dom.viewerPrev = document.getElementById('viewer-prev');
         dom.viewerNext = document.getElementById('viewer-next');
@@ -363,6 +387,8 @@
         dom.drawerToggle = document.getElementById('drawer-toggle');
         dom.drawerContent = document.getElementById('drawer-content');
         dom.filmstrip = document.getElementById('filmstrip');
+        dom.bigPictureToggle = document.getElementById('big-picture-toggle');
+        dom.slideshowToggle = document.getElementById('slideshow-toggle');
     }
 
     // ==========================================================================
@@ -580,16 +606,101 @@
     function openViewer(index) {
         if (index < 0 || index >= state.photos.length) return;
 
+        var isFirstOpen = state.currentPhotoIndex < 0;
         state.currentPhotoIndex = index;
         var photo = state.photos[index];
+
+        // Increment navigation generation to invalidate stale callbacks
+        state.navigationGen++;
+        var thisGen = state.navigationGen;
 
         window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
 
         dom.viewer.hidden = false;
         document.body.classList.add('viewer-open');
 
-        dom.viewerImage.src = photo.imagePath;
-        dom.viewerImage.alt = photo.stem;
+        // Determine which image element is currently active
+        var currentImg = dom.viewerImage.classList.contains('active') ? dom.viewerImage : dom.viewerImageNext;
+        var nextImg = currentImg === dom.viewerImage ? dom.viewerImageNext : dom.viewerImage;
+
+        // Use cross-fade in big picture mode (after first image load)
+        var useCrossfade = state.bigPictureMode && !isFirstOpen && dom.viewerImageContainer;
+
+        if (useCrossfade) {
+            dom.viewerImageContainer.classList.add('crossfade');
+            dom.viewerImageContainer.classList.remove('loading');
+
+            // Preload new image, then load into element and wait for it to render
+            var preload = new Image();
+            preload.onload = function() {
+                // Ignore if a newer navigation has started
+                if (state.navigationGen !== thisGen) return;
+
+                // Set src on the actual img element
+                nextImg.src = photo.imagePath;
+                nextImg.alt = photo.stem;
+
+                // Wait for the img element to load (should be instant from cache)
+                // This ensures the browser has rendered it before we fade
+                if (nextImg.complete) {
+                    // Already loaded (cached), swap immediately
+                    currentImg.classList.remove('active');
+                    nextImg.classList.add('active');
+                } else {
+                    nextImg.onload = function() {
+                        nextImg.onload = null;
+                        // Check generation again after async load
+                        if (state.navigationGen !== thisGen) return;
+                        currentImg.classList.remove('active');
+                        nextImg.classList.add('active');
+                    };
+                }
+            };
+            preload.onerror = function() {
+                // Ignore if a newer navigation has started
+                if (state.navigationGen !== thisGen) return;
+                nextImg.src = photo.imagePath;
+                nextImg.alt = photo.stem;
+                currentImg.classList.remove('active');
+                nextImg.classList.add('active');
+            };
+            preload.src = photo.imagePath;
+        } else {
+            // Standard loading with spinner
+            if (dom.viewerImageContainer) {
+                dom.viewerImageContainer.classList.remove('crossfade');
+                dom.viewerImageContainer.classList.add('loading');
+            }
+
+            var newImg = new Image();
+            newImg.onload = function() {
+                // Ignore if a newer navigation has started
+                if (state.navigationGen !== thisGen) return;
+                dom.viewerImage.src = photo.imagePath;
+                dom.viewerImage.alt = photo.stem;
+                dom.viewerImage.classList.add('active');
+                if (dom.viewerImageNext) {
+                    dom.viewerImageNext.classList.remove('active');
+                }
+                if (dom.viewerImageContainer) {
+                    dom.viewerImageContainer.classList.remove('loading');
+                }
+            };
+            newImg.onerror = function() {
+                // Ignore if a newer navigation has started
+                if (state.navigationGen !== thisGen) return;
+                dom.viewerImage.src = photo.imagePath;
+                dom.viewerImage.alt = photo.stem;
+                dom.viewerImage.classList.add('active');
+                if (dom.viewerImageNext) {
+                    dom.viewerImageNext.classList.remove('active');
+                }
+                if (dom.viewerImageContainer) {
+                    dom.viewerImageContainer.classList.remove('loading');
+                }
+            };
+            newImg.src = photo.imagePath;
+        }
 
         updateNavButtons();
         updateFilmstripVisibleRange();
@@ -612,6 +723,11 @@
     }
 
     function closeViewer() {
+        // Exit big picture mode if active
+        if (state.bigPictureMode) {
+            exitBigPictureMode();
+        }
+
         state.currentPhotoIndex = -1;
         state.drawerOpen = false;
         dom.viewer.hidden = true;
@@ -630,6 +746,10 @@
         var newIndex = state.currentPhotoIndex + direction;
         if (newIndex >= 0 && newIndex < state.photos.length) {
             openViewer(newIndex);
+            // Reset slideshow timer if playing (so manual nav doesn't cause jarring jump)
+            if (state.slideshowPlaying) {
+                scheduleSlideshowAdvance();
+            }
         }
     }
 
@@ -645,6 +765,188 @@
                 img.src = state.photos[i].imagePath;
             }
         });
+    }
+
+    // ==========================================================================
+    // Big Picture / Slideshow Mode
+    // ==========================================================================
+
+    function enterBigPictureMode() {
+        state.bigPictureMode = true;
+        dom.viewer.classList.add('big-picture-mode');
+
+        // Close drawer if open
+        if (state.drawerOpen) {
+            state.drawerOpen = false;
+            dom.viewer.classList.remove('drawer-open');
+            dom.drawerToggle.classList.remove('active');
+        }
+
+        // Request fullscreen on desktop
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(function() {
+                // Fullscreen not available, continue anyway
+            });
+        }
+
+        showControlsTemporarily();
+        setupBigPictureModeListeners();
+    }
+
+    function exitBigPictureMode() {
+        state.bigPictureMode = false;
+        stopSlideshow();
+        dom.viewer.classList.remove('big-picture-mode');
+        dom.viewer.classList.remove('controls-visible');
+
+        // Remove crossfade mode
+        if (dom.viewerImageContainer) {
+            dom.viewerImageContainer.classList.remove('crossfade');
+        }
+
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+
+        clearTimeout(state.controlsTimeout);
+        removeBigPictureModeListeners();
+    }
+
+    function showControlsTemporarily() {
+        dom.viewer.classList.add('controls-visible');
+
+        clearTimeout(state.controlsTimeout);
+        state.controlsTimeout = setTimeout(function() {
+            if (state.bigPictureMode) {
+                dom.viewer.classList.remove('controls-visible');
+            }
+        }, CONTROLS_HIDE_DELAY);
+    }
+
+    function setupBigPictureModeListeners() {
+        dom.viewer.addEventListener('mousemove', showControlsTemporarily);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+    }
+
+    function removeBigPictureModeListeners() {
+        dom.viewer.removeEventListener('mousemove', showControlsTemporarily);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }
+
+    function handleFullscreenChange() {
+        // If user exits fullscreen via browser, also exit big picture mode
+        if (!document.fullscreenElement && state.bigPictureMode) {
+            exitBigPictureMode();
+        }
+    }
+
+    function toggleBigPictureMode() {
+        if (state.bigPictureMode) {
+            exitBigPictureMode();
+        } else {
+            enterBigPictureMode();
+        }
+    }
+
+    // Slideshow auto-advance (uses timeout, not interval, so we can reset on manual nav)
+    function startSlideshow() {
+        state.slideshowPlaying = true;
+        if (dom.slideshowToggle) {
+            dom.slideshowToggle.classList.add('playing');
+            dom.slideshowToggle.innerHTML = '&#9208;'; // Pause icon
+            dom.slideshowToggle.setAttribute('aria-label', 'Pause slideshow');
+        }
+
+        scheduleSlideshowAdvance();
+    }
+
+    function scheduleSlideshowAdvance() {
+        // Clear any existing timeout
+        if (state.slideshowInterval) {
+            clearTimeout(state.slideshowInterval);
+        }
+
+        state.slideshowInterval = setTimeout(function() {
+            if (state.slideshowPlaying && state.currentPhotoIndex < state.photos.length - 1) {
+                navigatePhoto(1);
+                scheduleSlideshowAdvance(); // Schedule next advance
+            } else if (state.slideshowPlaying) {
+                // Reached end, stop slideshow
+                stopSlideshow();
+            }
+        }, SLIDESHOW_DELAY);
+    }
+
+    function stopSlideshow() {
+        state.slideshowPlaying = false;
+        if (dom.slideshowToggle) {
+            dom.slideshowToggle.classList.remove('playing');
+            dom.slideshowToggle.innerHTML = '&#9654;'; // Play icon
+            dom.slideshowToggle.setAttribute('aria-label', 'Play slideshow');
+        }
+
+        if (state.slideshowInterval) {
+            clearTimeout(state.slideshowInterval);
+            state.slideshowInterval = null;
+        }
+    }
+
+    function toggleSlideshow() {
+        if (state.slideshowPlaying) {
+            stopSlideshow();
+        } else {
+            startSlideshow();
+        }
+    }
+
+    // ==========================================================================
+    // Touch / Swipe Navigation
+    // ==========================================================================
+
+    function handleTouchStart(e) {
+        if (state.currentPhotoIndex < 0) return;
+
+        touchState.startX = e.touches[0].clientX;
+        touchState.startY = e.touches[0].clientY;
+        touchState.startTime = Date.now();
+
+        // In big picture mode, any touch shows controls temporarily
+        if (state.bigPictureMode) {
+            showControlsTemporarily();
+        }
+    }
+
+    function handleTouchMove(e) {
+        if (state.currentPhotoIndex < 0) return;
+
+        var deltaX = e.touches[0].clientX - touchState.startX;
+        var deltaY = e.touches[0].clientY - touchState.startY;
+
+        // If swiping more horizontally than vertically, prevent default
+        // This helps prevent browser back gesture
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            e.preventDefault();
+        }
+    }
+
+    function handleTouchEnd(e) {
+        if (state.currentPhotoIndex < 0) return;
+
+        var deltaX = e.changedTouches[0].clientX - touchState.startX;
+        var deltaY = e.changedTouches[0].clientY - touchState.startY;
+        var deltaTime = Date.now() - touchState.startTime;
+
+        // Check if it's a valid swipe
+        if (deltaTime < SWIPE_TIME_LIMIT &&
+            Math.abs(deltaX) > SWIPE_THRESHOLD &&
+            Math.abs(deltaX) > Math.abs(deltaY)) {
+
+            if (deltaX > 0) {
+                navigatePhoto(-1); // Swipe right = previous
+            } else {
+                navigatePhoto(1);  // Swipe left = next
+            }
+        }
     }
 
     // ==========================================================================
@@ -891,6 +1193,14 @@
         dom.viewerNext.addEventListener('click', function() { navigatePhoto(1); });
         dom.drawerToggle.addEventListener('click', toggleDrawer);
 
+        // Big picture mode and slideshow controls
+        if (dom.bigPictureToggle) {
+            dom.bigPictureToggle.addEventListener('click', toggleBigPictureMode);
+        }
+        if (dom.slideshowToggle) {
+            dom.slideshowToggle.addEventListener('click', toggleSlideshow);
+        }
+
         dom.filmstrip.addEventListener('click', function(e) {
             var thumb = e.target.closest('.filmstrip-thumb');
             if (thumb) {
@@ -898,6 +1208,11 @@
                 openViewer(index);
             }
         });
+
+        // Touch events for swipe navigation
+        dom.viewer.addEventListener('touchstart', handleTouchStart, { passive: true });
+        dom.viewer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        dom.viewer.addEventListener('touchend', handleTouchEnd, { passive: true });
 
         document.addEventListener('keydown', handleKeydown);
         window.addEventListener('hashchange', handleRoute);
@@ -931,11 +1246,26 @@
             case 'i':
             case 'I':
                 e.preventDefault();
-                toggleDrawer();
+                if (!state.bigPictureMode) {
+                    toggleDrawer();
+                }
+                break;
+            case 'f':
+            case 'F':
+                e.preventDefault();
+                toggleBigPictureMode();
+                break;
+            case ' ': // Spacebar
+                if (state.bigPictureMode) {
+                    e.preventDefault();
+                    toggleSlideshow();
+                }
                 break;
             case 'Escape':
                 e.preventDefault();
-                if (state.drawerOpen) {
+                if (state.bigPictureMode) {
+                    exitBigPictureMode();
+                } else if (state.drawerOpen) {
                     toggleDrawer();
                 } else {
                     closeViewer();

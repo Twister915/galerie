@@ -55,6 +55,8 @@
     <div class="viewer-backdrop" id="viewer-backdrop"></div>
 
     <div class="viewer-controls">
+        <button class="viewer-btn" id="slideshow-toggle" aria-label="Play slideshow">&#9654;</button>
+        <button class="viewer-btn" id="big-picture-toggle" aria-label="Fullscreen mode">&#9974;</button>
         <button class="viewer-btn" id="drawer-toggle" aria-label="Toggle info">i</button>
         <button class="viewer-btn viewer-close" id="viewer-close" aria-label="Close">&times;</button>
     </div>
@@ -62,7 +64,8 @@
     <div class="viewer-main">
         <button class="viewer-nav viewer-prev" id="viewer-prev" aria-label="Previous">&lsaquo;</button>
         <div class="viewer-image-container">
-            <img class="viewer-image" id="viewer-image" alt="">
+            <img class="viewer-image active" id="viewer-image" alt="">
+            <img class="viewer-image" id="viewer-image-next" alt="">
         </div>
         <button class="viewer-nav viewer-next" id="viewer-next" aria-label="Next">&rsaquo;</button>
     </div>
