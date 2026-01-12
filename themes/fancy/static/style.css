@@ -784,7 +784,12 @@ body.viewer-open {
     }
 
     .photo-viewer.drawer-open .viewer-main {
+        padding-right: 0;
         padding-bottom: calc(50vh + var(--gap-lg));
+    }
+
+    .photo-viewer.drawer-open .viewer-next {
+        right: var(--gap-md);
     }
 }
 
