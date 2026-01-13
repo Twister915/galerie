@@ -64,7 +64,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
     return () => {
       clearTimeout(progressTimeout);
     };
-  }, [photo.stem, photo.thumbPath, photo.imagePath, imageLoader]);
+  }, [photo.stem, photo.thumbPath, photo.imagePath, imageLoader.load, imageLoader.abort]);
 
   // Determine current display source
   const displaySrc = imageLoader.src || (thumbLoaded ? photo.thumbPath : null);
