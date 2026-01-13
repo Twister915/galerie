@@ -57,6 +57,9 @@ pub struct Photo {
     /// Original image height in pixels
     pub height: u32,
 
+    /// Original file size in bytes
+    pub original_size: u64,
+
     /// EXIF metadata extracted from the image
     pub metadata: PhotoMetadata,
 }
@@ -456,6 +459,7 @@ impl Photo {
             hash: String::new(),
             width: 0,
             height: 0,
+            original_size: 0,
             metadata: PhotoMetadata::default(),
         })
     }
@@ -721,6 +725,7 @@ mod tests {
             hash: "abc12345".to_string(),
             width: 1920,
             height: 1080,
+            original_size: 1024000,
             metadata: PhotoMetadata::default(),
         };
 
@@ -741,6 +746,7 @@ mod tests {
             hash: "def67890".to_string(),
             width: 3000,
             height: 2000,
+            original_size: 2048000,
             metadata: PhotoMetadata::default(),
         };
 
@@ -760,6 +766,7 @@ mod tests {
             hash: "abc12345".to_string(),
             width: 4000,
             height: 3000,
+            original_size: 5120000,
             metadata: PhotoMetadata::default(),
         };
 

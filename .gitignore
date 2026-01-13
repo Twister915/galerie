@@ -1,3 +1,7 @@
 /target
 /example/
 .DS_Store
+
+# Vite theme build artifacts
+themes/*/node_modules/
+themes/*/dist/

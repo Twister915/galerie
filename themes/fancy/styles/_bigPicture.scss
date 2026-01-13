@@ -1,0 +1,83 @@
+// Big Picture / Slideshow Mode
+
+.photo-viewer.big-picture-mode {
+  background: #000;
+  touch-action: none;
+
+  .viewer-backdrop {
+    background: #000;
+  }
+
+  .viewer-main {
+    padding: 0;
+  }
+
+  .viewer-image-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.crossfade {
+      display: block;
+      position: relative;
+
+      .viewer-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        max-width: none;
+        max-height: none;
+      }
+    }
+  }
+
+  .viewer-image {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .viewer-controls,
+  .filmstrip,
+  .info-drawer,
+  .viewer-nav {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  &.controls-visible {
+    .viewer-controls,
+    .viewer-nav {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  #drawer-toggle {
+    display: none;
+  }
+
+  #slideshow-toggle {
+    display: flex;
+  }
+}
+
+// Slideshow button
+#slideshow-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  &.playing {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}

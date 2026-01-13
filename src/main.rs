@@ -7,6 +7,7 @@ mod photos;
 mod pipeline;
 mod processing;
 mod theme;
+mod theme_build;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;

@@ -14,6 +14,7 @@ use crate::minify;
 use crate::photos::{Album, Photo};
 use crate::processing;
 use crate::theme::{templates, StaticSource, Theme};
+use crate::theme_build::{self, ThemeType};
 
 /// Mapping from original asset path to hashed output path.
 /// e.g., "style.css" -> "/static/style-abc12345.css"
@@ -63,6 +64,7 @@ struct PhotoData {
     hash: String,
     width: u32,
     height: u32,
+    original_size: u64,
     image_path: String,
     thumb_path: String,
     micro_thumb_path: String,
@@ -132,8 +134,17 @@ impl Pipeline {
 
         // Try local directory first, then built-in themes
         let theme = if local_theme_path.is_dir() {
-            tracing::debug!(theme = %local_theme_path.display(), "loading local theme");
-            Theme::load(&local_theme_path)?
+            match theme_build::detect_theme_type(&local_theme_path) {
+                ThemeType::Classic => {
+                    tracing::debug!(theme = %local_theme_path.display(), "loading local classic theme");
+                    Theme::load(&local_theme_path)?
+                }
+                ThemeType::Vite => {
+                    tracing::debug!(theme = %local_theme_path.display(), "building local Vite theme");
+                    let dist = theme_build::build_vite_theme(&local_theme_path)?;
+                    Theme::load(&dist)?
+                }
+            }
         } else if let Some(builtin) = builtin_themes::get(&config.theme) {
             tracing::debug!(theme = %config.theme, "loading built-in theme");
             Theme::from_builtin(builtin)?
@@ -645,6 +656,7 @@ impl Pipeline {
                     hash: p.hash.clone(),
                     width: p.width,
                     height: p.height,
+                    original_size: p.original_size,
                     image_path: p.image_path(&album_path),
                     thumb_path: p.thumb_path(&album_path),
                     micro_thumb_path: p.micro_thumb_path(&album_path),
