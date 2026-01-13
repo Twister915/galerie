@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 interface ImageLoadState {
   src: string | null;
   progress: number;
+  indeterminate: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -18,6 +19,7 @@ export function useImageLoader(): UseImageLoaderResult {
   const [state, setState] = useState<ImageLoadState>({
     src: null,
     progress: 0,
+    indeterminate: false,
     loading: false,
     error: null,
   });
@@ -57,6 +59,7 @@ export function useImageLoader(): UseImageLoaderResult {
     setState({
       src: null,
       progress: 0,
+      indeterminate: true,
       loading: true,
       error: null,
     });
@@ -70,7 +73,7 @@ export function useImageLoader(): UseImageLoaderResult {
     xhr.onprogress = (e: ProgressEvent) => {
       if (e.lengthComputable) {
         const percent = Math.round((e.loaded / e.total) * 100);
-        setState((s) => ({ ...s, progress: percent }));
+        setState((s) => ({ ...s, progress: percent, indeterminate: false }));
       }
     };
 
@@ -81,6 +84,7 @@ export function useImageLoader(): UseImageLoaderResult {
         setState({
           src: blobUrl,
           progress: 100,
+          indeterminate: false,
           loading: false,
           error: null,
         });
@@ -88,6 +92,7 @@ export function useImageLoader(): UseImageLoaderResult {
         setState({
           src: null,
           progress: 0,
+          indeterminate: false,
           loading: false,
           error: `Failed to load image: ${xhr.status}`,
         });
@@ -99,6 +104,7 @@ export function useImageLoader(): UseImageLoaderResult {
       setState({
         src: null,
         progress: 0,
+        indeterminate: false,
         loading: false,
         error: 'Network error loading image',
       });

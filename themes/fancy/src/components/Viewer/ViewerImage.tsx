@@ -136,9 +136,9 @@ export function ViewerImage({ photo }: ViewerImageProps) {
       )}
       <div class={`viewer-progress${showProgress ? ' active' : ''}`} id="viewer-progress">
         <div
-          class="viewer-progress-bar"
+          class={`viewer-progress-bar${imageLoader.indeterminate ? ' indeterminate' : ''}`}
           id="viewer-progress-bar"
-          style={{ width: `${imageLoader.progress}%` }}
+          style={imageLoader.indeterminate ? undefined : { width: `${imageLoader.progress}%` }}
         />
       </div>
     </div>
