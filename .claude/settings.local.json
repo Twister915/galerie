@@ -20,7 +20,10 @@
       "Bash(cargo doc:*)",
       "Bash(grep:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(wc:*)",
+      "Bash(gzip:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

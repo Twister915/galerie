@@ -94,11 +94,17 @@ export interface ImageDownload {
   abort: () => void;
 }
 
+// Language info from template
+export interface LanguageInfo {
+  code: string;
+  name: string;
+}
+
 // Declare global variables injected by template
 declare global {
   const GALLERY_URL: string;
   const I18N_URLS: Record<string, string>;
-  const I18N_CONFIG: { default: string; languages: string[] };
+  const I18N_CONFIG: { default: string; languages: LanguageInfo[] };
 
   // External libraries
   interface Window {
