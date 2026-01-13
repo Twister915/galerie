@@ -1,7 +1,7 @@
 // Viewer image with progressive loading
 
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
-import { useGalleryStore, useViewerOpen } from '../../store/galleryStore';
+import { useGalleryStore } from '../../store/galleryStore';
 import { useImageLoader } from '../../hooks/useImageLoader';
 import type { Photo } from '../../types';
 
@@ -12,20 +12,12 @@ interface ViewerImageProps {
 export function ViewerImage({ photo }: ViewerImageProps) {
   const bigPictureMode = useGalleryStore((s) => s.bigPictureMode);
   const drawerOpen = useGalleryStore((s) => s.drawerOpen);
-  const isViewerOpen = useViewerOpen();
 
   const [thumbLoaded, setThumbLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const imageLoader = useImageLoader();
   const prevPhotoRef = useRef<string | null>(null);
   const fullImageLoadedRef = useRef(false);
-
-  // Abort loading when viewer closes
-  useEffect(() => {
-    if (!isViewerOpen) {
-      imageLoader.abort();
-    }
-  }, [isViewerOpen, imageLoader.abort]);
 
   // For crossfade: track which slot is active and what src each slot has
   const [activeSlot, setActiveSlot] = useState<'a' | 'b'>('a');
@@ -71,6 +63,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
 
     return () => {
       clearTimeout(progressTimeout);
+      imageLoader.abort();
     };
   }, [photo.stem, photo.thumbPath, photo.imagePath, imageLoader.load, imageLoader.abort]);
 
