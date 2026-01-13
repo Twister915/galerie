@@ -52,11 +52,19 @@ pub fn build_vite_theme(theme_dir: &Path) -> Result<PathBuf> {
         run_command(theme_dir, &pm_path, &["install"])?;
     }
 
+    // Clean dist/ to remove stale files from previous builds
+    let dist_dir = theme_dir.join("dist");
+    if dist_dir.exists() {
+        tracing::debug!("cleaning dist directory");
+        std::fs::remove_dir_all(&dist_dir).map_err(|e| Error::ThemeBuild {
+            message: format!("failed to clean {}: {}", dist_dir.display(), e),
+        })?;
+    }
+
     // Run build
     tracing::debug!("running build");
     run_command(theme_dir, &pm_path, &["run", "build"])?;
 
-    let dist_dir = theme_dir.join("dist");
     if !dist_dir.is_dir() {
         return Err(Error::ThemeBuild {
             message: format!(

@@ -45,9 +45,18 @@ The output is a fully static site you can deploy anywhere.
 ## Documentation
 
 - [Site Configuration](site-config.md) - How to configure `site.toml`
-- [Theme Structure](theme-structure.md) - How to organize a theme
+- [Theme Structure](theme-structure.md) - How to organize a theme (classic and Vite-based)
 - [Templates](templates.md) - Well-known template names and behavior
 - [Template Context](template-context.md) - Variables available in templates
+
+## Theme Development
+
+galerie supports two types of themes:
+
+- **Classic themes**: Plain HTML/CSS/JS with no build step
+- **Vite themes**: Modern npm-based builds with TypeScript, SCSS, Preact/React support
+
+See [Theme Structure](theme-structure.md) for detailed documentation on creating themes with Vite.
 
 ## Design Philosophy
 
