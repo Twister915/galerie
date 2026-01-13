@@ -17,9 +17,11 @@ export function ViewerImage({ photo }: ViewerImageProps) {
   const [showProgress, setShowProgress] = useState(false);
   const imageLoader = useImageLoader();
   const prevPhotoRef = useRef<string | null>(null);
-  const currentImageRef = useRef<HTMLImageElement>(null);
-  const nextImageRef = useRef<HTMLImageElement>(null);
-  const [activeImage, setActiveImage] = useState<'current' | 'next'>('current');
+
+  // For crossfade: track which slot is active and what src each slot has
+  const [activeSlot, setActiveSlot] = useState<'a' | 'b'>('a');
+  const [slotASrc, setSlotASrc] = useState<string | null>(null);
+  const [slotBSrc, setSlotBSrc] = useState<string | null>(null);
 
   // Calculate image dimensions for non-big-picture mode
   const imageSize = useMemo(() => {
@@ -29,7 +31,6 @@ export function ViewerImage({ photo }: ViewerImageProps) {
 
   // Load new image when photo changes
   useEffect(() => {
-    const isFirstLoad = prevPhotoRef.current === null;
     const isNewPhoto = prevPhotoRef.current !== photo.stem;
 
     if (!isNewPhoto) return;
@@ -63,19 +64,34 @@ export function ViewerImage({ photo }: ViewerImageProps) {
     };
   }, [photo.stem, photo.thumbPath, photo.imagePath, imageLoader]);
 
-  // Handle crossfade when image loads
+  // Determine current display source
+  const displaySrc = imageLoader.src || (thumbLoaded ? photo.thumbPath : null);
+
+  // Update the active slot's source when displaySrc changes
   useEffect(() => {
-    if (imageLoader.src) {
-      setShowProgress(false);
-      // Toggle active image for crossfade effect
-      if (bigPictureMode) {
-        setActiveImage((prev) => (prev === 'current' ? 'next' : 'current'));
+    if (!displaySrc) return;
+
+    if (bigPictureMode) {
+      // In crossfade mode: put new image in inactive slot, then switch
+      const inactiveSlot = activeSlot === 'a' ? 'b' : 'a';
+      if (inactiveSlot === 'a') {
+        setSlotASrc(displaySrc);
+      } else {
+        setSlotBSrc(displaySrc);
+      }
+      setActiveSlot(inactiveSlot);
+    } else {
+      // In normal mode: just update the active slot
+      if (activeSlot === 'a') {
+        setSlotASrc(displaySrc);
+      } else {
+        setSlotBSrc(displaySrc);
       }
     }
-  }, [imageLoader.src, bigPictureMode]);
 
-  // Determine what to show
-  const displaySrc = imageLoader.src || (thumbLoaded ? photo.thumbPath : null);
+    setShowProgress(false);
+  }, [displaySrc]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isLoading = !thumbLoaded && !imageLoader.src;
 
   const containerClasses = [
@@ -86,28 +102,29 @@ export function ViewerImage({ photo }: ViewerImageProps) {
     .filter(Boolean)
     .join(' ');
 
-  const imageStyle = imageSize
+  // Apply size to container so it's stable regardless of which image is displayed
+  const containerStyle = imageSize
     ? { width: `${imageSize.width}px`, height: `${imageSize.height}px` }
     : undefined;
 
   return (
-    <div class={containerClasses}>
-      <img
-        ref={currentImageRef}
-        class={`viewer-image${activeImage === 'current' ? ' active' : ''}`}
-        id="viewer-image"
-        src={activeImage === 'current' ? displaySrc || '' : ''}
-        alt={photo.stem}
-        style={imageStyle}
-      />
-      <img
-        ref={nextImageRef}
-        class={`viewer-image${activeImage === 'next' ? ' active' : ''}`}
-        id="viewer-image-next"
-        src={activeImage === 'next' ? displaySrc || '' : ''}
-        alt={photo.stem}
-        style={imageStyle}
-      />
+    <div class={containerClasses} style={containerStyle}>
+      {slotASrc && (
+        <img
+          class={`viewer-image${activeSlot === 'a' ? ' active' : ''}`}
+          id="viewer-image"
+          src={slotASrc}
+          alt=""
+        />
+      )}
+      {slotBSrc && (
+        <img
+          class={`viewer-image${activeSlot === 'b' ? ' active' : ''}`}
+          id="viewer-image-next"
+          src={slotBSrc}
+          alt=""
+        />
+      )}
       <div class={`viewer-progress${showProgress ? ' active' : ''}`} id="viewer-progress">
         <div
           class="viewer-progress-bar"

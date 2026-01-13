@@ -102,9 +102,10 @@
     place-items: center;
     background: #000;
 
+    // In crossfade mode, both images must be visible for the transition
     .viewer-image {
       grid-area: 1 / 1;
-      display: block;
+      display: block !important; // Override the :not(.active) display:none
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
 
@@ -116,10 +117,13 @@
 }
 
 .viewer-image {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   user-select: none;
   transition: opacity var(--transition-normal);
 
+  // In normal mode, hide inactive image (crossfade mode overrides this)
   &:not(.active) {
     display: none;
   }

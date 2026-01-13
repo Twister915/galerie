@@ -15,29 +15,34 @@ export function Filmstrip() {
 
   const containerRef = useRef<HTMLElement>(null);
   const isScrollingToActive = useRef(false);
+  const scrollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Calculate visible range on scroll
+  // Calculate visible range based on a scroll position
+  const updateVisibleRangeForScroll = useCallback(
+    (scrollLeft: number, viewportWidth: number) => {
+      const newStart = Math.max(
+        0,
+        Math.floor(scrollLeft / FILMSTRIP_THUMB_WIDTH) - FILMSTRIP_BUFFER
+      );
+      const newEnd = Math.min(
+        photos.length,
+        Math.ceil((scrollLeft + viewportWidth) / FILMSTRIP_THUMB_WIDTH) +
+          FILMSTRIP_BUFFER
+      );
+
+      if (newStart !== filmstripStart || newEnd !== filmstripEnd) {
+        setFilmstripRange(newStart, newEnd);
+      }
+    },
+    [photos.length, filmstripStart, filmstripEnd, setFilmstripRange]
+  );
+
+  // Calculate visible range from current scroll position
   const updateVisibleRange = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
-
-    const scrollLeft = container.scrollLeft;
-    const viewportWidth = container.clientWidth;
-
-    const newStart = Math.max(
-      0,
-      Math.floor(scrollLeft / FILMSTRIP_THUMB_WIDTH) - FILMSTRIP_BUFFER
-    );
-    const newEnd = Math.min(
-      photos.length,
-      Math.ceil((scrollLeft + viewportWidth) / FILMSTRIP_THUMB_WIDTH) +
-        FILMSTRIP_BUFFER
-    );
-
-    if (newStart !== filmstripStart || newEnd !== filmstripEnd) {
-      setFilmstripRange(newStart, newEnd);
-    }
-  }, [photos.length, filmstripStart, filmstripEnd, setFilmstripRange]);
+    updateVisibleRangeForScroll(container.scrollLeft, container.clientWidth);
+  }, [updateVisibleRangeForScroll]);
 
   // Scroll to active thumbnail when current photo changes
   useEffect(() => {
@@ -46,31 +51,40 @@ export function Filmstrip() {
 
     isScrollingToActive.current = true;
 
-    const targetScroll =
+    const viewportWidth = container.clientWidth;
+    const targetScroll = Math.max(
+      0,
       currentPhotoIndex * FILMSTRIP_THUMB_WIDTH -
-      container.clientWidth / 2 +
-      FILMSTRIP_THUMB_WIDTH / 2;
+        viewportWidth / 2 +
+        FILMSTRIP_THUMB_WIDTH / 2
+    );
+
+    // Update visible range immediately based on target position
+    updateVisibleRangeForScroll(targetScroll, viewportWidth);
 
     container.scrollTo({
-      left: Math.max(0, targetScroll),
+      left: targetScroll,
       behavior: 'smooth',
     });
 
-    // Update visible range after scroll animation
-    const timeout = setTimeout(() => {
-      isScrollingToActive.current = false;
-      updateVisibleRange();
-    }, 300);
+    // Clear any existing timeout
+    if (scrollingTimeoutRef.current) {
+      clearTimeout(scrollingTimeoutRef.current);
+    }
 
-    return () => clearTimeout(timeout);
-  }, [currentPhotoIndex, updateVisibleRange]);
+    // Reset flag after scroll animation completes
+    scrollingTimeoutRef.current = setTimeout(() => {
+      isScrollingToActive.current = false;
+    }, 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPhotoIndex]);
 
   // Initial visible range calculation
   useEffect(() => {
     updateVisibleRange();
   }, [updateVisibleRange]);
 
-  // Handle scroll events
+  // Handle scroll events (for manual scrolling)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
