@@ -17,6 +17,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
   const [showProgress, setShowProgress] = useState(false);
   const imageLoader = useImageLoader();
   const prevPhotoRef = useRef<string | null>(null);
+  const fullImageLoadedRef = useRef(false);
 
   // For crossfade: track which slot is active and what src each slot has
   const [activeSlot, setActiveSlot] = useState<'a' | 'b'>('a');
@@ -36,6 +37,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
     if (!isNewPhoto) return;
 
     prevPhotoRef.current = photo.stem;
+    fullImageLoadedRef.current = false;
     setThumbLoaded(false);
     setShowProgress(false);
 
@@ -49,12 +51,12 @@ export function ViewerImage({ photo }: ViewerImageProps) {
     };
     thumbImg.src = photo.thumbPath;
 
-    // Show progress after delay if full image not loaded
+    // Show progress bar after 400ms if still loading full image
     const progressTimeout = setTimeout(() => {
-      if (!imageLoader.src) {
+      if (!fullImageLoadedRef.current) {
         setShowProgress(true);
       }
-    }, 150);
+    }, 400);
 
     // Start loading full image
     imageLoader.load(photo.imagePath);
@@ -66,6 +68,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
 
   // Determine current display source
   const displaySrc = imageLoader.src || (thumbLoaded ? photo.thumbPath : null);
+  const isShowingThumbnail = !imageLoader.src && thumbLoaded;
 
   // Update the active slot's source when displaySrc changes
   useEffect(() => {
@@ -88,9 +91,15 @@ export function ViewerImage({ photo }: ViewerImageProps) {
         setSlotBSrc(displaySrc);
       }
     }
-
-    setShowProgress(false);
   }, [displaySrc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hide progress bar when full image loads
+  useEffect(() => {
+    if (imageLoader.src) {
+      fullImageLoadedRef.current = true;
+      setShowProgress(false);
+    }
+  }, [imageLoader.src]);
 
   const isLoading = !thumbLoaded && !imageLoader.src;
 
