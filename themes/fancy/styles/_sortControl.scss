@@ -8,13 +8,13 @@
 }
 
 .sort-control-trigger {
-  height: 44px;
-  padding: 0 12px;
+  height: 48px;
+  padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   cursor: pointer;
   transition: all var(--transition-normal);
   display: flex;
@@ -36,12 +36,12 @@
 }
 
 .sort-icon {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
 .sort-label {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   max-width: 0;
   opacity: 0;
@@ -57,7 +57,7 @@
 }
 
 .sort-direction {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   opacity: 0.7;
   flex-shrink: 0;
 }
@@ -67,8 +67,8 @@
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
-  min-width: 160px;
-  padding: 4px;
+  min-width: 180px;
+  padding: 6px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -93,8 +93,8 @@
   align-items: center;
   gap: var(--gap-sm);
   width: 100%;
-  padding: 8px 12px;
-  font-size: 0.875rem;
+  padding: 10px 14px;
+  font-size: 0.9375rem;
   color: var(--text-secondary);
   text-align: left;
   background: transparent;
@@ -114,8 +114,8 @@
 }
 
 .sort-item-icon {
-  font-size: 1rem;
-  width: 20px;
+  font-size: 1.125rem;
+  width: 22px;
   text-align: center;
 }
 
@@ -124,6 +124,6 @@
 }
 
 .sort-item-direction {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   opacity: 0.7;
 }
