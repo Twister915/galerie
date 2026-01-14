@@ -75,7 +75,7 @@ domain = "photos.example.com"
 # Optional: site title (defaults to domain)
 title = "My Photo Gallery"
 
-# Optional: theme name or path (defaults to "basic")
+# Optional: theme name or path (defaults to "fancy")
 # Can be "basic", "fancy", or a path to a local theme directory
 theme = "fancy"
 

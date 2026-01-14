@@ -64,7 +64,7 @@ pub struct Site {
     /// Site title (defaults to domain if not specified)
     pub title: Option<String>,
 
-    /// Theme to use for rendering (defaults to "basic").
+    /// Theme to use for rendering (defaults to "fancy").
     ///
     /// Resolution order (handled by Pipeline::load):
     /// 1. Local directory with this name → use local
@@ -152,7 +152,7 @@ impl Site {
 }
 
 fn default_theme() -> String {
-    "basic".to_string()
+    "fancy".to_string()
 }
 
 fn default_photos() -> PathBuf {
@@ -214,7 +214,7 @@ mod tests {
         let toml = r#"domain = "example.com""#;
         let site: Site = toml::from_str(toml).unwrap();
 
-        assert_eq!(site.theme, "basic");
+        assert_eq!(site.theme, "fancy");
     }
 
     #[test]
