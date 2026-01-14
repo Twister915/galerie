@@ -83,6 +83,7 @@ struct PhotoMetadataData {
     copyright: Option<String>,
     gps: Option<GpsData>,
     exposure: Option<ExposureData>,
+    rating: Option<u8>,
 }
 
 /// GPS data for gallery JSON.
@@ -697,6 +698,7 @@ impl Pipeline {
                 iso: e.iso,
                 focal_length: e.focal_length.clone(),
             }),
+            rating: metadata.rating,
         }
     }
 

@@ -1,19 +1,76 @@
 // Masonry grid with progressive loading
 
 import { useEffect, useRef, useCallback } from 'preact/hooks';
-import { useGalleryStore, useFilteredPhotos } from '../../store/galleryStore';
+import {
+  useGalleryStore,
+  useFilteredPhotos,
+  type SortMode,
+  type SortDirection,
+} from '../../store/galleryStore';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 import { PhotoTile } from './PhotoTile';
+import { SortControl } from './SortControl';
 import { GRID_BATCH_SIZE } from '../../config';
 import { simpleHash } from '../../utils/hash';
 import type { MasonryInstance, Photo } from '../../types';
 
-// Compute a deterministic order for photos based on hash
-function computeGridOrder(photos: Photo[]): number[] {
-  return photos
-    .map((photo, index) => ({ index, sortKey: simpleHash(photo.hash) }))
-    .sort((a, b) => a.sortKey - b.sortKey)
-    .map((item) => item.index);
+// Compute grid order based on sort mode and direction
+function computeGridOrder(
+  photos: Photo[],
+  sortMode: SortMode,
+  sortDirection: SortDirection
+): number[] {
+  const indexed = photos.map((photo, index) => ({ index, photo }));
+
+  switch (sortMode) {
+    case 'shuffle':
+      // Deterministic shuffle based on photo hash
+      return indexed
+        .map((item) => ({ ...item, sortKey: simpleHash(item.photo.hash) }))
+        .sort((a, b) => a.sortKey - b.sortKey)
+        .map((item) => item.index);
+
+    case 'date':
+      return indexed
+        .sort((a, b) => {
+          const dateA = a.photo.metadata.dateTaken || '';
+          const dateB = b.photo.metadata.dateTaken || '';
+          const cmp = dateA.localeCompare(dateB);
+          return sortDirection === 'asc' ? cmp : -cmp;
+        })
+        .map((item) => item.index);
+
+    case 'rating':
+      return indexed
+        .sort((a, b) => {
+          const ratingA = a.photo.metadata.rating ?? 0;
+          const ratingB = b.photo.metadata.rating ?? 0;
+          const cmp = ratingA - ratingB;
+          return sortDirection === 'asc' ? cmp : -cmp;
+        })
+        .map((item) => item.index);
+
+    case 'photographer':
+      return indexed
+        .sort((a, b) => {
+          const copyA = a.photo.metadata.copyright || '';
+          const copyB = b.photo.metadata.copyright || '';
+          const cmp = copyA.localeCompare(copyB);
+          return sortDirection === 'asc' ? cmp : -cmp;
+        })
+        .map((item) => item.index);
+
+    case 'name':
+      return indexed
+        .sort((a, b) => {
+          const cmp = a.photo.stem.localeCompare(b.photo.stem);
+          return sortDirection === 'asc' ? cmp : -cmp;
+        })
+        .map((item) => item.index);
+
+    default:
+      return indexed.map((item) => item.index);
+  }
 }
 
 export function Grid() {
@@ -23,23 +80,28 @@ export function Grid() {
   const loadMoreGrid = useGalleryStore((s) => s.loadMoreGrid);
   const setGridLoading = useGalleryStore((s) => s.setGridLoading);
   const openViewer = useGalleryStore((s) => s.openViewer);
+  const sortMode = useGalleryStore((s) => s.sortMode);
+  const sortDirection = useGalleryStore((s) => s.sortDirection);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const masonryRef = useRef<MasonryInstance | null>(null);
   const gridOrderRef = useRef<number[]>([]);
   const prevLoadedCountRef = useRef(0);
 
-  // Compute grid order when photos change
+  // Compute grid order when photos or sort settings change
   useEffect(() => {
-    gridOrderRef.current = computeGridOrder(photos);
+    gridOrderRef.current = computeGridOrder(photos, sortMode, sortDirection);
     prevLoadedCountRef.current = 0;
 
-    // Reset masonry when photos change
+    // Reset masonry when photos or sort changes
     if (masonryRef.current && gridRef.current) {
-      // Clear grid and reload
+      // Clear existing tiles for re-sort
+      const existingTiles = gridRef.current.querySelectorAll('.photo-tile');
+      existingTiles.forEach((tile) => tile.remove());
+      // Reload grid
       loadMoreGrid(GRID_BATCH_SIZE);
     }
-  }, [photos, loadMoreGrid]);
+  }, [photos, sortMode, sortDirection, loadMoreGrid]);
 
   // Initialize Masonry
   useEffect(() => {
@@ -123,6 +185,9 @@ export function Grid() {
   // Get photos to render based on grid order
   const visibleIndices = gridOrderRef.current.slice(0, gridLoadedCount);
 
+  // Create a sort key for deterministic tile sizing per sort configuration
+  const sortKey = `${sortMode}:${sortDirection}`;
+
   return (
     <main class="gallery" id="gallery">
       <div ref={gridRef} class="masonry-grid" id="masonry-grid">
@@ -137,6 +202,7 @@ export function Grid() {
               photo={photo}
               index={photoIndex}
               onClick={handleTileClick}
+              sortKey={sortKey}
             />
           );
         })}
@@ -146,6 +212,7 @@ export function Grid() {
         class="loading-sentinel"
         style={{ height: '1px', width: '100%', clear: 'both' }}
       />
+      <SortControl />
     </main>
   );
 }

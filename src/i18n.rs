@@ -80,6 +80,13 @@ fn translations_en() -> Translations {
         // Actions
         ("action.download", "Download Original"),
         ("action.toggle_info", "Toggle info"),
+        // Sort
+        ("sort.label", "Sort"),
+        ("sort.shuffle", "Shuffle"),
+        ("sort.date", "Date Taken"),
+        ("sort.rating", "Star Rating"),
+        ("sort.photographer", "Photographer"),
+        ("sort.name", "Filename"),
         // Footer
         ("footer.built_with", "Built with"),
         ("footer.built_with_suffix", ""),
@@ -166,6 +173,13 @@ fn translations_zh_cn() -> Translations {
         // Actions
         ("action.download", "下载原图"),
         ("action.toggle_info", "切换信息"),
+        // Sort
+        ("sort.label", "排序"),
+        ("sort.shuffle", "随机"),
+        ("sort.date", "拍摄日期"),
+        ("sort.rating", "星级评分"),
+        ("sort.photographer", "摄影师"),
+        ("sort.name", "文件名"),
         // Footer
         ("footer.built_with", "由"),
         ("footer.built_with_suffix", "构建"),
@@ -252,6 +266,13 @@ fn translations_es() -> Translations {
         // Actions
         ("action.download", "Descargar original"),
         ("action.toggle_info", "Mostrar info"),
+        // Sort
+        ("sort.label", "Ordenar"),
+        ("sort.shuffle", "Aleatorio"),
+        ("sort.date", "Fecha"),
+        ("sort.rating", "Calificación"),
+        ("sort.photographer", "Fotógrafo"),
+        ("sort.name", "Nombre"),
         // Footer
         ("footer.built_with", "Hecho con"),
         ("footer.built_with_suffix", ""),
@@ -338,6 +359,13 @@ fn translations_fr() -> Translations {
         // Actions
         ("action.download", "Télécharger l'original"),
         ("action.toggle_info", "Afficher infos"),
+        // Sort
+        ("sort.label", "Trier"),
+        ("sort.shuffle", "Aléatoire"),
+        ("sort.date", "Date de prise"),
+        ("sort.rating", "Note"),
+        ("sort.photographer", "Photographe"),
+        ("sort.name", "Nom"),
         // Footer
         ("footer.built_with", "Créé avec"),
         ("footer.built_with_suffix", ""),
@@ -424,6 +452,13 @@ fn translations_nl() -> Translations {
         // Actions
         ("action.download", "Origineel downloaden"),
         ("action.toggle_info", "Info tonen"),
+        // Sort
+        ("sort.label", "Sorteren"),
+        ("sort.shuffle", "Willekeurig"),
+        ("sort.date", "Datum"),
+        ("sort.rating", "Beoordeling"),
+        ("sort.photographer", "Fotograaf"),
+        ("sort.name", "Bestandsnaam"),
         // Footer
         ("footer.built_with", "Gemaakt met"),
         ("footer.built_with_suffix", ""),
@@ -510,6 +545,13 @@ fn translations_de() -> Translations {
         // Actions
         ("action.download", "Original herunterladen"),
         ("action.toggle_info", "Info anzeigen"),
+        // Sort
+        ("sort.label", "Sortieren"),
+        ("sort.shuffle", "Zufällig"),
+        ("sort.date", "Aufnahmedatum"),
+        ("sort.rating", "Bewertung"),
+        ("sort.photographer", "Fotograf"),
+        ("sort.name", "Dateiname"),
         // Footer
         ("footer.built_with", "Erstellt mit"),
         ("footer.built_with_suffix", ""),
@@ -596,6 +638,13 @@ fn translations_uk() -> Translations {
         // Actions
         ("action.download", "Завантажити оригінал"),
         ("action.toggle_info", "Показати інфо"),
+        // Sort
+        ("sort.label", "Сортувати"),
+        ("sort.shuffle", "Випадково"),
+        ("sort.date", "Дата зйомки"),
+        ("sort.rating", "Рейтинг"),
+        ("sort.photographer", "Фотограф"),
+        ("sort.name", "Назва файлу"),
         // Footer
         ("footer.built_with", "Створено за допомогою"),
         ("footer.built_with_suffix", ""),
@@ -682,6 +731,13 @@ fn translations_ru() -> Translations {
         // Actions
         ("action.download", "Скачать оригинал"),
         ("action.toggle_info", "Показать инфо"),
+        // Sort
+        ("sort.label", "Сортировка"),
+        ("sort.shuffle", "Случайно"),
+        ("sort.date", "Дата съёмки"),
+        ("sort.rating", "Рейтинг"),
+        ("sort.photographer", "Фотограф"),
+        ("sort.name", "Имя файла"),
         // Footer
         ("footer.built_with", "Сделано с помощью"),
         ("footer.built_with_suffix", ""),
@@ -768,6 +824,13 @@ fn translations_ja() -> Translations {
         // Actions
         ("action.download", "オリジナルをダウンロード"),
         ("action.toggle_info", "情報を表示"),
+        // Sort
+        ("sort.label", "並べ替え"),
+        ("sort.shuffle", "シャッフル"),
+        ("sort.date", "撮影日"),
+        ("sort.rating", "評価"),
+        ("sort.photographer", "撮影者"),
+        ("sort.name", "ファイル名"),
         // Footer
         ("footer.built_with", ""),
         ("footer.built_with_suffix", "で作成"),
@@ -854,6 +917,13 @@ fn translations_ar() -> Translations {
         // Actions
         ("action.download", "تحميل الأصل"),
         ("action.toggle_info", "عرض المعلومات"),
+        // Sort
+        ("sort.label", "ترتيب"),
+        ("sort.shuffle", "عشوائي"),
+        ("sort.date", "تاريخ الالتقاط"),
+        ("sort.rating", "التقييم"),
+        ("sort.photographer", "المصور"),
+        ("sort.name", "اسم الملف"),
         // Footer
         ("footer.built_with", "صنع بواسطة"),
         ("footer.built_with_suffix", ""),
@@ -940,6 +1010,13 @@ fn translations_hi() -> Translations {
         // Actions
         ("action.download", "मूल डाउनलोड करें"),
         ("action.toggle_info", "जानकारी दिखाएं"),
+        // Sort
+        ("sort.label", "क्रमबद्ध करें"),
+        ("sort.shuffle", "शफ़ल"),
+        ("sort.date", "तारीख"),
+        ("sort.rating", "रेटिंग"),
+        ("sort.photographer", "फोटोग्राफर"),
+        ("sort.name", "फ़ाइल नाम"),
         // Footer
         ("footer.built_with", ""),
         ("footer.built_with_suffix", "से निर्मित"),
@@ -1026,6 +1103,13 @@ fn translations_he() -> Translations {
         // Actions
         ("action.download", "הורד מקור"),
         ("action.toggle_info", "הצג מידע"),
+        // Sort
+        ("sort.label", "מיון"),
+        ("sort.shuffle", "אקראי"),
+        ("sort.date", "תאריך צילום"),
+        ("sort.rating", "דירוג"),
+        ("sort.photographer", "צלם"),
+        ("sort.name", "שם קובץ"),
         // Footer
         ("footer.built_with", "נבנה עם"),
         ("footer.built_with_suffix", ""),
@@ -1112,6 +1196,13 @@ fn translations_it() -> Translations {
         // Actions
         ("action.download", "Scarica originale"),
         ("action.toggle_info", "Mostra info"),
+        // Sort
+        ("sort.label", "Ordina"),
+        ("sort.shuffle", "Casuale"),
+        ("sort.date", "Data scatto"),
+        ("sort.rating", "Valutazione"),
+        ("sort.photographer", "Fotografo"),
+        ("sort.name", "Nome file"),
         // Footer
         ("footer.built_with", "Creato con"),
         ("footer.built_with_suffix", ""),
@@ -1198,6 +1289,13 @@ fn translations_ko() -> Translations {
         // Actions
         ("action.download", "원본 다운로드"),
         ("action.toggle_info", "정보 표시"),
+        // Sort
+        ("sort.label", "정렬"),
+        ("sort.shuffle", "무작위"),
+        ("sort.date", "촬영일"),
+        ("sort.rating", "평점"),
+        ("sort.photographer", "촬영자"),
+        ("sort.name", "파일명"),
         // Footer
         ("footer.built_with", ""),
         ("footer.built_with_suffix", "로 제작"),

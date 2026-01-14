@@ -3,6 +3,10 @@
 import { create } from 'zustand';
 import type { Photo, Album, SiteInfo } from '../types';
 
+// Sort types
+export type SortMode = 'shuffle' | 'date' | 'rating' | 'photographer' | 'name';
+export type SortDirection = 'asc' | 'desc';
+
 interface GalleryState {
   // Data
   photos: Photo[];
@@ -26,6 +30,10 @@ interface GalleryState {
 
   // Navigation tracking (for debouncing)
   lastNavigationTime: number;
+
+  // Sort state
+  sortMode: SortMode;
+  sortDirection: SortDirection;
 }
 
 interface GalleryActions {
@@ -56,6 +64,10 @@ interface GalleryActions {
 
   // Filmstrip actions
   setFilmstripRange: (start: number, end: number) => void;
+
+  // Sort actions
+  setSortMode: (mode: SortMode) => void;
+  toggleSortDirection: () => void;
 }
 
 export type GalleryStore = GalleryState & GalleryActions;
@@ -78,6 +90,8 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   filmstripStart: 0,
   filmstripEnd: 0,
   lastNavigationTime: 0,
+  sortMode: 'shuffle',
+  sortDirection: 'desc',
 
   // Data loading
   setGalleryData: (photos, albums, site) => set({ photos, albums, site }),
@@ -166,6 +180,14 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 
   // Filmstrip actions
   setFilmstripRange: (start, end) => set({ filmstripStart: start, filmstripEnd: end }),
+
+  // Sort actions
+  setSortMode: (mode) => set({ sortMode: mode, gridLoadedCount: 0 }),
+  toggleSortDirection: () =>
+    set((state) => ({
+      sortDirection: state.sortDirection === 'asc' ? 'desc' : 'asc',
+      gridLoadedCount: 0,
+    })),
 }));
 
 // Selector for filtered photos based on album

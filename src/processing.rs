@@ -18,6 +18,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use image::imageops::FilterType;
 use image::DynamicImage;
+use gufo_common::xmp::Namespace;
+use gufo_xmp::{Tag, Xmp};
 use little_exif::exif_tag::ExifTag;
 use little_exif::filetype::FileExtension;
 use little_exif::metadata::Metadata;
@@ -332,6 +334,9 @@ fn extract_exif(data: &[u8], extension: &str, gps_mode: GpsMode) -> PhotoMetadat
     // Extract exposure info
     let exposure = extract_exposure(&metadata);
 
+    // Extract XMP rating
+    let rating = extract_xmp_rating(data);
+
     PhotoMetadata {
         date_taken,
         copyright,
@@ -339,7 +344,53 @@ fn extract_exif(data: &[u8], extension: &str, gps_mode: GpsMode) -> PhotoMetadat
         lens,
         gps,
         exposure,
+        rating,
     }
+}
+
+/// Extract XMP data from image bytes and parse the rating.
+///
+/// XMP is embedded in JPEG/PNG files as XML. We search for the xpacket
+/// markers and parse the XMP content to get the xmp:Rating value.
+fn extract_xmp_rating(data: &[u8]) -> Option<u8> {
+    // Find XMP packet in the image data
+    // XMP packets are wrapped with <?xpacket begin="..." ?> and <?xpacket end="..." ?>
+    let xpacket_begin = b"<?xpacket begin=";
+    let xpacket_end = b"<?xpacket end=";
+
+    // Find the start of XMP data
+    let start_marker = data
+        .windows(xpacket_begin.len())
+        .position(|w| w == xpacket_begin)?;
+
+    // Find the end of XMP data
+    let end_marker = data[start_marker..]
+        .windows(xpacket_end.len())
+        .position(|w| w == xpacket_end)?;
+
+    // Extract XMP bytes (include the end marker and closing ?>)
+    let xmp_end = start_marker + end_marker + xpacket_end.len();
+    let xmp_slice = &data[start_marker..];
+
+    // Find the actual end of the xpacket end tag
+    let final_end = xmp_slice
+        .windows(2)
+        .skip(end_marker)
+        .position(|w| w == b"?>")
+        .map(|p| end_marker + p + 2)
+        .unwrap_or(xmp_end - start_marker);
+
+    let xmp_bytes = data[start_marker..start_marker + final_end].to_vec();
+
+    // Parse XMP
+    let xmp = Xmp::new(xmp_bytes).ok()?;
+
+    // Get the xmp:Rating value
+    let rating_tag = Tag::new(Namespace::Xmp, "Rating".to_string());
+    let rating_str = xmp.get(rating_tag)?;
+
+    // Parse as u8 (ratings are typically 0-5)
+    rating_str.parse::<u8>().ok()
 }
 
 /// Extract GPS coordinates from EXIF metadata.

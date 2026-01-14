@@ -21,6 +21,7 @@ export interface PhotoMetadata {
   copyright?: string;
   gps?: GpsData;
   exposure?: ExposureData;
+  rating?: number;
 }
 
 export interface GpsData {

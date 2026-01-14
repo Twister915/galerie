@@ -84,6 +84,10 @@ pub struct PhotoMetadata {
 
     /// Exposure settings
     pub exposure: Option<ExposureInfo>,
+
+    /// Star rating (0-5, from XMP metadata)
+    /// TODO: Implement XMP parsing for rating extraction
+    pub rating: Option<u8>,
 }
 
 /// GPS coordinates and reverse-geocoded location from EXIF data.
