@@ -34,6 +34,10 @@
     letter-spacing: 0.05em;
     color: var(--text-muted);
     margin-bottom: var(--gap-sm);
+
+    .info-drawer.rtl & {
+      text-align: right;
+    }
   }
 }
 
