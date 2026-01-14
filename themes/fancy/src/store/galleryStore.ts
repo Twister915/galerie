@@ -7,6 +7,37 @@ import type { Photo, Album, SiteInfo } from '../types';
 export type SortMode = 'shuffle' | 'date' | 'rating' | 'photographer' | 'name';
 export type SortDirection = 'asc' | 'desc';
 
+// localStorage key for sort preferences
+const SORT_STORAGE_KEY = 'galerie-sort';
+
+// Valid sort modes for validation
+const VALID_SORT_MODES: SortMode[] = ['shuffle', 'date', 'rating', 'photographer', 'name'];
+
+// Load sort preferences from localStorage
+function loadSortPrefs(): { mode: SortMode; direction: SortDirection } {
+  try {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const mode = VALID_SORT_MODES.includes(parsed.mode) ? parsed.mode : 'shuffle';
+      const direction = parsed.direction === 'asc' ? 'asc' : 'desc';
+      return { mode, direction };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return { mode: 'shuffle', direction: 'desc' };
+}
+
+// Save sort preferences to localStorage
+function saveSortPrefs(mode: SortMode, direction: SortDirection): void {
+  try {
+    localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ mode, direction }));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 interface GalleryState {
   // Data
   photos: Photo[];
@@ -75,6 +106,9 @@ export type GalleryStore = GalleryState & GalleryActions;
 const NAVIGATION_DEBOUNCE = 100;
 const GRID_BATCH_SIZE = 40;
 
+// Load saved sort preferences
+const initialSortPrefs = loadSortPrefs();
+
 export const useGalleryStore = create<GalleryStore>((set, get) => ({
   // Initial state
   photos: [],
@@ -90,8 +124,8 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   filmstripStart: 0,
   filmstripEnd: 0,
   lastNavigationTime: 0,
-  sortMode: 'shuffle',
-  sortDirection: 'desc',
+  sortMode: initialSortPrefs.mode,
+  sortDirection: initialSortPrefs.direction,
 
   // Data loading
   setGalleryData: (photos, albums, site) => set({ photos, albums, site }),
@@ -182,12 +216,17 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   setFilmstripRange: (start, end) => set({ filmstripStart: start, filmstripEnd: end }),
 
   // Sort actions
-  setSortMode: (mode) => set({ sortMode: mode, gridLoadedCount: 0 }),
-  toggleSortDirection: () =>
-    set((state) => ({
-      sortDirection: state.sortDirection === 'asc' ? 'desc' : 'asc',
-      gridLoadedCount: 0,
-    })),
+  setSortMode: (mode) => {
+    const { sortDirection } = get();
+    saveSortPrefs(mode, sortDirection);
+    set({ sortMode: mode, gridLoadedCount: 0 });
+  },
+  toggleSortDirection: () => {
+    const { sortMode, sortDirection } = get();
+    const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    saveSortPrefs(sortMode, newDirection);
+    set({ sortDirection: newDirection, gridLoadedCount: 0 });
+  },
 }));
 
 // Selector for filtered photos based on album
