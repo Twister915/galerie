@@ -24,6 +24,10 @@
       bottom: 50vh;
     }
 
+    .filmstrip-toggle {
+      display: none;
+    }
+
     .viewer-main {
       padding: 0;
       padding-bottom: calc(50vh + var(--filmstrip-height) + var(--gap-sm));
