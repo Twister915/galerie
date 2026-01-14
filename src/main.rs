@@ -36,6 +36,10 @@ struct Args {
     #[arg(short, long, global = true)]
     quiet: bool,
 
+    /// Override theme (for testing)
+    #[arg(short, long, global = true)]
+    theme: Option<String>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -103,7 +107,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(path = %config_path.display(), "loading site config");
 
     let config_content = std::fs::read_to_string(&config_path)?;
-    let site: config::Site = toml::from_str(&config_content)?;
+    let mut site: config::Site = toml::from_str(&config_content)?;
+
+    // Override theme if specified via CLI
+    if let Some(theme_name) = &args.theme {
+        tracing::info!(theme = %theme_name, "overriding theme from CLI");
+        site.theme = config::ThemeConfig::Name(theme_name.clone());
+    }
 
     tracing::info!(
         domain = %site.domain,
