@@ -53,6 +53,16 @@ export function LangPicker() {
     return () => document.removeEventListener('keydown', handleKeydown);
   }, [open]);
 
+  // Close on scroll (for mobile)
+  useEffect(() => {
+    function handleScroll() {
+      if (open) setOpen(false);
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [open]);
+
   const handleToggle = useCallback((e: MouseEvent) => {
     e.stopPropagation();
     setOpen((prev) => !prev);
