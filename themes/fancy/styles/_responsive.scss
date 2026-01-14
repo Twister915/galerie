@@ -25,8 +25,19 @@
     }
 
     .viewer-main {
-      padding-right: 0;
-      padding-bottom: calc(50vh + var(--gap-lg));
+      padding: 0;
+      padding-top: 60px; // Space for controls
+      padding-bottom: calc(50vh + var(--filmstrip-height) + var(--gap-sm));
+      align-items: flex-start;
+    }
+
+    .viewer-image-container {
+      width: 100%;
+      max-height: 100%;
+
+      &.crossfade {
+        place-items: start center;
+      }
     }
 
     .viewer-next {
