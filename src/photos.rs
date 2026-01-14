@@ -444,6 +444,9 @@ pub struct ExposureInfo {
 
     /// Focal length (e.g., "50mm")
     pub focal_length: Option<String>,
+
+    /// Exposure program (e.g., "Aperture Priority")
+    pub program: Option<String>,
 }
 
 impl Photo {

@@ -527,16 +527,48 @@ fn extract_exposure(metadata: &Metadata) -> Option<ExposureInfo> {
             _ => None,
         });
 
+    // Exposure program
+    let program = metadata
+        .get_tag(&ExifTag::ExposureProgram(Vec::new()))
+        .next()
+        .and_then(|t| match t {
+            ExifTag::ExposureProgram(vals) if !vals.is_empty() => {
+                exposure_program_key(vals[0] as u8)
+            }
+            _ => None,
+        });
+
     // Only return Some if at least one field is present
-    if aperture.is_some() || shutter_speed.is_some() || iso.is_some() || focal_length.is_some() {
+    if aperture.is_some()
+        || shutter_speed.is_some()
+        || iso.is_some()
+        || focal_length.is_some()
+        || program.is_some()
+    {
         Some(ExposureInfo {
             aperture,
             shutter_speed,
             iso,
             focal_length,
+            program,
         })
     } else {
         None
+    }
+}
+
+/// Convert EXIF ExposureProgram value to i18n translation key.
+fn exposure_program_key(value: u8) -> Option<String> {
+    match value {
+        1 => Some("program.manual".to_string()),
+        2 => Some("program.program".to_string()),
+        3 => Some("program.aperture_priority".to_string()),
+        4 => Some("program.shutter_priority".to_string()),
+        5 => Some("program.creative".to_string()),
+        6 => Some("program.action".to_string()),
+        7 => Some("program.portrait".to_string()),
+        8 => Some("program.landscape".to_string()),
+        _ => None, // 0 = Not defined, others are reserved
     }
 }
 

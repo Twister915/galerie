@@ -40,6 +40,7 @@ export interface ExposureData {
   shutterSpeed?: string;
   iso?: number;
   focalLength?: string;
+  program?: string;
 }
 
 export interface Album {

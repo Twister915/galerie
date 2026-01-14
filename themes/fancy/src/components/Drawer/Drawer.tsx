@@ -75,6 +75,12 @@ export function Drawer() {
                 value={meta.exposure.focalLength}
               />
             )}
+            {meta.exposure.program && (
+              <MetaItem
+                label={t('field.program')}
+                value={t(meta.exposure.program)}
+              />
+            )}
           </MetaSection>
         )}
 

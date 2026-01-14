@@ -108,6 +108,7 @@ struct ExposureData {
     shutter_speed: Option<String>,
     iso: Option<u32>,
     focal_length: Option<String>,
+    program: Option<String>,
 }
 
 /// The pipeline combines configuration, theme, and photos to build a site.
@@ -697,6 +698,7 @@ impl Pipeline {
                 shutter_speed: e.shutter_speed.clone(),
                 iso: e.iso,
                 focal_length: e.focal_length.clone(),
+                program: e.program.clone(),
             }),
             rating: metadata.rating,
         }
