@@ -33,6 +33,13 @@ export function ViewerControls() {
   return (
     <div class="viewer-controls">
       <button
+        class="viewer-btn"
+        id="big-picture-toggle"
+        aria-label="Fullscreen mode"
+        onClick={handleBigPictureClick}
+        dangerouslySetInnerHTML={{ __html: '&#9974;' }}
+      />
+      <button
         class={`viewer-btn${slideshowPlaying ? ' playing' : ''}`}
         id="slideshow-toggle"
         aria-label={slideshowPlaying ? 'Pause slideshow' : 'Play slideshow'}
@@ -40,13 +47,6 @@ export function ViewerControls() {
         dangerouslySetInnerHTML={{
           __html: slideshowPlaying ? '&#9208;' : '&#9654;',
         }}
-      />
-      <button
-        class="viewer-btn"
-        id="big-picture-toggle"
-        aria-label="Fullscreen mode"
-        onClick={handleBigPictureClick}
-        dangerouslySetInnerHTML={{ __html: '&#9974;' }}
       />
       <button
         class={`viewer-btn${drawerOpen ? ' active' : ''}`}
