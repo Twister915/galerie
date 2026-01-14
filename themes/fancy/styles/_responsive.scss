@@ -48,14 +48,15 @@
   }
 
   .site-header {
-    flex-direction: column;
-    gap: var(--gap-sm);
+    flex-wrap: wrap;
     padding: var(--gap-sm) var(--gap-md);
   }
 
   .album-nav {
+    flex-basis: 100%;
     flex-wrap: wrap;
     justify-content: center;
+    margin-top: var(--gap-sm);
   }
 
   .gallery {
