@@ -176,3 +176,51 @@ export function useI18nLoading(): boolean {
   }
   return context.loading;
 }
+
+// Convert galerie lang code to Intl-compatible locale (e.g., 'zh_cn' -> 'zh-CN')
+function toIntlLocale(lang: string): string {
+  const parts = lang.split('_');
+  if (parts.length === 2) {
+    return `${parts[0]}-${parts[1].toUpperCase()}`;
+  }
+  return lang;
+}
+
+// Parse EXIF date format (YYYY:MM:DD HH:MM:SS) to Date object
+function parseExifDate(exifDate: string): Date | null {
+  // EXIF format: "2025:02:11 11:42:37"
+  const match = exifDate.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second)
+  );
+}
+
+// Format a date string for display using the given locale
+function formatDateTime(exifDate: string, lang: string): string {
+  const date = parseExifDate(exifDate);
+  if (!date) return exifDate; // Return original if parsing fails
+
+  const locale = toIntlLocale(lang);
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+export function useDateFormatter(): (exifDate: string) => string {
+  const context = useContext(I18nContext);
+  if (!context) {
+    throw new Error('useDateFormatter must be used within I18nProvider');
+  }
+  return useCallback(
+    (exifDate: string) => formatDateTime(exifDate, context.lang),
+    [context.lang]
+  );
+}

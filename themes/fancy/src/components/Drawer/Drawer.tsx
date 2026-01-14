@@ -1,7 +1,7 @@
 // Info drawer component
 
 import { useGalleryStore, useCurrentPhoto } from '../../store/galleryStore';
-import { useTranslation } from '../../context/I18nContext';
+import { useTranslation, useDateFormatter } from '../../context/I18nContext';
 import { MetaSection } from './MetaSection';
 import { DownloadLink } from './DownloadLink';
 import { MapView } from '../Map/Map';
@@ -10,6 +10,7 @@ export function Drawer() {
   const drawerOpen = useGalleryStore((s) => s.drawerOpen);
   const photo = useCurrentPhoto();
   const t = useTranslation();
+  const formatDate = useDateFormatter();
 
   if (!photo) return null;
 
@@ -37,7 +38,7 @@ export function Drawer() {
         {/* Date section */}
         {meta.dateTaken && (
           <MetaSection title={t('section.date')}>
-            <MetaItem label={t('field.taken')} value={meta.dateTaken} />
+            <MetaItem label={t('field.taken')} value={formatDate(meta.dateTaken)} />
           </MetaSection>
         )}
 
