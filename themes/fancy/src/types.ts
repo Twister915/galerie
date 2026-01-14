@@ -1,5 +1,17 @@
 // Type definitions for the gallery application
 
+// Sort types (shared between store and config)
+export type SortMode = 'shuffle' | 'date' | 'rating' | 'photographer' | 'name';
+export type SortDirection = 'asc' | 'desc';
+
+// Theme configuration from site.toml + theme.toml defaults
+export interface ThemeConfig {
+  slideshow_delay?: number;
+  default_sort?: SortMode;
+  default_sort_direction?: SortDirection;
+  [key: string]: unknown; // Allow arbitrary theme-specific keys
+}
+
 export interface Photo {
   stem: string;
   hash: string;
@@ -107,6 +119,7 @@ declare global {
   const GALLERY_URL: string;
   const I18N_URLS: Record<string, string>;
   const I18N_CONFIG: { default: string; languages: LanguageInfo[] };
+  const THEME_CONFIG: ThemeConfig;
 
   // External libraries
   interface Window {

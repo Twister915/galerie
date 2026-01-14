@@ -23,7 +23,8 @@
       "Bash(npm run build:*)",
       "Bash(wc:*)",
       "Bash(gzip:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(bun run build:*)"
     ]
   }
 }

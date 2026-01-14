@@ -1,11 +1,11 @@
 // Zustand store for gallery state management
 
 import { create } from 'zustand';
-import type { Photo, Album, SiteInfo } from '../types';
+import type { Photo, Album, SiteInfo, SortMode, SortDirection } from '../types';
+import { getDefaultSort, getDefaultSortDirection } from '../config';
 
-// Sort types
-export type SortMode = 'shuffle' | 'date' | 'rating' | 'photographer' | 'name';
-export type SortDirection = 'asc' | 'desc';
+// Re-export sort types for convenience
+export type { SortMode, SortDirection } from '../types';
 
 // localStorage key for sort preferences
 const SORT_STORAGE_KEY = 'galerie-sort';
@@ -13,20 +13,23 @@ const SORT_STORAGE_KEY = 'galerie-sort';
 // Valid sort modes for validation
 const VALID_SORT_MODES: SortMode[] = ['shuffle', 'date', 'rating', 'photographer', 'name'];
 
-// Load sort preferences from localStorage
+// Load sort preferences from localStorage, falling back to theme config
 function loadSortPrefs(): { mode: SortMode; direction: SortDirection } {
   try {
     const stored = localStorage.getItem(SORT_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      const mode = VALID_SORT_MODES.includes(parsed.mode) ? parsed.mode : 'shuffle';
+      const mode = VALID_SORT_MODES.includes(parsed.mode)
+        ? parsed.mode
+        : getDefaultSort();
       const direction = parsed.direction === 'asc' ? 'asc' : 'desc';
       return { mode, direction };
     }
   } catch {
     // Ignore parse errors
   }
-  return { mode: 'shuffle', direction: 'desc' };
+  // Fall back to theme config defaults
+  return { mode: getDefaultSort(), direction: getDefaultSortDirection() };
 }
 
 // Save sort preferences to localStorage

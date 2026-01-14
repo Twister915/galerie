@@ -39,6 +39,10 @@ export default defineConfig({
           src: 'templates/*',
           dest: '../templates',
         },
+        {
+          src: 'theme.toml',
+          dest: '..',
+        },
       ],
     }),
   ],

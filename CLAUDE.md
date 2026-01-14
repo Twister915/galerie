@@ -120,3 +120,36 @@ galerie supports 20 languages. When making changes that involve user-facing text
    ```
 
 7. **For country names**: The GPS data includes `countryCode` (ISO alpha-2). Use `t('country.' + countryCode)` to get localized country names.
+
+## Theme Configuration
+
+Themes can accept arbitrary configuration from `site.toml`. The system works as follows:
+
+1. **User configuration** in `site.toml` can use either simple or extended format:
+   ```toml
+   # Simple format
+   theme = "fancy"
+
+   # Extended format with settings
+   [theme]
+   name = "fancy"
+   slideshow_delay = 8000
+   ```
+
+2. **Theme defaults** are defined in `theme.toml` at the theme root:
+   ```toml
+   [defaults]
+   slideshow_delay = 5000
+   default_sort = "shuffle"
+   ```
+
+3. **Config merging**: Theme defaults are merged with user overrides (user wins).
+
+4. **Template access**: Use `{{ theme_config.key }}` in Tera templates.
+
+5. **Frontend access**: For Vite themes, config is injected as `THEME_CONFIG` global.
+
+Key files:
+- `src/config.rs` - `ThemeConfig` enum with untagged serde for both formats
+- `src/theme.rs` - `Theme.defaults` field, loaded from `theme.toml`
+- `src/pipeline.rs` - Merging logic and `theme_config` template variable

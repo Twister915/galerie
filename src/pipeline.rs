@@ -23,6 +23,27 @@ pub type AssetManifest = HashMap<String, String>;
 /// Version injected at build time.
 const VERSION: &str = env!("GIT_VERSION");
 
+/// Convert a TOML value to a JSON-compatible serde_json::Value.
+fn toml_to_json(value: &toml::Value) -> serde_json::Value {
+    match value {
+        toml::Value::String(s) => serde_json::Value::String(s.clone()),
+        toml::Value::Integer(i) => serde_json::Value::Number((*i).into()),
+        toml::Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
+        toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
+        toml::Value::Array(arr) => {
+            serde_json::Value::Array(arr.iter().map(toml_to_json).collect())
+        }
+        toml::Value::Table(t) => {
+            let map: serde_json::Map<_, _> =
+                t.iter().map(|(k, v)| (k.clone(), toml_to_json(v))).collect();
+            serde_json::Value::Object(map)
+        }
+        toml::Value::Datetime(dt) => serde_json::Value::String(dt.to_string()),
+    }
+}
+
 /// Site context passed to all templates.
 #[derive(Debug, Clone, Serialize)]
 struct SiteContext {
@@ -120,6 +141,9 @@ pub struct Pipeline {
     /// Loaded theme
     pub theme: Theme,
 
+    /// Merged theme configuration (theme defaults + user overrides)
+    pub theme_config: HashMap<String, toml::Value>,
+
     /// Root album containing all photos
     pub root: Album,
 
@@ -131,7 +155,8 @@ impl Pipeline {
     /// Load all components for site generation.
     pub fn load(site_dir: PathBuf, config: Site) -> Result<Self> {
         // Resolve paths relative to site directory
-        let local_theme_path = site_dir.join(&config.theme);
+        let theme_name = config.theme.name();
+        let local_theme_path = site_dir.join(theme_name);
         let photos_path = site_dir.join(&config.photos);
 
         // Try local directory first, then built-in themes
@@ -147,14 +172,27 @@ impl Pipeline {
                     Theme::load(&dist)?
                 }
             }
-        } else if let Some(builtin) = builtin_themes::get(&config.theme) {
+        } else if let Some(builtin) = builtin_themes::get(theme_name) {
             tracing::debug!(theme = %config.theme, "loading built-in theme");
             Theme::from_builtin(builtin)?
         } else {
             return Err(Error::ThemeNotFound {
-                name: config.theme.clone(),
+                name: theme_name.to_string(),
             });
         };
+
+        // Merge theme config: start with theme defaults, apply user overrides
+        let mut theme_config = theme.defaults.clone();
+        for (key, value) in config.theme.settings() {
+            theme_config.insert(key.clone(), value.clone());
+        }
+
+        if !theme_config.is_empty() {
+            tracing::debug!(
+                keys = ?theme_config.keys().collect::<Vec<_>>(),
+                "merged theme configuration"
+            );
+        }
 
         tracing::debug!(photos = %photos_path.display(), "discovering photos");
         let root = crate::photos::discover(&photos_path)?;
@@ -168,6 +206,7 @@ impl Pipeline {
         Ok(Self {
             config,
             theme,
+            theme_config,
             root,
             site_dir,
         })
@@ -513,7 +552,20 @@ impl Pipeline {
         context.insert("languages", &self.config.languages());
         context.insert("default_lang", &self.config.default_lang());
 
+        // Add theme configuration for frontend
+        context.insert("theme_config", &self.theme_config_json());
+
         context
+    }
+
+    /// Convert theme config to JSON-compatible format for template embedding.
+    fn theme_config_json(&self) -> serde_json::Value {
+        let json_map: serde_json::Map<String, serde_json::Value> = self
+            .theme_config
+            .iter()
+            .map(|(k, v)| (k.clone(), toml_to_json(v)))
+            .collect();
+        serde_json::Value::Object(json_map)
     }
 
     /// Find the album path for a given photo.

@@ -155,6 +155,38 @@ interface GalleryState {
 }
 ```
 
+## Configuration
+
+The fancy theme supports configuration options via `site.toml`. Add a `[theme]` section to customize behavior:
+
+```toml
+[theme]
+name = "fancy"
+slideshow_delay = 8000       # Milliseconds between slides (default: 5000)
+default_sort = "date"        # Initial sort: shuffle, date, rating, photographer, name
+default_sort_direction = "desc"  # Sort direction: asc or desc
+```
+
+### Available Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `slideshow_delay` | number | 5000 | Milliseconds between slideshow transitions |
+| `default_sort` | string | "shuffle" | Initial sort mode for the photo grid |
+| `default_sort_direction` | string | "desc" | Sort direction (ignored for shuffle mode) |
+
+### Sort Direction Behavior
+
+| Sort Mode | `asc` | `desc` |
+|-----------|-------|--------|
+| `date` | Oldest first | Newest first |
+| `rating` | Lowest rated first | Highest rated first |
+| `name` | A → Z | Z → A |
+| `photographer` | A → Z by copyright | Z → A by copyright |
+| `shuffle` | (ignored) | (ignored) |
+
+User preferences saved in localStorage take precedence over theme defaults.
+
 ## Build Commands
 
 ```bash

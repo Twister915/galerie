@@ -42,6 +42,7 @@
         languages: {{ languages | json_encode() | safe }},
         default: "{{ default_lang }}"
     };
+    var THEME_CONFIG = {{ theme_config | json_encode() | safe }};
     </script>
 
     <!-- Theme JS (ES Module) -->

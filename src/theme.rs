@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use include_dir::Dir;
+use serde::Deserialize;
 use tera::Tera;
 
 use crate::error::{Error, Result};
@@ -26,7 +28,7 @@ pub enum StaticSource {
     None,
 }
 
-/// A loaded theme with templates and static assets.
+/// A loaded theme with templates, static assets, and configuration defaults.
 #[derive(Debug)]
 pub struct Theme {
     /// Tera template engine with all templates loaded
@@ -40,6 +42,35 @@ pub struct Theme {
 
     /// Whether photo.html template exists
     pub has_photo_template: bool,
+
+    /// Theme default configuration from theme.toml
+    pub defaults: HashMap<String, toml::Value>,
+}
+
+/// Structure for parsing theme.toml files.
+#[derive(Debug, Deserialize)]
+struct ThemeToml {
+    #[serde(default)]
+    defaults: HashMap<String, toml::Value>,
+}
+
+/// Load theme defaults from theme.toml file.
+fn load_theme_defaults(theme_dir: &Path) -> Result<HashMap<String, toml::Value>> {
+    let theme_toml = theme_dir.join("theme.toml");
+
+    if !theme_toml.exists() {
+        return Ok(HashMap::new());
+    }
+
+    let content = std::fs::read_to_string(&theme_toml)?;
+    let parsed: ThemeToml = toml::from_str(&content)?;
+
+    tracing::debug!(
+        keys = ?parsed.defaults.keys().collect::<Vec<_>>(),
+        "loaded theme defaults"
+    );
+
+    Ok(parsed.defaults)
 }
 
 impl Theme {
@@ -78,10 +109,14 @@ impl Theme {
             StaticSource::None
         };
 
+        // Load theme defaults from theme.toml
+        let defaults = load_theme_defaults(theme_dir)?;
+
         tracing::info!(
             has_album = has_album_template,
             has_photo = has_photo_template,
             has_static = !matches!(static_source, StaticSource::None),
+            defaults = defaults.len(),
             "theme loaded"
         );
 
@@ -90,6 +125,7 @@ impl Theme {
             static_source,
             has_album_template,
             has_photo_template,
+            defaults,
         })
     }
 
@@ -147,10 +183,27 @@ impl Theme {
             .map(StaticSource::Builtin)
             .unwrap_or(StaticSource::None);
 
+        // Load theme defaults from embedded theme.toml
+        let defaults = if let Some(file) = dir.get_file("theme.toml") {
+            if let Some(content) = file.contents_utf8() {
+                let parsed: ThemeToml = toml::from_str(content)?;
+                tracing::debug!(
+                    keys = ?parsed.defaults.keys().collect::<Vec<_>>(),
+                    "loaded theme defaults"
+                );
+                parsed.defaults
+            } else {
+                HashMap::new()
+            }
+        } else {
+            HashMap::new()
+        };
+
         tracing::info!(
             has_album = has_album_template,
             has_photo = has_photo_template,
             has_static = !matches!(static_source, StaticSource::None),
+            defaults = defaults.len(),
             "theme loaded"
         );
 
@@ -159,6 +212,7 @@ impl Theme {
             static_source,
             has_album_template,
             has_photo_template,
+            defaults,
         })
     }
 }
@@ -189,6 +243,7 @@ mod tests {
         assert!(!theme.has_album_template);
         assert!(!theme.has_photo_template);
         assert!(matches!(theme.static_source, StaticSource::None));
+        assert!(theme.defaults.is_empty());
     }
 
     #[test]
@@ -207,6 +262,34 @@ mod tests {
         assert!(theme.has_album_template);
         assert!(theme.has_photo_template);
         assert!(matches!(theme.static_source, StaticSource::Directory(_)));
+        assert!(theme.defaults.is_empty());
+    }
+
+    #[test]
+    fn load_theme_with_defaults() {
+        let dir = create_temp_theme(&[("index.html", "<html></html>")]);
+
+        // Create theme.toml with defaults
+        fs::write(
+            dir.path().join("theme.toml"),
+            r#"
+                [defaults]
+                slideshow_delay = 5000
+                default_sort = "shuffle"
+            "#,
+        )
+        .unwrap();
+
+        let theme = Theme::load(dir.path()).unwrap();
+
+        assert_eq!(
+            theme.defaults.get("slideshow_delay"),
+            Some(&toml::Value::Integer(5000))
+        );
+        assert_eq!(
+            theme.defaults.get("default_sort"),
+            Some(&toml::Value::String("shuffle".to_string()))
+        );
     }
 
     #[test]

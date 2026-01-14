@@ -1,0 +1,14 @@
+# Fancy theme configuration defaults
+#
+# These values are used when the user doesn't specify them in site.toml.
+# Users can override any of these in their [theme] section.
+
+[defaults]
+# Milliseconds between slideshow transitions (default: 5 seconds)
+slideshow_delay = 5000
+
+# Initial sort mode: shuffle, date, rating, photographer, name
+default_sort = "shuffle"
+
+# Initial sort direction: asc or desc (ignored for shuffle mode)
+default_sort_direction = "desc"

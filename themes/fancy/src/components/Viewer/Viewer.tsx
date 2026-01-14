@@ -12,7 +12,7 @@ import { ViewerControls } from '../ViewerControls';
 import { ViewerImage } from './ViewerImage';
 import { Drawer } from '../Drawer';
 import { Filmstrip } from '../Filmstrip';
-import { CONTROLS_HIDE_DELAY, SLIDESHOW_DELAY } from '../../config';
+import { CONTROLS_HIDE_DELAY, getSlideshowDelay } from '../../config';
 
 export function Viewer() {
   const isOpen = useViewerOpen();
@@ -122,7 +122,7 @@ export function Viewer() {
         // End of gallery, stop slideshow
         setSlideshowPlaying(false);
       }
-    }, SLIDESHOW_DELAY);
+    }, getSlideshowDelay());
 
     return () => {
       if (slideshowTimeoutRef.current) {

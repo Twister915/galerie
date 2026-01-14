@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::i18n;
@@ -28,6 +29,74 @@ impl GpsMode {
             GpsMode::Off | GpsMode::General => "-nogps",
         }
     }
+}
+
+/// Theme configuration supporting both simple and extended formats.
+///
+/// Simple format (backwards compatible):
+/// ```toml
+/// theme = "fancy"
+/// ```
+///
+/// Extended format with settings:
+/// ```toml
+/// [theme]
+/// name = "fancy"
+/// slideshow_delay = 8000
+/// default_sort = "date"
+/// ```
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum ThemeConfig {
+    /// Simple string format: `theme = "fancy"`
+    Name(String),
+    /// Table format with name and optional settings
+    Table(ThemeTableConfig),
+}
+
+impl Default for ThemeConfig {
+    fn default() -> Self {
+        ThemeConfig::Name("fancy".to_string())
+    }
+}
+
+impl std::fmt::Display for ThemeConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl ThemeConfig {
+    /// Returns the theme name.
+    pub fn name(&self) -> &str {
+        match self {
+            ThemeConfig::Name(name) => name,
+            ThemeConfig::Table(table) => &table.name,
+        }
+    }
+
+    /// Returns user-provided settings (empty for simple string format).
+    pub fn settings(&self) -> &HashMap<String, toml::Value> {
+        match self {
+            ThemeConfig::Name(_) => {
+                // Return empty HashMap for simple format
+                static EMPTY: std::sync::LazyLock<HashMap<String, toml::Value>> =
+                    std::sync::LazyLock::new(HashMap::new);
+                &EMPTY
+            }
+            ThemeConfig::Table(table) => &table.settings,
+        }
+    }
+}
+
+/// Table-based theme configuration with name and arbitrary settings.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ThemeTableConfig {
+    /// Theme name (required)
+    pub name: String,
+    /// Arbitrary theme-specific settings
+    #[serde(flatten)]
+    pub settings: HashMap<String, toml::Value>,
 }
 
 /// Language configuration for i18n support.
@@ -64,14 +133,17 @@ pub struct Site {
     /// Site title (defaults to domain if not specified)
     pub title: Option<String>,
 
-    /// Theme to use for rendering (defaults to "fancy").
+    /// Theme configuration (defaults to "fancy").
+    ///
+    /// Supports both simple format (`theme = "fancy"`) and extended format
+    /// with settings (`[theme]` table).
     ///
     /// Resolution order (handled by Pipeline::load):
     /// 1. Local directory with this name → use local
     /// 2. Built-in theme with this name → use embedded
     /// 3. Error
-    #[serde(default = "default_theme")]
-    pub theme: String,
+    #[serde(default)]
+    pub theme: ThemeConfig,
 
     /// Directory containing source photos (relative to site root)
     #[serde(default = "default_photos")]
@@ -151,10 +223,6 @@ impl Site {
     }
 }
 
-fn default_theme() -> String {
-    "fancy".to_string()
-}
-
 fn default_photos() -> PathBuf {
     PathBuf::from("photos")
 }
@@ -180,7 +248,8 @@ mod tests {
         let site: Site = toml::from_str(toml).unwrap();
 
         assert_eq!(site.domain, "photos.example.com");
-        assert_eq!(site.theme, "themes/minimal");
+        assert_eq!(site.theme.name(), "themes/minimal");
+        assert!(site.theme.settings().is_empty());
         assert_eq!(site.photos, PathBuf::from("photos"));
         assert_eq!(site.build, PathBuf::from("dist"));
     }
@@ -196,7 +265,7 @@ mod tests {
         let site: Site = toml::from_str(toml).unwrap();
 
         assert_eq!(site.domain, "photos.example.com");
-        assert_eq!(site.theme, "my-theme");
+        assert_eq!(site.theme.name(), "my-theme");
         assert_eq!(site.photos, PathBuf::from("albums/vacation"));
         assert_eq!(site.build, PathBuf::from("output"));
     }
@@ -214,7 +283,46 @@ mod tests {
         let toml = r#"domain = "example.com""#;
         let site: Site = toml::from_str(toml).unwrap();
 
-        assert_eq!(site.theme, "fancy");
+        assert_eq!(site.theme.name(), "fancy");
+    }
+
+    #[test]
+    fn theme_table_format() {
+        let toml = r#"
+            domain = "example.com"
+
+            [theme]
+            name = "fancy"
+            slideshow_delay = 8000
+            default_sort = "date"
+        "#;
+        let site: Site = toml::from_str(toml).unwrap();
+
+        assert_eq!(site.theme.name(), "fancy");
+
+        let settings = site.theme.settings();
+        assert_eq!(
+            settings.get("slideshow_delay"),
+            Some(&toml::Value::Integer(8000))
+        );
+        assert_eq!(
+            settings.get("default_sort"),
+            Some(&toml::Value::String("date".to_string()))
+        );
+    }
+
+    #[test]
+    fn theme_table_minimal() {
+        let toml = r#"
+            domain = "example.com"
+
+            [theme]
+            name = "basic"
+        "#;
+        let site: Site = toml::from_str(toml).unwrap();
+
+        assert_eq!(site.theme.name(), "basic");
+        assert!(site.theme.settings().is_empty());
     }
 
     #[test]

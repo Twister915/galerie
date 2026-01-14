@@ -77,7 +77,9 @@ title = "My Photo Gallery"
 
 # Optional: theme name or path (defaults to "fancy")
 # Can be "basic", "fancy", or a path to a local theme directory
+# Simple format:
 theme = "fancy"
+# Extended format with configuration - see "Theme Configuration" section below
 
 # Optional: source directory for photos (defaults to "photos")
 photos = "albums"
@@ -117,6 +119,60 @@ Control how GPS location data is handled with the `gps` setting:
 **`general`**: Location privacy with context. Shows city, region, and country (via reverse geocoding) but hides exact coordinates and maps. GPS EXIF is stripped from downloadable originals. Good for travel galleries where you want location context without revealing exact positions.
 
 **`off`**: Maximum privacy. No GPS data is shown or preserved. Use this when location data should be completely removed.
+
+## Theme Configuration
+
+Themes can define configuration options that users can customize. Use the extended `[theme]` table format in `site.toml`:
+
+```toml
+[theme]
+name = "fancy"
+slideshow_delay = 8000
+default_sort = "date"
+default_sort_direction = "asc"
+```
+
+This is equivalent to the simple `theme = "fancy"` format, but allows additional settings.
+
+### How It Works
+
+1. **Theme defaults**: Themes define default values in `theme.toml`
+2. **User overrides**: Settings in `site.toml` override theme defaults
+3. **Template access**: Config is available as `theme_config` in Tera templates
+4. **Frontend access**: Config is injected as `THEME_CONFIG` JavaScript global
+
+### Fancy Theme Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `slideshow_delay` | number | 5000 | Milliseconds between slideshow transitions |
+| `default_sort` | string | "shuffle" | Initial sort: shuffle, date, rating, photographer, name |
+| `default_sort_direction` | string | "desc" | Sort direction: asc or desc (ignored for shuffle) |
+
+### Creating Theme Configuration
+
+Custom themes can define their own configuration by creating a `theme.toml` file:
+
+```toml
+# theme.toml
+[defaults]
+my_option = "default_value"
+another_option = 42
+```
+
+In templates, access config values:
+
+```html
+{% if theme_config.my_option %}
+  <div>{{ theme_config.my_option }}</div>
+{% endif %}
+```
+
+In JavaScript (for Vite themes):
+
+```javascript
+const value = THEME_CONFIG.my_option ?? 'fallback';
+```
 
 ## Commands
 
