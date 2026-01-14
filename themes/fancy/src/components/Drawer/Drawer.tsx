@@ -21,6 +21,17 @@ export function Drawer() {
         {/* Photo name section */}
         <MetaSection title={t('section.photo')}>
           <MetaItem label={t('field.name')} value={photo.stem} />
+          {meta.rating !== undefined && meta.rating > 0 && (
+            <MetaItem label={t('field.rating')} value={renderStars(meta.rating)} />
+          )}
+          <MetaItem
+            label={t('field.dimensions')}
+            value={`${photo.width} × ${photo.height}`}
+          />
+          <MetaItem
+            label={t('field.megapixels')}
+            value={formatMegapixels(photo.width, photo.height)}
+          />
         </MetaSection>
 
         {/* Date section */}
@@ -142,4 +153,16 @@ function MetaItem({ label, value }: MetaItemProps) {
       <span class="meta-value">{value}</span>
     </div>
   );
+}
+
+// Render star rating (1-5 stars)
+function renderStars(rating: number): string {
+  const filled = Math.min(Math.max(Math.round(rating), 0), 5);
+  return '★'.repeat(filled) + '☆'.repeat(5 - filled);
+}
+
+// Format megapixels from width and height
+function formatMegapixels(width: number, height: number): string {
+  const mp = (width * height) / 1_000_000;
+  return mp >= 10 ? `${Math.round(mp)} MP` : `${mp.toFixed(1)} MP`;
 }

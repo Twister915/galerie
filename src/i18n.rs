@@ -89,6 +89,9 @@ fn translations_en() -> Translations {
         ("field.place", "Place"),
         ("field.country", "Country"),
         ("field.coordinates", "Coordinates"),
+        ("field.rating", "Rating"),
+        ("field.dimensions", "Dimensions"),
+        ("field.megapixels", "Megapixels"),
         // Actions
         ("action.download", "Download Original"),
         ("action.toggle_info", "Toggle info"),
@@ -182,6 +185,9 @@ fn translations_zh_cn() -> Translations {
         ("field.place", "地点"),
         ("field.country", "国家"),
         ("field.coordinates", "坐标"),
+        ("field.rating", "评分"),
+        ("field.dimensions", "尺寸"),
+        ("field.megapixels", "百万像素"),
         // Actions
         ("action.download", "下载原图"),
         ("action.toggle_info", "切换信息"),
@@ -275,6 +281,9 @@ fn translations_es() -> Translations {
         ("field.place", "Lugar"),
         ("field.country", "País"),
         ("field.coordinates", "Coordenadas"),
+        ("field.rating", "Calificación"),
+        ("field.dimensions", "Dimensiones"),
+        ("field.megapixels", "Megapíxeles"),
         // Actions
         ("action.download", "Descargar original"),
         ("action.toggle_info", "Mostrar info"),
@@ -368,6 +377,9 @@ fn translations_fr() -> Translations {
         ("field.place", "Lieu"),
         ("field.country", "Pays"),
         ("field.coordinates", "Coordonnées"),
+        ("field.rating", "Note"),
+        ("field.dimensions", "Dimensions"),
+        ("field.megapixels", "Mégapixels"),
         // Actions
         ("action.download", "Télécharger l'original"),
         ("action.toggle_info", "Afficher infos"),
@@ -461,6 +473,9 @@ fn translations_nl() -> Translations {
         ("field.place", "Plaats"),
         ("field.country", "Land"),
         ("field.coordinates", "Coördinaten"),
+        ("field.rating", "Beoordeling"),
+        ("field.dimensions", "Afmetingen"),
+        ("field.megapixels", "Megapixels"),
         // Actions
         ("action.download", "Origineel downloaden"),
         ("action.toggle_info", "Info tonen"),
@@ -554,6 +569,9 @@ fn translations_de() -> Translations {
         ("field.place", "Ort"),
         ("field.country", "Land"),
         ("field.coordinates", "Koordinaten"),
+        ("field.rating", "Bewertung"),
+        ("field.dimensions", "Abmessungen"),
+        ("field.megapixels", "Megapixel"),
         // Actions
         ("action.download", "Original herunterladen"),
         ("action.toggle_info", "Info anzeigen"),
@@ -647,6 +665,9 @@ fn translations_uk() -> Translations {
         ("field.place", "Місце"),
         ("field.country", "Країна"),
         ("field.coordinates", "Координати"),
+        ("field.rating", "Рейтинг"),
+        ("field.dimensions", "Розміри"),
+        ("field.megapixels", "Мегапікселі"),
         // Actions
         ("action.download", "Завантажити оригінал"),
         ("action.toggle_info", "Показати інфо"),
@@ -740,6 +761,9 @@ fn translations_ru() -> Translations {
         ("field.place", "Место"),
         ("field.country", "Страна"),
         ("field.coordinates", "Координаты"),
+        ("field.rating", "Рейтинг"),
+        ("field.dimensions", "Размеры"),
+        ("field.megapixels", "Мегапиксели"),
         // Actions
         ("action.download", "Скачать оригинал"),
         ("action.toggle_info", "Показать инфо"),
@@ -833,6 +857,9 @@ fn translations_ja() -> Translations {
         ("field.place", "場所"),
         ("field.country", "国"),
         ("field.coordinates", "座標"),
+        ("field.rating", "評価"),
+        ("field.dimensions", "サイズ"),
+        ("field.megapixels", "メガピクセル"),
         // Actions
         ("action.download", "オリジナルをダウンロード"),
         ("action.toggle_info", "情報を表示"),
@@ -926,6 +953,9 @@ fn translations_ar() -> Translations {
         ("field.place", "المكان"),
         ("field.country", "البلد"),
         ("field.coordinates", "الإحداثيات"),
+        ("field.rating", "التقييم"),
+        ("field.dimensions", "الأبعاد"),
+        ("field.megapixels", "ميجابكسل"),
         // Actions
         ("action.download", "تحميل الأصل"),
         ("action.toggle_info", "عرض المعلومات"),
@@ -1019,6 +1049,9 @@ fn translations_hi() -> Translations {
         ("field.place", "जगह"),
         ("field.country", "देश"),
         ("field.coordinates", "निर्देशांक"),
+        ("field.rating", "रेटिंग"),
+        ("field.dimensions", "आयाम"),
+        ("field.megapixels", "मेगापिक्सल"),
         // Actions
         ("action.download", "मूल डाउनलोड करें"),
         ("action.toggle_info", "जानकारी दिखाएं"),
@@ -1112,6 +1145,9 @@ fn translations_he() -> Translations {
         ("field.place", "מקום"),
         ("field.country", "מדינה"),
         ("field.coordinates", "קואורדינטות"),
+        ("field.rating", "דירוג"),
+        ("field.dimensions", "מידות"),
+        ("field.megapixels", "מגה פיקסל"),
         // Actions
         ("action.download", "הורד מקור"),
         ("action.toggle_info", "הצג מידע"),
@@ -1205,6 +1241,9 @@ fn translations_it() -> Translations {
         ("field.place", "Luogo"),
         ("field.country", "Paese"),
         ("field.coordinates", "Coordinate"),
+        ("field.rating", "Valutazione"),
+        ("field.dimensions", "Dimensioni"),
+        ("field.megapixels", "Megapixel"),
         // Actions
         ("action.download", "Scarica originale"),
         ("action.toggle_info", "Mostra info"),
@@ -1298,6 +1337,9 @@ fn translations_ko() -> Translations {
         ("field.place", "장소"),
         ("field.country", "국가"),
         ("field.coordinates", "좌표"),
+        ("field.rating", "평점"),
+        ("field.dimensions", "크기"),
+        ("field.megapixels", "메가픽셀"),
         // Actions
         ("action.download", "원본 다운로드"),
         ("action.toggle_info", "정보 표시"),
@@ -1391,6 +1433,9 @@ fn translations_pl() -> Translations {
         ("field.place", "Miejsce"),
         ("field.country", "Kraj"),
         ("field.coordinates", "Współrzędne"),
+        ("field.rating", "Ocena"),
+        ("field.dimensions", "Wymiary"),
+        ("field.megapixels", "Megapiksele"),
         // Actions
         ("action.download", "Pobierz oryginał"),
         ("action.toggle_info", "Pokaż informacje"),
@@ -1484,6 +1529,9 @@ fn translations_cs() -> Translations {
         ("field.place", "Místo"),
         ("field.country", "Země"),
         ("field.coordinates", "Souřadnice"),
+        ("field.rating", "Hodnocení"),
+        ("field.dimensions", "Rozměry"),
+        ("field.megapixels", "Megapixely"),
         // Actions
         ("action.download", "Stáhnout originál"),
         ("action.toggle_info", "Zobrazit informace"),
@@ -1577,6 +1625,9 @@ fn translations_fi() -> Translations {
         ("field.place", "Paikka"),
         ("field.country", "Maa"),
         ("field.coordinates", "Koordinaatit"),
+        ("field.rating", "Arvosana"),
+        ("field.dimensions", "Mitat"),
+        ("field.megapixels", "Megapikseliä"),
         // Actions
         ("action.download", "Lataa alkuperäinen"),
         ("action.toggle_info", "Näytä tiedot"),
@@ -1670,6 +1721,9 @@ fn translations_da() -> Translations {
         ("field.place", "Sted"),
         ("field.country", "Land"),
         ("field.coordinates", "Koordinater"),
+        ("field.rating", "Bedømmelse"),
+        ("field.dimensions", "Dimensioner"),
+        ("field.megapixels", "Megapixel"),
         // Actions
         ("action.download", "Download original"),
         ("action.toggle_info", "Vis info"),
@@ -1763,6 +1817,9 @@ fn translations_hu() -> Translations {
         ("field.place", "Hely"),
         ("field.country", "Ország"),
         ("field.coordinates", "Koordináták"),
+        ("field.rating", "Értékelés"),
+        ("field.dimensions", "Méretek"),
+        ("field.megapixels", "Megapixel"),
         // Actions
         ("action.download", "Eredeti letöltése"),
         ("action.toggle_info", "Információk megjelenítése"),
@@ -1856,6 +1913,9 @@ fn translations_pt() -> Translations {
         ("field.place", "Local"),
         ("field.country", "País"),
         ("field.coordinates", "Coordenadas"),
+        ("field.rating", "Avaliação"),
+        ("field.dimensions", "Dimensões"),
+        ("field.megapixels", "Megapixels"),
         // Actions
         ("action.download", "Baixar original"),
         ("action.toggle_info", "Mostrar informações"),
