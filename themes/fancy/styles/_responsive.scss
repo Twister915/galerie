@@ -26,24 +26,8 @@
 
     .viewer-main {
       padding: 0;
-      padding-top: 60px; // Space for controls
       padding-bottom: calc(50vh + var(--filmstrip-height) + var(--gap-sm));
-      align-items: stretch;
-    }
-
-    .viewer-image-container {
-      width: 100%;
-      align-items: flex-start; // Image at top within container
-
-      &.crossfade {
-        place-items: start center;
-      }
-    }
-
-    .viewer-image {
-      width: 100%;
-      height: auto;
-      max-height: 100%;
+      align-items: center;
     }
 
     .viewer-next {

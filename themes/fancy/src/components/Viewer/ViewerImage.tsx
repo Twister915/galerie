@@ -160,23 +160,39 @@ function calculateViewerImageSize(
     filmstripHeight = parseInt(filmstripVar, 10) || 80;
   }
 
-  // Available space
+  const isMobile = window.innerWidth <= 1024;
+  const aspectRatio = photoWidth / photoHeight;
+
+  if (isMobile && drawerOpen) {
+    // Mobile with drawer: fill width edge-to-edge, constrain height to available space
+    const maxWidth = window.innerWidth;
+    // Available height: from top to filmstrip (which sits at 50vh - filmstripHeight)
+    const maxHeight = window.innerHeight * 0.5 - filmstripHeight;
+
+    // Start with full width
+    let width = maxWidth;
+    let height = width / aspectRatio;
+
+    // Only constrain by height for very tall (portrait) images
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspectRatio;
+    }
+
+    return { width: Math.round(width), height: Math.round(height) };
+  }
+
+  // Desktop or mobile without drawer
   const maxHeight = window.innerHeight - filmstripHeight - 100;
   let maxWidth = window.innerWidth * 0.9;
 
-  // Reduce width if drawer is open
   if (drawerOpen) {
     maxWidth = maxWidth - 320;
   }
 
-  // Calculate dimensions maintaining aspect ratio
-  const aspectRatio = photoWidth / photoHeight;
-  let width: number;
-  let height: number;
-
   // Try fitting by height first
-  height = maxHeight;
-  width = height * aspectRatio;
+  let height = maxHeight;
+  let width = height * aspectRatio;
 
   // If too wide, fit by width instead
   if (width > maxWidth) {
