@@ -11,7 +11,7 @@ import { useImagePreload } from '../../hooks/useImageLoader';
 import { ViewerControls } from '../ViewerControls';
 import { ViewerImage } from './ViewerImage';
 import { Drawer } from '../Drawer';
-import { Filmstrip } from '../Filmstrip';
+import { Filmstrip, FilmstripToggle } from '../Filmstrip';
 import { CONTROLS_HIDE_DELAY, getSlideshowDelay } from '../../config';
 
 export function Viewer() {
@@ -227,6 +227,7 @@ export function Viewer() {
       </div>
 
       <Drawer />
+      <FilmstripToggle />
       <Filmstrip />
     </div>
   );

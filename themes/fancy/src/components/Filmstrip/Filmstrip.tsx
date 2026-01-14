@@ -10,6 +10,7 @@ export function Filmstrip() {
   const currentPhotoIndex = useGalleryStore((s) => s.currentPhotoIndex);
   const filmstripStart = useGalleryStore((s) => s.filmstripStart);
   const filmstripEnd = useGalleryStore((s) => s.filmstripEnd);
+  const filmstripCollapsed = useGalleryStore((s) => s.filmstripCollapsed);
   const setFilmstripRange = useGalleryStore((s) => s.setFilmstripRange);
   const openViewer = useGalleryStore((s) => s.openViewer);
 
@@ -115,8 +116,12 @@ export function Filmstrip() {
     visibleRange.push(i);
   }
 
+  const filmstripClasses = ['filmstrip', filmstripCollapsed && 'collapsed']
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <nav ref={containerRef} class="filmstrip" id="filmstrip">
+    <nav ref={containerRef} class={filmstripClasses} id="filmstrip">
       <div
         class="filmstrip-track"
         style={{

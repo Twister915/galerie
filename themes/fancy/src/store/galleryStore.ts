@@ -58,9 +58,10 @@ interface GalleryState {
   bigPictureMode: boolean;
   slideshowPlaying: boolean;
 
-  // Filmstrip virtualization
+  // Filmstrip state
   filmstripStart: number;
   filmstripEnd: number;
+  filmstripCollapsed: boolean;
 
   // Navigation tracking (for debouncing)
   lastNavigationTime: number;
@@ -98,6 +99,7 @@ interface GalleryActions {
 
   // Filmstrip actions
   setFilmstripRange: (start: number, end: number) => void;
+  toggleFilmstrip: () => void;
 
   // Sort actions
   setSortMode: (mode: SortMode) => void;
@@ -126,6 +128,7 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   slideshowPlaying: false,
   filmstripStart: 0,
   filmstripEnd: 0,
+  filmstripCollapsed: false,
   lastNavigationTime: 0,
   sortMode: initialSortPrefs.mode,
   sortDirection: initialSortPrefs.direction,
@@ -217,6 +220,7 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 
   // Filmstrip actions
   setFilmstripRange: (start, end) => set({ filmstripStart: start, filmstripEnd: end }),
+  toggleFilmstrip: () => set((state) => ({ filmstripCollapsed: !state.filmstripCollapsed })),
 
   // Sort actions
   setSortMode: (mode) => {

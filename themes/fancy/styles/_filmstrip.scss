@@ -13,6 +13,17 @@
   overflow-y: hidden;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  transition: height var(--transition-normal), transform var(--transition-normal);
+
+  // Collapsed state
+  &.collapsed {
+    height: 0;
+    overflow: hidden;
+
+    .filmstrip-track {
+      opacity: 0;
+    }
+  }
 
   // Scrollbar styling
   &::-webkit-scrollbar {
@@ -29,12 +40,50 @@
   }
 }
 
+// Toggle button (bump)
+.filmstrip-toggle {
+  position: fixed;
+  bottom: calc(var(--filmstrip-height) - 1px); // Sit on top of filmstrip border
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: calc(var(--z-controls) + 1);
+  width: 48px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-bottom: none; // Blend with filmstrip
+  border-radius: 8px 8px 0 0;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast), background var(--transition-fast),
+    bottom var(--transition-normal);
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+  }
+
+  &.collapsed {
+    bottom: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
 // Virtualized track
 .filmstrip-track {
   position: relative;
   height: 100%;
   display: flex;
   align-items: center;
+  transition: opacity var(--transition-normal);
 }
 
 .filmstrip-thumb {
