@@ -4,7 +4,7 @@ A fast, minimal static site generator for photo galleries. Takes a directory of 
 
 ## Features
 
-- **14 languages supported**: English, Chinese, Spanish, French, Dutch, German, Ukrainian, Russian, Japanese, Arabic, Hindi, Hebrew, Italian, and Korean with instant client-side switching
+- **20 languages supported**: English, Chinese, Spanish, French, Dutch, German, Ukrainian, Russian, Japanese, Arabic, Hindi, Hebrew, Italian, Korean, Polish, Czech, Finnish, Danish, Hungarian, and Portuguese with instant client-side switching
 - **Automatic image optimization**: Generates WebP thumbnails (600px) and full-size web images (2400px) from any JPEG, PNG, WebP, or GIF source
 - **EXIF metadata extraction**: Pulls date taken, camera, lens, GPS coordinates, and exposure settings from photos
 - **Hierarchical albums**: Directory structure becomes album hierarchy automatically
@@ -92,7 +92,7 @@ minify = true
 # See "GPS Privacy" section below
 gps = "general"
 
-# Optional: enable all 13 supported languages
+# Optional: enable all 20 supported languages
 all_languages = true
 
 # Or specify languages individually (names auto-detected)
@@ -228,7 +228,7 @@ See the [Theme Structure](wiki/theme-structure.md) wiki page for detailed Vite t
 - Virtualized filmstrip navigation
 - Touch swipe support for mobile
 - Hash-based routing (SPA-like experience)
-- Responsive design with 14 language support
+- Responsive design with 20 language support
 
 ### Theme Resolution
 
@@ -314,7 +314,7 @@ When `gps = "general"`, the `latitude`, `longitude`, and `display` fields are `n
 
 ## Internationalization (i18n)
 
-galerie includes a client-side internationalization system supporting 14 languages out of the box.
+galerie includes a client-side internationalization system supporting 20 languages out of the box.
 
 ### Supported Languages
 
@@ -334,10 +334,16 @@ galerie includes a client-side internationalization system supporting 14 languag
 | he | Hebrew (עברית) |
 | it | Italian (Italiano) |
 | ko | Korean (한국어) |
+| pl | Polish (Polski) |
+| cs | Czech (Čeština) |
+| fi | Finnish (Suomi) |
+| da | Danish (Dansk) |
+| hu | Hungarian (Magyar) |
+| pt | Portuguese (Português) |
 
 ### Configuration
 
-**Enable all 14 languages:**
+**Enable all 20 languages:**
 
 ```toml
 all_languages = true

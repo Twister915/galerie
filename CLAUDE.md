@@ -73,7 +73,7 @@ Reference the full style guide when writing new modules or making architectural 
 
 ## Internationalization (i18n)
 
-galerie supports 14 languages. When making changes that involve user-facing text, you MUST:
+galerie supports 20 languages. When making changes that involve user-facing text, you MUST:
 
 1. **Never hardcode user-facing strings** in templates or JavaScript. Use translation keys instead.
 
@@ -92,6 +92,12 @@ galerie supports 14 languages. When making changes that involve user-facing text
    - `translations_he()` - Hebrew
    - `translations_it()` - Italian
    - `translations_ko()` - Korean
+   - `translations_pl()` - Polish
+   - `translations_cs()` - Czech
+   - `translations_fi()` - Finnish
+   - `translations_da()` - Danish
+   - `translations_hu()` - Hungarian
+   - `translations_pt()` - Portuguese
 
 3. **Use proper key namespacing**:
    - `nav.*` - Navigation elements
