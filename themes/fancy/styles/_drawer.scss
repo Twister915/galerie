@@ -42,6 +42,10 @@
   justify-content: space-between;
   padding: var(--gap-xs) 0;
   border-bottom: 1px solid var(--border);
+
+  .info-drawer.rtl & {
+    flex-direction: row-reverse;
+  }
 }
 
 .meta-label {
@@ -52,7 +56,11 @@
 .meta-value {
   color: var(--text-primary);
   font-size: 0.875rem;
-  text-align: right;
+  text-align: end;
+
+  .info-drawer.rtl & {
+    text-align: start;
+  }
 }
 
 // Map container

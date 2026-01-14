@@ -24,6 +24,9 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 // In-memory translation cache
 const translationCache: Record<string, Translations> = {};
 
+// RTL languages
+const RTL_LANGUAGES = new Set(['ar', 'he']);
+
 function getStoredLang(): string {
   try {
     return localStorage.getItem('lang') || detectLangFromBrowser();
@@ -223,4 +226,12 @@ export function useDateFormatter(): (exifDate: string) => string {
     (exifDate: string) => formatDateTime(exifDate, context.lang),
     [context.lang]
   );
+}
+
+export function useIsRTL(): boolean {
+  const context = useContext(I18nContext);
+  if (!context) {
+    throw new Error('useIsRTL must be used within I18nProvider');
+  }
+  return RTL_LANGUAGES.has(context.lang);
 }

@@ -1,7 +1,7 @@
 // Info drawer component
 
 import { useGalleryStore, useCurrentPhoto } from '../../store/galleryStore';
-import { useTranslation, useDateFormatter } from '../../context/I18nContext';
+import { useTranslation, useDateFormatter, useIsRTL } from '../../context/I18nContext';
 import { MetaSection } from './MetaSection';
 import { DownloadLink } from './DownloadLink';
 import { MapView } from '../Map/Map';
@@ -11,13 +11,14 @@ export function Drawer() {
   const photo = useCurrentPhoto();
   const t = useTranslation();
   const formatDate = useDateFormatter();
+  const isRTL = useIsRTL();
 
   if (!photo) return null;
 
   const meta = photo.metadata;
 
   return (
-    <aside class="info-drawer" id="info-drawer">
+    <aside class={`info-drawer${isRTL ? ' rtl' : ''}`} id="info-drawer">
       <div class="drawer-content" id="drawer-content">
         {/* Photo name section */}
         <MetaSection title={t('section.photo')}>
