@@ -28,28 +28,22 @@ header {
 
 /* Language Picker */
 .lang-picker {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.lang-picker button {
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
-    color: #666;
-    background: transparent;
+    font-family: inherit;
+    color: #333;
+    background: #fff;
     border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
-.lang-picker button:hover {
+.lang-picker:hover {
     border-color: #999;
 }
 
-.lang-picker button.active {
-    color: #333;
-    background: #f0f0f0;
+.lang-picker:focus {
+    outline: none;
     border-color: #333;
 }
 

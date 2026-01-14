@@ -10,11 +10,11 @@
     <header>
         <a href="/" class="site-title">{{ site.title }}</a>
         {% if languages | length > 1 %}
-        <div class="lang-picker">
+        <select class="lang-picker" aria-label="Language">
             {% for l in languages %}
-            <button data-lang="{{ l.code }}">{{ l.name }}</button>
+            <option value="{{ l.code }}">{{ l.name }}</option>
             {% endfor %}
-        </div>
+        </select>
         {% endif %}
     </header>
     <main>
@@ -131,26 +131,16 @@
         }
 
         function updatePicker() {
-            var current = getLang();
-            var buttons = document.querySelectorAll('.lang-picker button');
-            for (var i = 0; i < buttons.length; i++) {
-                var btn = buttons[i];
-                if (btn.getAttribute('data-lang') === current) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            }
+            var picker = document.querySelector('.lang-picker');
+            if (picker) picker.value = getLang();
         }
 
         // Init
-        var buttons = document.querySelectorAll('.lang-picker button');
-        for (var i = 0; i < buttons.length; i++) {
-            (function(btn) {
-                btn.addEventListener('click', function() {
-                    setLang(btn.getAttribute('data-lang'));
-                });
-            })(buttons[i]);
+        var picker = document.querySelector('.lang-picker');
+        if (picker) {
+            picker.addEventListener('change', function() {
+                setLang(picker.value);
+            });
         }
 
         // Load current language and default language, then apply
