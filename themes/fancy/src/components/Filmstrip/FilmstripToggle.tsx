@@ -17,7 +17,7 @@ export function FilmstripToggle() {
       aria-label={filmstripCollapsed ? 'Show filmstrip' : 'Hide filmstrip'}
       aria-expanded={!filmstripCollapsed}
     >
-      <svg viewBox="0 0 24 24" width="16" height="10" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="21" height="13" aria-hidden="true">
         {filmstripCollapsed ? (
           <polyline
             points="18 15 12 9 6 15"

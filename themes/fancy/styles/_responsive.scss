@@ -51,6 +51,17 @@
     --filmstrip-thumb: 44px;
   }
 
+  .filmstrip-toggle {
+    width: 85px;
+    height: 25px;
+    border-radius: 14px 14px 0 0;
+
+    svg {
+      width: 28px;
+      height: 17px;
+    }
+  }
+
   .site-header {
     flex-wrap: wrap;
     padding: var(--gap-sm) var(--gap-md);

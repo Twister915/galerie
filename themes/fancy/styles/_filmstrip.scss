@@ -47,12 +47,12 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: calc(var(--z-controls) + 1);
-  width: 48px;
-  height: 14px;
+  width: 64px;
+  height: 19px;
   padding: 0;
   border: 1px solid var(--border);
   border-bottom: none; // Blend with filmstrip
-  border-radius: 8px 8px 0 0;
+  border-radius: 11px 11px 0 0;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   cursor: pointer;
