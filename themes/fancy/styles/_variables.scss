@@ -1,0 +1,46 @@
+// CSS Custom Properties (Design Tokens)
+
+:root {
+  // Colors
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-tertiary: #1e1e1e;
+  --bg-overlay: rgba(0, 0, 0, 0.95);
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #888;
+  --text-muted: #555;
+
+  --accent: #4a9eff;
+  --accent-hover: #6bb3ff;
+
+  --border: #2a2a2a;
+
+  // Spacing
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+  --gap-xl: 32px;
+
+  // Grid
+  --grid-gap: 8px;
+  --grid-unit: 200px;
+
+  // Transitions
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  // Drawer
+  --drawer-width: 320px;
+
+  // Filmstrip
+  --filmstrip-height: 80px;
+  --filmstrip-thumb: 60px;
+
+  // Z-indices
+  --z-header: 100;
+  --z-viewer: 200;
+  --z-drawer: 210;
+  --z-controls: 220;
+}

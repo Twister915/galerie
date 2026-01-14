@@ -138,6 +138,9 @@ fn process_photo(
     // Read the original file
     let original_data = fs::read(&photo.source)?;
 
+    // Capture original file size
+    photo.original_size = original_data.len() as u64;
+
     // Compute BLAKE3 hash (first 8 chars of hex) based on content only
     // This hash is used for cache-busting URLs and doesn't change with GPS mode
     let hash = blake3::hash(&original_data);

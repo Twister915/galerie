@@ -159,7 +159,11 @@ dist/
 
 ## Themes
 
-Themes control the look and behavior of generated sites. A theme is a directory with:
+Themes control the look and behavior of generated sites.
+
+### Classic Themes
+
+Simple themes with plain HTML templates and static assets:
 
 ```
 my-theme/
@@ -173,18 +177,58 @@ my-theme/
     └── app.js          # JavaScript
 ```
 
+### Vite Themes
+
+Modern themes with npm-based builds supporting TypeScript, SCSS, and component frameworks:
+
+```
+my-theme/
+├── package.json        # Dependencies and build scripts
+├── vite.config.ts      # Vite configuration
+├── tsconfig.json       # TypeScript configuration
+├── src/
+│   ├── main.tsx        # Entry point
+│   └── styles/
+│       └── main.scss   # SCSS styles
+├── templates/          # Tera templates (copied to dist)
+│   └── index.html
+└── dist/               # Built output (auto-generated)
+    ├── static/
+    │   ├── app.js
+    │   └── style.css
+    └── templates/
+```
+
+Vite themes are automatically detected by the presence of both `package.json` and `vite.config.*`. The build process:
+1. Detects package manager (bun, pnpm, yarn, or npm based on lockfiles)
+2. Installs dependencies (if `node_modules/` is missing)
+3. Cleans the `dist/` directory (removes stale files)
+4. Runs `npm run build`
+
+**When does this happen?**
+- **Built-in themes**: Built during `cargo build` and embedded into the binary
+- **Custom themes**: Built automatically when you run `galerie build` or `galerie serve`
+
+This means you can create a custom Vite theme with TypeScript, Preact, SCSS, etc. and galerie will build it for you—no separate build step required.
+
+See the [Theme Structure](wiki/theme-structure.md) wiki page for detailed Vite theme documentation.
+
 ### Built-in Themes
 
-**basic**: Minimal, clean layout. Good starting point for customization.
+**basic**: Minimal, clean layout. Good starting point for customization. Classic theme with plain CSS.
 
-**fancy**: Feature-rich dark mode theme with:
-- Masonry grid layout (via Masonry.js)
+**fancy**: Feature-rich dark mode theme built with modern tooling:
+- Built with Preact (~4KB) and Zustand for state management
+- TypeScript and SCSS source code
+- Masonry grid layout (via Masonry.js CDN)
 - Photo viewer with keyboard navigation (arrow keys)
 - Info drawer with EXIF metadata (press `i`)
-- OpenStreetMap integration for GPS coordinates (via Leaflet)
-- Filmstrip navigation
+- Big picture mode with slideshow (press `f`, then `space`)
+- OpenStreetMap integration for GPS coordinates (via Leaflet CDN)
+- Virtualized filmstrip navigation
+- Touch swipe support for mobile
 - Hash-based routing (SPA-like experience)
-- Responsive design
+- Responsive design with 14 language support
 
 ### Theme Resolution
 

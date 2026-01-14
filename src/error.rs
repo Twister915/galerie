@@ -26,6 +26,12 @@ pub enum Error {
 
     #[error("{0}")]
     Other(String),
+
+    #[error("theme build failed: {message}")]
+    ThemeBuild { message: String },
+
+    #[error("{tool} not found. {hint}")]
+    ToolNotFound { tool: String, hint: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

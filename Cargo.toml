@@ -17,6 +17,7 @@ blake3 = "1"
 reverse_geocoder = "4"
 webp = "0.3"
 include_dir = "0.7"
+which = { version = "7", default-features = false }
 minify-html = "0.15"
 lightningcss = "1.0.0-alpha.68"
 [dependencies.oxc]

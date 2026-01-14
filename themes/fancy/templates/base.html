@@ -44,8 +44,8 @@
     };
     </script>
 
-    <!-- Theme JS -->
-    <script src="{{ static(path='app.js') }}"></script>
+    <!-- Theme JS (ES Module) -->
+    <script type="module" src="{{ static(path='app.js') }}"></script>
 
     {% block scripts %}{% endblock scripts %}
 </body>

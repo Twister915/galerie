@@ -1,0 +1,56 @@
+// Gallery / Masonry Grid
+
+.gallery {
+  padding: var(--gap-lg);
+}
+
+.masonry-grid {
+  margin: 0 auto;
+
+  &::after {
+    content: '';
+    display: block;
+    clear: both;
+  }
+}
+
+// Grid sizing classes for Masonry
+.grid-sizer,
+.photo-tile {
+  width: var(--grid-unit);
+}
+
+.photo-tile {
+  float: left;
+  margin-bottom: var(--grid-gap);
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  transition: transform var(--transition-fast);
+
+  &:hover {
+    transform: scale(1.02);
+  }
+
+  // Size variants based on hash
+  &.size-1x {
+    width: var(--grid-unit);
+  }
+  &.size-2x {
+    width: calc(var(--grid-unit) * 2 + var(--grid-gap));
+  }
+  &.size-4x {
+    width: calc(var(--grid-unit) * 2 + var(--grid-gap));
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+// Gutter sizer for Masonry
+.gutter-sizer {
+  width: var(--grid-gap);
+}
