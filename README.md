@@ -1,6 +1,6 @@
 # galerie
 
-A fast, minimal static site generator for photo galleries. Like Hugo for blogs, but optimized for photos.
+A fast, minimal static site generator for photo galleries.
 
 ![galerie screenshot](galerie.jpg)
 
