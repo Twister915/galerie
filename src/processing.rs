@@ -215,7 +215,7 @@ fn process_photo(
     // Write original (with GPS stripped if needed)
     if need_original {
         let final_original = if gps_mode != GpsMode::On {
-            strip_gps_from_image(&original_data, &photo.extension)?
+            strip_gps_from_image(original_data, &photo.extension)?
         } else {
             original_data
         };
@@ -256,13 +256,12 @@ fn get_file_extension(extension: &str) -> Option<FileExtension> {
 }
 
 /// Extract EXIF metadata from image data using little_exif.
-fn extract_exif(data: &[u8], extension: &str, gps_mode: GpsMode) -> PhotoMetadata {
+fn extract_exif(data: &Vec<u8>, extension: &str, gps_mode: GpsMode) -> PhotoMetadata {
     let Some(file_type) = get_file_extension(extension) else {
         return PhotoMetadata::default();
     };
 
-    let data_vec = data.to_vec();
-    let Ok(metadata) = Metadata::new_from_vec(&data_vec, file_type) else {
+    let Ok(metadata) = Metadata::new_from_vec(data, file_type) else {
         return PhotoMetadata::default();
     };
 
@@ -574,18 +573,18 @@ fn exposure_program_key(value: u8) -> Option<String> {
 
 /// Strip GPS EXIF tags from image data.
 /// Preserves all other EXIF metadata (camera, lens, exposure, etc.).
-fn strip_gps_from_image(data: &[u8], extension: &str) -> Result<Vec<u8>> {
+/// Takes ownership of data to avoid unnecessary copies.
+fn strip_gps_from_image(mut data: Vec<u8>, extension: &str) -> Result<Vec<u8>> {
     let Some(file_type) = get_file_extension(extension) else {
         // Unknown format, return unchanged
-        return Ok(data.to_vec());
+        return Ok(data);
     };
 
-    let data_vec = data.to_vec();
-    let mut metadata = match Metadata::new_from_vec(&data_vec, file_type) {
+    let mut metadata = match Metadata::new_from_vec(&data, file_type) {
         Ok(m) => m,
         Err(_) => {
             // No EXIF or parse error, return unchanged
-            return Ok(data.to_vec());
+            return Ok(data);
         }
     };
 
@@ -623,11 +622,10 @@ fn strip_gps_from_image(data: &[u8], extension: &str) -> Result<Vec<u8>> {
     metadata.remove_tag(ExifTag::GPSDifferential(Vec::new()));
     metadata.remove_tag(ExifTag::GPSHPositioningError(Vec::new()));
 
-    // Write back to image
-    let mut output = data.to_vec();
+    // Write back to image (modifies data in-place)
     metadata
-        .write_to_vec(&mut output, file_type)
+        .write_to_vec(&mut data, file_type)
         .map_err(|e| crate::error::Error::Other(format!("EXIF write error: {}", e)))?;
 
-    Ok(output)
+    Ok(data)
 }
