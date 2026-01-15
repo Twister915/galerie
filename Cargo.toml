@@ -46,6 +46,9 @@ version = "7"
 default-features = false
 features = ["macos_fsevent"]
 
+[build-dependencies]
+which = { version = "7", default-features = false }
+
 [dev-dependencies]
 test-case = "3"
 tempfile = "3"
