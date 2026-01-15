@@ -112,23 +112,30 @@ fn clean_theme_dist(dir: &Path) {
 
 fn find_package_manager(dir: &Path) -> String {
     // Check lockfiles first (respect user's choice)
-    if dir.join("bun.lockb").exists() {
-        return "bun".to_string();
-    }
-    if dir.join("pnpm-lock.yaml").exists() {
-        return "pnpm".to_string();
-    }
-    if dir.join("yarn.lock").exists() {
-        return "yarn".to_string();
-    }
-    if dir.join("package-lock.json").exists() {
-        return "npm".to_string();
-    }
+    let preferred = if dir.join("bun.lockb").exists() {
+        Some("bun")
+    } else if dir.join("pnpm-lock.yaml").exists() {
+        Some("pnpm")
+    } else if dir.join("yarn.lock").exists() {
+        Some("yarn")
+    } else if dir.join("package-lock.json").exists() {
+        Some("npm")
+    } else {
+        None
+    };
 
-    // Fall back to first available in PATH
-    for pm in ["bun", "pnpm", "npm", "yarn"] {
-        if Command::new(pm).arg("--version").output().is_ok() {
-            return pm.to_string();
+    // Try preferred first, then fall back to any available
+    let candidates: Vec<&str> = if let Some(pref) = preferred {
+        std::iter::once(pref)
+            .chain(["bun", "pnpm", "npm", "yarn"].into_iter().filter(|&p| p != pref))
+            .collect()
+    } else {
+        vec!["bun", "pnpm", "npm", "yarn"]
+    };
+
+    for pm in candidates {
+        if let Ok(path) = which::which(pm) {
+            return path.to_string_lossy().to_string();
         }
     }
 
