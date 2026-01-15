@@ -13,6 +13,22 @@ Site configuration from `site.toml`.
 | Field | Type | Description |
 |-------|------|-------------|
 | `site.domain` | string | The configured domain |
+| `site.title` | string | Site title (defaults to domain if not set) |
+
+### `theme_config`
+
+Theme configuration merged from theme defaults and user overrides. See [Site Configuration](site-config.md#theme-configuration) for details.
+
+```html
+{% if theme_config.slideshow_delay %}
+    <div data-delay="{{ theme_config.slideshow_delay }}">...</div>
+{% endif %}
+```
+
+In JavaScript (for Vite themes):
+```javascript
+const delay = THEME_CONFIG.slideshow_delay ?? 5000;
+```
 
 ### `root`
 
@@ -91,10 +107,22 @@ EXIF metadata extracted from the photo. All fields are optional.
 
 ### GpsCoords
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `latitude` | number | Latitude in decimal degrees |
-| `longitude` | number | Longitude in decimal degrees |
+GPS location data. Some fields are privacy-aware based on the `gps` setting in `site.toml`.
+
+| Field | Type | Privacy | Description |
+|-------|------|---------|-------------|
+| `latitude` | number or null | `on` only | Latitude in decimal degrees |
+| `longitude` | number or null | `on` only | Longitude in decimal degrees |
+| `display` | string or null | `on` only | Formatted coordinates (e.g., "35.6762, 139.6503") |
+| `city` | string or null | `on`, `general` | City name via reverse geocoding |
+| `region` | string or null | `on`, `general` | State/province/region |
+| `country` | string or null | `on`, `general` | Country name |
+| `countryCode` | string or null | `on`, `general` | ISO 3166-1 alpha-2 code (e.g., "JP") |
+| `flag` | string or null | `on`, `general` | Country flag emoji |
+
+When `gps = "general"`: `latitude`, `longitude`, and `display` are `null`, but location context (city, region, country) is still available.
+
+When `gps = "off"`: The entire `gps` object is `null`.
 
 ### ExposureInfo
 
@@ -120,9 +148,17 @@ EXIF metadata extracted from the photo. All fields are optional.
 {% endif %}
 
 {% if photo.metadata.gps %}
-    <a href="https://maps.google.com/?q={{ photo.metadata.gps.latitude }},{{ photo.metadata.gps.longitude }}">
-        View on map
-    </a>
+    {# Show map link only when coordinates are available (gps = "on") #}
+    {% if photo.metadata.gps.latitude %}
+        <a href="https://maps.google.com/?q={{ photo.metadata.gps.latitude }},{{ photo.metadata.gps.longitude }}">
+            View on map
+        </a>
+    {% endif %}
+
+    {# Location context works with gps = "on" or "general" #}
+    {% if photo.metadata.gps.city %}
+        <span>{{ photo.metadata.gps.city }}, {{ photo.metadata.gps.country }} {{ photo.metadata.gps.flag }}</span>
+    {% endif %}
 {% endif %}
 ```
 

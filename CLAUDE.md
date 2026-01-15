@@ -71,6 +71,19 @@ Key principles:
 
 Reference the full style guide when writing new modules or making architectural decisions.
 
+## User Documentation
+
+User-facing documentation lives in `wiki/`. When making changes that affect user-visible behavior:
+
+- `wiki/site-config.md` - Configuration options in `site.toml`
+- `wiki/image-processing.md` - Image pipeline behavior
+- `wiki/i18n.md` - Language support and translation keys
+- `wiki/theme-structure.md` - Theme development
+- `wiki/templates.md` - Template file conventions
+- `wiki/template-context.md` - Variables available in templates
+
+Update relevant wiki pages when changing user-facing features.
+
 ## Internationalization (i18n)
 
 galerie supports 20 languages. When making changes that involve user-facing text, you MUST:

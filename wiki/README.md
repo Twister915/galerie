@@ -1,51 +1,15 @@
-# galerie
+# galerie Wiki
 
-A static site generator for image galleries. Like Hugo for blogs, but optimized for photo galleries.
+Documentation for galerie, a static site generator for photo galleries.
 
-## What is galerie?
-
-galerie takes a folder of images and generates a static HTML website. It combines:
-
-- Your photos (organized into albums via directories)
-- A theme (templates + static assets)
-- Site configuration (domain, paths)
-
-The output is a fully static site you can deploy anywhere.
-
-## Quick Start
-
-1. Create a site directory with your photos:
-   ```
-   my-gallery/
-   ├── site.toml
-   ├── theme/
-   │   └── templates/
-   │       └── index.html
-   └── photos/
-       ├── vacation-2025/
-       │   ├── beach.jpg
-       │   └── sunset.jpg
-       └── portraits/
-           └── family.jpg
-   ```
-
-2. Configure `site.toml`:
-   ```toml
-   domain = "photos.example.com"
-   theme = "theme"
-   ```
-
-3. Run galerie:
-   ```bash
-   galerie -C my-gallery
-   ```
-
-4. Your site is generated in `my-gallery/dist/`
+For an overview and quick start, see the [main README](../README.md).
 
 ## Documentation
 
 - [Installation](install.md) - Build from source or download pre-built binaries
-- [Site Configuration](site-config.md) - How to configure `site.toml`
+- [Site Configuration](site-config.md) - All `site.toml` options including GPS privacy and languages
+- [Image Processing](image-processing.md) - How images are optimized, cached, and output
+- [Internationalization](i18n.md) - 20 languages, translation keys, theme integration
 - [Theme Structure](theme-structure.md) - How to organize a theme (classic and Vite-based)
 - [Templates](templates.md) - Well-known template names and behavior
 - [Template Context](template-context.md) - Variables available in templates
