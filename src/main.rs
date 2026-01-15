@@ -8,6 +8,7 @@ mod pipeline;
 mod processing;
 mod theme;
 mod theme_build;
+mod watch;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -56,6 +57,13 @@ enum Command {
         port: u16,
     },
 
+    /// Watch for changes and rebuild automatically
+    Watch {
+        /// Debounce delay in seconds
+        #[arg(long, default_value = "5")]
+        debounce: u64,
+    },
+
     /// Delete the output directory
     Clean,
 }
@@ -102,6 +110,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::debug!(?args, "parsed arguments");
 
+    // Watch command handles its own config loading (for hot-reload support)
+    if let Some(Command::Watch { debounce }) = args.command {
+        let config_path = args.config_path();
+        watch::watch(args.directory, config_path, args.theme, debounce)?;
+        return Ok(());
+    }
+
     // Load site configuration
     let config_path = args.config_path();
     tracing::info!(path = %config_path.display(), "loading site config");
@@ -135,6 +150,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pipeline.build()?;
             serve(&pipeline.site_dir.join(&pipeline.config.build), port)?;
         }
+        Command::Watch { .. } => unreachable!("handled above"),
         Command::Clean => {
             let output_dir = args.directory.join(&site.build);
             if output_dir.exists() {

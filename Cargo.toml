@@ -41,6 +41,11 @@ features = ["derive"]
 [dependencies.serde_json]
 version = "1"
 
+[dependencies.notify]
+version = "7"
+default-features = false
+features = ["macos_fsevent"]
+
 [dev-dependencies]
 test-case = "3"
 tempfile = "3"

@@ -15,6 +15,9 @@ pub enum Error {
     #[error("image processing error: {0}")]
     Image(#[from] image::ImageError),
 
+    #[error("watch error: {0}")]
+    Watch(#[from] notify::Error),
+
     #[error("theme missing required template: index.html")]
     MissingIndexTemplate,
 

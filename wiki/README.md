@@ -49,6 +49,7 @@ The output is a fully static site you can deploy anywhere.
 - [Templates](templates.md) - Well-known template names and behavior
 - [Template Context](template-context.md) - Variables available in templates
 - [Hosting](hosting.md) - Deploy to S3, GCS, nginx, Apache, and Cloudflare
+- [Raspberry Pi Setup](raspberry-pi-setup.md) - Auto-rebuild server with systemd and nginx
 
 ## Theme Development
 
