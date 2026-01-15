@@ -29,7 +29,8 @@
       "WebFetch(domain:developers.cloudflare.com)",
       "WebFetch(domain:pkg.cloudflare.com)",
       "Bash(git tag:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(sips:*)"
     ]
   }
 }

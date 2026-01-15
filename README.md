@@ -2,7 +2,14 @@
 
 A fast, minimal static site generator for photo galleries.
 
-![galerie screenshot](galerie.jpg)
+![galerie desktop screenshot](screenshots/desktop.jpg)
+
+<p align="center">
+  <img src="screenshots/mobile_1.jpg" width="24%" alt="Mobile view - gallery grid">
+  <img src="screenshots/mobile_2.jpg" width="24%" alt="Mobile view - photo viewer">
+  <img src="screenshots/mobile_3.jpg" width="24%" alt="Mobile view - EXIF info">
+  <img src="screenshots/mobile_4.jpg" width="24%" alt="Mobile view - map">
+</p>
 
 ## Why galerie?
 
