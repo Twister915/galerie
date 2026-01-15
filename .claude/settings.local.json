@@ -30,7 +30,18 @@
       "WebFetch(domain:pkg.cloudflare.com)",
       "Bash(git tag:*)",
       "Bash(git push:*)",
-      "Bash(sips:*)"
+      "Bash(sips:*)",
+      "WebFetch(domain:lib.rs)",
+      "Bash(find:*)",
+      "Bash(cargo tree:*)",
+      "Bash(RUSTC_LOG=debug cargo build:*)",
+      "Bash(otool:*)",
+      "Bash(xargs:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(file:*)",
+      "Bash(cargo --version:*)",
+      "Bash(rustc:*)"
     ]
   }
 }
