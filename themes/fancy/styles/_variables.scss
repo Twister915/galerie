@@ -1,7 +1,7 @@
 // CSS Custom Properties (Design Tokens)
 
+// Dark theme colors (default)
 :root {
-  // Colors
   --bg-primary: #0a0a0a;
   --bg-secondary: #141414;
   --bg-tertiary: #1e1e1e;
@@ -43,4 +43,34 @@
   --z-viewer: 200;
   --z-drawer: 210;
   --z-controls: 220;
+}
+
+// Light theme colors
+@mixin light-theme {
+  --bg-primary: #f8f8f8;
+  --bg-secondary: #f0f0f0;
+  --bg-tertiary: #e4e4e4;
+  // Keep overlay dark for photo viewing
+  --bg-overlay: rgba(0, 0, 0, 0.95);
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #888;
+
+  --accent: #2d7fd9;
+  --accent-hover: #4a9eff;
+
+  --border: #d0d0d0;
+}
+
+// System preference: light mode (when no manual override)
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    @include light-theme;
+  }
+}
+
+// Manual override: light mode
+:root[data-theme='light'] {
+  @include light-theme;
 }

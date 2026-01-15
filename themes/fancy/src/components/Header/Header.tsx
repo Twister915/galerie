@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
 import { LangPicker } from './LangPicker';
+import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {
   const albums = useGalleryStore((s) => s.albums);
@@ -61,7 +62,10 @@ export function Header() {
         </nav>
       )}
 
-      {I18N_CONFIG.languages.length > 1 && <LangPicker />}
+      <div class="header-controls">
+        <ThemeToggle />
+        {I18N_CONFIG.languages.length > 1 && <LangPicker />}
+      </div>
     </header>
   );
 }

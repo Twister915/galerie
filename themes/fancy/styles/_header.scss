@@ -43,6 +43,39 @@
   }
 }
 
+// Header controls container (theme toggle + language picker)
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+// Theme toggle button
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+  }
+
+  &:active {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
 // Language Dropdown
 .lang-dropdown {
   position: relative;

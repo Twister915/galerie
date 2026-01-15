@@ -23,7 +23,7 @@ A modern, interactive photo gallery theme for [galerie](../../README.md). Built 
 - Interactive map for geotagged photos
 - Multi-language support (20 languages)
 - Sorting by date, rating, name, photographer
-- Dark theme optimized for photo viewing
+- Light/dark mode with system preference detection
 
 ## Architecture
 
@@ -165,6 +165,7 @@ name = "fancy"
 slideshow_delay = 8000       # Milliseconds between slides (default: 5000)
 default_sort = "date"        # Initial sort: shuffle, date, rating, photographer, name
 default_sort_direction = "desc"  # Sort direction: asc or desc
+default_theme = "dark"       # Color theme: system, dark, or light
 ```
 
 ### Available Options
@@ -174,6 +175,17 @@ default_sort_direction = "desc"  # Sort direction: asc or desc
 | `slideshow_delay` | number | 5000 | Milliseconds between slideshow transitions |
 | `default_sort` | string | "shuffle" | Initial sort mode for the photo grid |
 | `default_sort_direction` | string | "desc" | Sort direction (ignored for shuffle mode) |
+| `default_theme` | string | "system" | Color theme: `system`, `dark`, or `light` |
+
+### Theme Behavior
+
+| Value | Description |
+|-------|-------------|
+| `system` | Follows the user's OS light/dark preference (default) |
+| `dark` | Always starts in dark mode, ignores system preference |
+| `light` | Always starts in light mode, ignores system preference |
+
+Users can toggle between light and dark mode using the button in the header. The photo viewer (overlay, filmstrip, controls) always uses dark mode for optimal photo viewing regardless of theme setting.
 
 ### Sort Direction Behavior
 

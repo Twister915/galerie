@@ -37,3 +37,8 @@ export function getDefaultSort(): SortMode {
 export function getDefaultSortDirection(): SortDirection {
   return getConfig('default_sort_direction', 'desc');
 }
+
+/** Default theme: 'system', 'dark', or 'light' */
+export function getDefaultTheme(): 'system' | 'dark' | 'light' {
+  return getConfig('default_theme', 'system');
+}

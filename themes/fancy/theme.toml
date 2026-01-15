@@ -12,3 +12,10 @@ default_sort = "shuffle"
 
 # Initial sort direction: asc or desc (ignored for shuffle mode)
 default_sort_direction = "desc"
+
+# Default color theme: system, dark, or light
+# - "system" follows the user's OS preference (default)
+# - "dark" always starts in dark mode
+# - "light" always starts in light mode
+# Users can still toggle with the button; this just sets the default
+default_theme = "system"

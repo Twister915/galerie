@@ -105,6 +105,8 @@ fn translations_en() -> Translations {
         // Actions
         ("action.download", "Download Original"),
         ("action.toggle_info", "Toggle info"),
+        ("action.switch_to_light", "Switch to light mode"),
+        ("action.switch_to_dark", "Switch to dark mode"),
         // Sort
         ("sort.label", "Sort By"),
         ("sort.shuffle", "Shuffle"),
@@ -211,6 +213,8 @@ fn translations_zh_cn() -> Translations {
         // Actions
         ("action.download", "下载原图"),
         ("action.toggle_info", "切换信息"),
+        ("action.switch_to_light", "切换到浅色模式"),
+        ("action.switch_to_dark", "切换到深色模式"),
         // Sort
         ("sort.label", "排序方式"),
         ("sort.shuffle", "随机"),
@@ -317,6 +321,8 @@ fn translations_es() -> Translations {
         // Actions
         ("action.download", "Descargar original"),
         ("action.toggle_info", "Mostrar info"),
+        ("action.switch_to_light", "Cambiar a modo claro"),
+        ("action.switch_to_dark", "Cambiar a modo oscuro"),
         // Sort
         ("sort.label", "Ordenar por"),
         ("sort.shuffle", "Aleatorio"),
@@ -423,6 +429,8 @@ fn translations_fr() -> Translations {
         // Actions
         ("action.download", "Télécharger l'original"),
         ("action.toggle_info", "Afficher infos"),
+        ("action.switch_to_light", "Passer au mode clair"),
+        ("action.switch_to_dark", "Passer au mode sombre"),
         // Sort
         ("sort.label", "Trier par"),
         ("sort.shuffle", "Aléatoire"),
@@ -529,6 +537,8 @@ fn translations_nl() -> Translations {
         // Actions
         ("action.download", "Origineel downloaden"),
         ("action.toggle_info", "Info tonen"),
+        ("action.switch_to_light", "Naar licht thema"),
+        ("action.switch_to_dark", "Naar donker thema"),
         // Sort
         ("sort.label", "Sorteren op"),
         ("sort.shuffle", "Willekeurig"),
@@ -635,6 +645,8 @@ fn translations_de() -> Translations {
         // Actions
         ("action.download", "Original herunterladen"),
         ("action.toggle_info", "Info anzeigen"),
+        ("action.switch_to_light", "Zum hellen Modus"),
+        ("action.switch_to_dark", "Zum dunklen Modus"),
         // Sort
         ("sort.label", "Sortieren nach"),
         ("sort.shuffle", "Zufällig"),
@@ -741,6 +753,8 @@ fn translations_uk() -> Translations {
         // Actions
         ("action.download", "Завантажити оригінал"),
         ("action.toggle_info", "Показати інфо"),
+        ("action.switch_to_light", "Світла тема"),
+        ("action.switch_to_dark", "Темна тема"),
         // Sort
         ("sort.label", "Сортувати за"),
         ("sort.shuffle", "Випадково"),
@@ -847,6 +861,8 @@ fn translations_ru() -> Translations {
         // Actions
         ("action.download", "Скачать оригинал"),
         ("action.toggle_info", "Показать инфо"),
+        ("action.switch_to_light", "Светлая тема"),
+        ("action.switch_to_dark", "Тёмная тема"),
         // Sort
         ("sort.label", "Сортировать по"),
         ("sort.shuffle", "Случайно"),
@@ -953,6 +969,8 @@ fn translations_ja() -> Translations {
         // Actions
         ("action.download", "オリジナルをダウンロード"),
         ("action.toggle_info", "情報を表示"),
+        ("action.switch_to_light", "ライトモードに切替"),
+        ("action.switch_to_dark", "ダークモードに切替"),
         // Sort
         ("sort.label", "並び順"),
         ("sort.shuffle", "シャッフル"),
@@ -1059,6 +1077,8 @@ fn translations_ar() -> Translations {
         // Actions
         ("action.download", "تحميل الأصل"),
         ("action.toggle_info", "عرض المعلومات"),
+        ("action.switch_to_light", "التبديل للوضع الفاتح"),
+        ("action.switch_to_dark", "التبديل للوضع الداكن"),
         // Sort
         ("sort.label", "ترتيب حسب"),
         ("sort.shuffle", "عشوائي"),
@@ -1165,6 +1185,8 @@ fn translations_hi() -> Translations {
         // Actions
         ("action.download", "मूल डाउनलोड करें"),
         ("action.toggle_info", "जानकारी दिखाएं"),
+        ("action.switch_to_light", "लाइट मोड में बदलें"),
+        ("action.switch_to_dark", "डार्क मोड में बदलें"),
         // Sort
         ("sort.label", "इसके अनुसार"),
         ("sort.shuffle", "शफ़ल"),
@@ -1271,6 +1293,8 @@ fn translations_he() -> Translations {
         // Actions
         ("action.download", "הורד מקור"),
         ("action.toggle_info", "הצג מידע"),
+        ("action.switch_to_light", "מעבר למצב בהיר"),
+        ("action.switch_to_dark", "מעבר למצב כהה"),
         // Sort
         ("sort.label", "מיון לפי"),
         ("sort.shuffle", "אקראי"),
@@ -1377,6 +1401,8 @@ fn translations_it() -> Translations {
         // Actions
         ("action.download", "Scarica originale"),
         ("action.toggle_info", "Mostra info"),
+        ("action.switch_to_light", "Tema chiaro"),
+        ("action.switch_to_dark", "Tema scuro"),
         // Sort
         ("sort.label", "Ordina per"),
         ("sort.shuffle", "Casuale"),
@@ -1483,6 +1509,8 @@ fn translations_ko() -> Translations {
         // Actions
         ("action.download", "원본 다운로드"),
         ("action.toggle_info", "정보 표시"),
+        ("action.switch_to_light", "라이트 모드로 전환"),
+        ("action.switch_to_dark", "다크 모드로 전환"),
         // Sort
         ("sort.label", "정렬 기준"),
         ("sort.shuffle", "무작위"),
@@ -1589,6 +1617,8 @@ fn translations_pl() -> Translations {
         // Actions
         ("action.download", "Pobierz oryginał"),
         ("action.toggle_info", "Pokaż informacje"),
+        ("action.switch_to_light", "Tryb jasny"),
+        ("action.switch_to_dark", "Tryb ciemny"),
         // Sort
         ("sort.label", "Sortuj według"),
         ("sort.shuffle", "Losowo"),
@@ -1695,6 +1725,8 @@ fn translations_cs() -> Translations {
         // Actions
         ("action.download", "Stáhnout originál"),
         ("action.toggle_info", "Zobrazit informace"),
+        ("action.switch_to_light", "Světlý režim"),
+        ("action.switch_to_dark", "Tmavý režim"),
         // Sort
         ("sort.label", "Řadit podle"),
         ("sort.shuffle", "Náhodně"),
@@ -1801,6 +1833,8 @@ fn translations_fi() -> Translations {
         // Actions
         ("action.download", "Lataa alkuperäinen"),
         ("action.toggle_info", "Näytä tiedot"),
+        ("action.switch_to_light", "Vaalea teema"),
+        ("action.switch_to_dark", "Tumma teema"),
         // Sort
         ("sort.label", "Lajittele"),
         ("sort.shuffle", "Sekoita"),
@@ -1907,6 +1941,8 @@ fn translations_da() -> Translations {
         // Actions
         ("action.download", "Download original"),
         ("action.toggle_info", "Vis info"),
+        ("action.switch_to_light", "Skift til lyst tema"),
+        ("action.switch_to_dark", "Skift til mørkt tema"),
         // Sort
         ("sort.label", "Sortér efter"),
         ("sort.shuffle", "Bland"),
@@ -2013,6 +2049,8 @@ fn translations_hu() -> Translations {
         // Actions
         ("action.download", "Eredeti letöltése"),
         ("action.toggle_info", "Információk megjelenítése"),
+        ("action.switch_to_light", "Világos mód"),
+        ("action.switch_to_dark", "Sötét mód"),
         // Sort
         ("sort.label", "Rendezés"),
         ("sort.shuffle", "Keverés"),
@@ -2119,6 +2157,8 @@ fn translations_pt() -> Translations {
         // Actions
         ("action.download", "Baixar original"),
         ("action.toggle_info", "Mostrar informações"),
+        ("action.switch_to_light", "Modo claro"),
+        ("action.switch_to_dark", "Modo escuro"),
         // Sort
         ("sort.label", "Ordenar por"),
         ("sort.shuffle", "Aleatório"),
