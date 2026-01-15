@@ -2,6 +2,8 @@
 
 A fast, minimal static site generator for photo galleries. Like Hugo for blogs, but optimized for photos.
 
+![galerie screenshot](galerie.jpg)
+
 ## Why galerie?
 
 - **Just add photos** - Point it at a folder of images and get a complete website
