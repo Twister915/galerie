@@ -2,26 +2,54 @@
 
 galerie generates fully static sites that can be hosted anywhere static files are served. This guide covers common hosting options and their configuration.
 
-## Overview
+This guide assumes you're using the **fancy** theme (the default). Other themes may produce different output structures.
 
-After running galerie, your `dist/` directory contains:
-- `index.html` - Main entry point
-- `gallery.json` - Photo metadata
-- `static/` - Theme assets (CSS, JS) with content-hashed filenames
-- `thumbs/` - Thumbnail images
-- `full/` - Full-size images
-- Album directories with photos and optional HTML pages
+## Output Structure
 
-### Caching Strategy
+After running galerie with the fancy theme, your `dist/` directory contains:
+
+```
+dist/
+├── index.html                              # Single page application entry point
+├── images/                                 # All processed images
+│   ├── {stem}-{hash}-micro.webp            # Micro thumbnails (filmstrip)
+│   ├── {stem}-{hash}-thumb.webp            # Grid thumbnails
+│   ├── {stem}-{hash}-full.webp             # Full-size web images
+│   └── {stem}-{hash}-original[-nogps].jpg  # Original files
+└── static/
+    ├── app-{hash}.js                       # Application JavaScript
+    ├── style-{hash}.css                    # Stylesheet
+    ├── gallery-{hash}.json                 # Photo metadata
+    └── i18n/
+        ├── en-{hash}.json                  # English translations
+        ├── fr-{hash}.json                  # French translations
+        └── ...                             # 20 languages total
+```
+
+All assets use content-hashed filenames (e.g., `app-3ae6aadb.js`) for cache-busting. When you rebuild, only changed files get new hashes.
+
+### Theme Differences
+
+Different themes produce different outputs:
+
+| Theme | Output | Routing |
+|-------|--------|---------|
+| **fancy** (default) | Single `index.html` SPA | Hash-based (`/#/photo/DSC01234`) |
+| **basic** | Per-album and per-photo HTML files | File-based (`/album/photo.html`) |
+
+The fancy theme uses hash-based client-side routing, so all navigation happens within `index.html`. The basic theme generates individual HTML files for each album and photo.
+
+## Caching Strategy
 
 galerie's build output is designed for optimal caching:
 
 | Path Pattern | Cache Duration | Reason |
 |--------------|----------------|--------|
-| `static/*.js`, `static/*.css` | 1 year | Content-hashed filenames |
-| `thumbs/*`, `full/*` | 1 year | Content-hashed filenames |
-| `index.html`, `gallery.json` | Short (5 min) | Changes on rebuild |
-| `*.html` (album/photo pages) | Short (5 min) | Changes on rebuild |
+| `static/*` | 1 year | Content-hashed filenames |
+| `images/*` | 1 year | Content-hashed filenames |
+| `index.html` | Short (5 min) | Changes on rebuild |
+
+Since all assets in `static/` and `images/` have content hashes in their filenames, they can be cached indefinitely. Only `index.html` needs a short cache time.
 
 ## AWS S3
 
@@ -35,7 +63,7 @@ S3 with static website hosting is a cost-effective option for photo galleries.
    - Go to bucket Properties → Static website hosting
    - Enable it
    - Set Index document: `index.html`
-   - Set Error document: `index.html` (for SPA routing, if using fancy theme)
+   - Set Error document: `index.html` (required for SPA routing)
 
 3. **Configure bucket policy** for public access:
    ```json
@@ -65,27 +93,18 @@ S3 with static website hosting is a cost-effective option for photo galleries.
 Use the `--cache-control` flag when uploading:
 
 ```bash
-# Upload hashed assets with long cache
-aws s3 sync dist/static/ s3://photos.example.com/static/ \
+#!/bin/bash
+BUCKET="photos.example.com"
+
+# Upload content-hashed assets with long cache (1 year)
+aws s3 sync dist/static/ s3://$BUCKET/static/ \
   --cache-control "public, max-age=31536000, immutable"
 
-aws s3 sync dist/thumbs/ s3://photos.example.com/thumbs/ \
+aws s3 sync dist/images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"
 
-aws s3 sync dist/full/ s3://photos.example.com/full/ \
-  --cache-control "public, max-age=31536000, immutable"
-
-# Upload HTML/JSON with short cache
-aws s3 cp dist/index.html s3://photos.example.com/index.html \
-  --cache-control "public, max-age=300"
-
-aws s3 cp dist/gallery.json s3://photos.example.com/gallery.json \
-  --cache-control "public, max-age=300"
-
-# Upload remaining files
-aws s3 sync dist/ s3://photos.example.com/ \
-  --exclude "static/*" --exclude "thumbs/*" --exclude "full/*" \
-  --exclude "index.html" --exclude "gallery.json" \
+# Upload index.html with short cache (5 minutes)
+aws s3 cp dist/index.html s3://$BUCKET/index.html \
   --cache-control "public, max-age=300"
 ```
 
@@ -124,22 +143,16 @@ GCS provides similar static hosting capabilities to S3.
 ### Setting Cache Headers
 
 ```bash
-# Set metadata for hashed assets
+# Set long cache for content-hashed assets
 gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
   "gs://photos.example.com/static/**"
 
 gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
-  "gs://photos.example.com/thumbs/**"
+  "gs://photos.example.com/images/**"
 
-gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
-  "gs://photos.example.com/full/**"
-
-# Set short cache for HTML/JSON
-gsutil -m setmeta -h "Cache-Control:public, max-age=300" \
-  "gs://photos.example.com/*.html"
-
+# Set short cache for index.html
 gsutil setmeta -h "Cache-Control:public, max-age=300" \
-  "gs://photos.example.com/gallery.json"
+  "gs://photos.example.com/index.html"
 ```
 
 ### Custom Domain
@@ -162,10 +175,10 @@ server {
 
     # Enable gzip compression
     gzip on;
-    gzip_types text/html text/css application/javascript application/json;
+    gzip_types text/html text/css application/javascript application/json image/svg+xml;
     gzip_min_length 1000;
 
-    # Default: serve files directly
+    # SPA routing: serve index.html for all non-file requests
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -176,26 +189,15 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
-    location /thumbs/ {
+    location /images/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
 
-    location /full/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Short cache for HTML and JSON
-    location ~* \.(html|json)$ {
+    # Short cache for index.html
+    location = /index.html {
         expires 5m;
         add_header Cache-Control "public";
-    }
-
-    # Serve images with proper MIME types
-    location ~* \.(jpg|jpeg|webp|png|gif)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
     }
 }
 ```
@@ -217,9 +219,6 @@ Certbot will automatically modify your nginx configuration to enable HTTPS.
 ```bash
 # Copy files to server
 rsync -avz --delete dist/ user@server:/var/www/photos.example.com/
-
-# Or use a deployment script
-scp -r dist/* user@server:/var/www/photos.example.com/
 ```
 
 ## Apache
@@ -231,7 +230,7 @@ Apache httpd configuration for static photo galleries.
 Create or edit `.htaccess` in your document root, or add to your virtual host configuration:
 
 ```apache
-# Enable rewrite engine (for SPA routing)
+# Enable rewrite engine for SPA routing
 RewriteEngine On
 
 # Serve existing files directly
@@ -247,27 +246,21 @@ RewriteRule ^ /index.html [L]
     AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
 </IfModule>
 
-# Cache control for hashed assets
+# Cache control
 <IfModule mod_expires.c>
     ExpiresActive On
 
-    # Long cache for static assets
-    <FilesMatch "\.(js|css)$">
+    # Long cache for content-hashed assets
+    <FilesMatch "\.(js|css|webp|jpg|jpeg|png|gif)$">
         ExpiresDefault "access plus 1 year"
         Header set Cache-Control "public, immutable"
     </FilesMatch>
 
-    # Long cache for images
-    <FilesMatch "\.(jpg|jpeg|webp|png|gif)$">
-        ExpiresDefault "access plus 1 year"
-        Header set Cache-Control "public, immutable"
-    </FilesMatch>
-
-    # Short cache for HTML and JSON
-    <FilesMatch "\.(html|json)$">
+    # Short cache for index.html
+    <Files "index.html">
         ExpiresDefault "access plus 5 minutes"
         Header set Cache-Control "public"
-    </FilesMatch>
+    </Files>
 </IfModule>
 ```
 
@@ -282,8 +275,6 @@ RewriteRule ^ /index.html [L]
         AllowOverride All
         Require all granted
     </Directory>
-
-    # Or inline the .htaccess rules here for better performance
 </VirtualHost>
 ```
 
@@ -324,15 +315,15 @@ Cloudflare respects `Cache-Control` headers from your origin, but you can overri
 
 Go to **Caching → Cache Rules** and create rules:
 
-**Rule 1: Long cache for hashed assets**
-- If: URI Path starts with `/static/` OR URI Path starts with `/thumbs/` OR URI Path starts with `/full/`
+**Rule 1: Long cache for content-hashed assets**
+- If: URI Path starts with `/static/` OR URI Path starts with `/images/`
 - Then:
   - Cache eligibility: Eligible for cache
   - Edge TTL: Override → 1 year
   - Browser TTL: Override → 1 year
 
-**Rule 2: Short cache for HTML/JSON**
-- If: URI Path ends with `.html` OR URI Path ends with `.json`
+**Rule 2: Short cache for index.html**
+- If: URI Path equals `/` OR URI Path equals `/index.html`
 - Then:
   - Cache eligibility: Eligible for cache
   - Edge TTL: Override → 5 minutes
@@ -345,9 +336,7 @@ If using Page Rules instead of Cache Rules:
 | URL Pattern | Setting |
 |-------------|---------|
 | `photos.example.com/static/*` | Cache Level: Cache Everything, Edge Cache TTL: 1 month |
-| `photos.example.com/thumbs/*` | Cache Level: Cache Everything, Edge Cache TTL: 1 month |
-| `photos.example.com/full/*` | Cache Level: Cache Everything, Edge Cache TTL: 1 month |
-| `photos.example.com/*.html` | Cache Level: Cache Everything, Edge Cache TTL: 5 minutes |
+| `photos.example.com/images/*` | Cache Level: Cache Everything, Edge Cache TTL: 1 month |
 
 ### Performance Settings
 
@@ -363,22 +352,22 @@ Recommended settings under **Speed → Optimization**:
 After deploying a new version of your gallery:
 
 ```bash
-# Purge specific files
+# Purge index.html (the only file that needs purging)
 curl -X POST "https://api.cloudflare.com/client/v4/zones/ZONE_ID/purge_cache" \
   -H "Authorization: Bearer API_TOKEN" \
   -H "Content-Type: application/json" \
-  --data '{"files":["https://photos.example.com/index.html","https://photos.example.com/gallery.json"]}'
+  --data '{"files":["https://photos.example.com/index.html"]}'
 ```
 
 Or in the dashboard: **Caching → Configuration → Purge Cache**
 
-For galerie sites, you typically only need to purge `index.html` and `gallery.json` after updates, since all other assets have content-hashed filenames.
+Since all assets have content-hashed filenames, you only need to purge `index.html` after updates. The new `index.html` will reference new asset URLs automatically.
 
-## Cloudflare R2 + Pages
+## Cloudflare R2 + Workers
 
-For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) with Cloudflare Pages or Workers.
+For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) with Workers.
 
-### Using R2 with a Worker
+### Setup
 
 1. Create an R2 bucket in the Cloudflare dashboard
 2. Upload your site:
@@ -395,17 +384,18 @@ For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) w
 
        const object = await env.BUCKET.get(path);
        if (!object) {
-         // Fallback to index.html for SPA routing
+         // SPA fallback: serve index.html for unknown routes
          const fallback = await env.BUCKET.get('index.html');
          return new Response(fallback.body, {
            headers: { 'Content-Type': 'text/html' }
          });
        }
 
+       const isHashed = path.startsWith('static/') || path.startsWith('images/');
        return new Response(object.body, {
          headers: {
            'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
-           'Cache-Control': path.match(/\.(js|css|jpg|jpeg|webp|png)$/)
+           'Cache-Control': isHashed
              ? 'public, max-age=31536000, immutable'
              : 'public, max-age=300'
          }
@@ -425,29 +415,29 @@ set -e
 BUCKET="photos.example.com"
 CLOUDFLARE_ZONE="your-zone-id"
 CLOUDFLARE_TOKEN="your-api-token"
+SITE_DIR="/path/to/gallery"
 
 # Build the site
-galerie -C /path/to/gallery
+galerie -C "$SITE_DIR"
 
-# Upload with appropriate cache headers
-aws s3 sync dist/static/ s3://$BUCKET/static/ \
+cd "$SITE_DIR/dist"
+
+# Upload content-hashed assets with long cache
+aws s3 sync static/ s3://$BUCKET/static/ \
   --cache-control "public, max-age=31536000, immutable"
 
-aws s3 sync dist/thumbs/ s3://$BUCKET/thumbs/ \
+aws s3 sync images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"
 
-aws s3 sync dist/full/ s3://$BUCKET/full/ \
-  --cache-control "public, max-age=31536000, immutable"
-
-aws s3 sync dist/ s3://$BUCKET/ \
-  --exclude "static/*" --exclude "thumbs/*" --exclude "full/*" \
+# Upload index.html with short cache
+aws s3 cp index.html s3://$BUCKET/index.html \
   --cache-control "public, max-age=300"
 
-# Purge Cloudflare cache for updated files
+# Purge Cloudflare cache for index.html
 curl -X POST "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE/purge_cache" \
   -H "Authorization: Bearer $CLOUDFLARE_TOKEN" \
   -H "Content-Type: application/json" \
-  --data '{"files":["https://photos.example.com/index.html","https://photos.example.com/gallery.json"]}'
+  --data '{"files":["https://photos.example.com/index.html"]}'
 
 echo "Deployment complete!"
 ```
@@ -455,14 +445,21 @@ echo "Deployment complete!"
 ## Troubleshooting
 
 ### Images not loading
-- Check that CORS headers are set if loading from a different domain
+- Check that CORS headers are set if loading images from a different domain
 - Verify MIME types are correct (especially for WebP)
+- Ensure the `images/` directory was uploaded
 
 ### Stale content after deploy
-- Purge CDN cache (Cloudflare, CloudFront, etc.)
-- Check browser cache (hard refresh with Ctrl+Shift+R)
-- Verify `Cache-Control` headers are set correctly
+- Purge `index.html` from your CDN cache
+- Hard refresh in browser (Ctrl+Shift+R)
+- Content-hashed assets don't need purging - new `index.html` references new URLs
 
-### 404 errors on refresh (SPA themes)
-- Ensure error document is set to `index.html`
-- For nginx/Apache, verify the try_files/RewriteRule configuration
+### 404 errors on browser refresh
+- The fancy theme uses hash-based routing (`/#/photo/...`), so this shouldn't happen
+- If using basic theme, ensure all HTML files were uploaded
+- Verify error document is set to `index.html` for SPA fallback
+
+### Hash routing not working
+- Check browser console for JavaScript errors
+- Ensure `app-{hash}.js` loaded successfully
+- Verify `gallery-{hash}.json` is accessible

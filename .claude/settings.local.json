@@ -24,7 +24,8 @@
       "Bash(wc:*)",
       "Bash(gzip:*)",
       "Bash(npm install:*)",
-      "Bash(bun run build:*)"
+      "Bash(bun run build:*)",
+      "Bash(tree:*)"
     ]
   }
 }
