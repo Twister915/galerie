@@ -589,19 +589,39 @@ fn strip_gps_from_image(data: &[u8], extension: &str) -> Result<Vec<u8>> {
         }
     };
 
-    // Remove all GPS-related tags
-    metadata.remove_tag(ExifTag::GPSLatitude(Vec::new()));
-    metadata.remove_tag(ExifTag::GPSLatitudeRef(String::new()));
-    metadata.remove_tag(ExifTag::GPSLongitude(Vec::new()));
-    metadata.remove_tag(ExifTag::GPSLongitudeRef(String::new()));
-    metadata.remove_tag(ExifTag::GPSAltitude(Vec::new()));
-    metadata.remove_tag(ExifTag::GPSAltitudeRef(Vec::new()));
-    metadata.remove_tag(ExifTag::GPSTimeStamp(Vec::new()));
-    metadata.remove_tag(ExifTag::GPSDateStamp(String::new()));
+    // Remove all GPS-related tags (complete list from EXIF GPS IFD)
     metadata.remove_tag(ExifTag::GPSVersionID(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSLatitudeRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSLatitude(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSLongitudeRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSLongitude(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSAltitudeRef(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSAltitude(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSTimeStamp(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSSatellites(String::new()));
+    metadata.remove_tag(ExifTag::GPSStatus(String::new()));
+    metadata.remove_tag(ExifTag::GPSMeasureMode(String::new()));
+    metadata.remove_tag(ExifTag::GPSDOP(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSSpeedRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSSpeed(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSTrackRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSTrack(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSImgDirectionRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSImgDirection(Vec::new()));
     metadata.remove_tag(ExifTag::GPSMapDatum(String::new()));
+    metadata.remove_tag(ExifTag::GPSDestLatitudeRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSDestLatitude(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSDestLongitudeRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSDestLongitude(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSDestBearingRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSDestBearing(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSDestDistanceRef(String::new()));
+    metadata.remove_tag(ExifTag::GPSDestDistance(Vec::new()));
     metadata.remove_tag(ExifTag::GPSProcessingMethod(Vec::new()));
     metadata.remove_tag(ExifTag::GPSAreaInformation(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSDateStamp(String::new()));
+    metadata.remove_tag(ExifTag::GPSDifferential(Vec::new()));
+    metadata.remove_tag(ExifTag::GPSHPositioningError(Vec::new()));
 
     // Write back to image
     let mut output = data.to_vec();
