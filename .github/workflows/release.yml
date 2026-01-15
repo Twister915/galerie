@@ -26,7 +26,7 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             artifact: galerie-linux-arm64
-            cross: true
+            zigbuild: true
 
           - target: x86_64-pc-windows-msvc
             os: windows-latest
@@ -46,17 +46,19 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross
-        if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install zigbuild
+        if: matrix.zigbuild
+        run: |
+          pip3 install ziglang
+          cargo install cargo-zigbuild
 
       - name: Build (native)
-        if: ${{ !matrix.cross }}
+        if: ${{ !matrix.zigbuild }}
         run: cargo build --profile distribute --target ${{ matrix.target }}
 
-      - name: Build (cross)
-        if: matrix.cross
-        run: cross build --profile distribute --target ${{ matrix.target }}
+      - name: Build (zigbuild)
+        if: matrix.zigbuild
+        run: cargo zigbuild --profile distribute --target ${{ matrix.target }}
 
       - name: Prepare artifact (unix)
         if: runner.os != 'Windows'
