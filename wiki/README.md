@@ -48,6 +48,7 @@ The output is a fully static site you can deploy anywhere.
 - [Theme Structure](theme-structure.md) - How to organize a theme (classic and Vite-based)
 - [Templates](templates.md) - Well-known template names and behavior
 - [Template Context](template-context.md) - Variables available in templates
+- [Hosting](hosting.md) - Deploy to S3, GCS, nginx, Apache, and Cloudflare
 
 ## Theme Development
 
