@@ -25,7 +25,9 @@
       "Bash(gzip:*)",
       "Bash(npm install:*)",
       "Bash(bun run build:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:pkg.cloudflare.com)"
     ]
   }
 }

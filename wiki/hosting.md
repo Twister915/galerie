@@ -47,9 +47,9 @@ galerie's build output is designed for optimal caching:
 |--------------|----------------|--------|
 | `static/*` | 1 year | Content-hashed filenames |
 | `images/*` | 1 year | Content-hashed filenames |
-| `index.html` | Short (5 min) | Changes on rebuild |
+| `index.html` | No cache | Entry point, references hashed assets |
 
-Since all assets in `static/` and `images/` have content hashes in their filenames, they can be cached indefinitely. Only `index.html` needs a short cache time.
+Since all assets in `static/` and `images/` have content hashes in their filenames, they can be cached indefinitely. The `index.html` file should never be cached - it's small, and ensuring browsers always fetch the latest version means updates are reflected immediately.
 
 ## AWS S3
 
@@ -103,9 +103,9 @@ aws s3 sync dist/static/ s3://$BUCKET/static/ \
 aws s3 sync dist/images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"
 
-# Upload index.html with short cache (5 minutes)
+# Upload index.html with no cache
 aws s3 cp dist/index.html s3://$BUCKET/index.html \
-  --cache-control "public, max-age=300"
+  --cache-control "no-cache, no-store, must-revalidate"
 ```
 
 ### Custom Domain with Route 53
@@ -150,8 +150,8 @@ gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
 gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
   "gs://photos.example.com/images/**"
 
-# Set short cache for index.html
-gsutil setmeta -h "Cache-Control:public, max-age=300" \
+# Disable cache for index.html
+gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
   "gs://photos.example.com/index.html"
 ```
 
@@ -194,10 +194,10 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
-    # Short cache for index.html
+    # No cache for index.html
     location = /index.html {
-        expires 5m;
-        add_header Cache-Control "public";
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
 }
 ```
@@ -256,10 +256,10 @@ RewriteRule ^ /index.html [L]
         Header set Cache-Control "public, immutable"
     </FilesMatch>
 
-    # Short cache for index.html
+    # No cache for index.html
     <Files "index.html">
-        ExpiresDefault "access plus 5 minutes"
-        Header set Cache-Control "public"
+        ExpiresDefault "access"
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
     </Files>
 </IfModule>
 ```
@@ -322,12 +322,10 @@ Go to **Caching → Cache Rules** and create rules:
   - Edge TTL: Override → 1 year
   - Browser TTL: Override → 1 year
 
-**Rule 2: Short cache for index.html**
+**Rule 2: No cache for index.html**
 - If: URI Path equals `/` OR URI Path equals `/index.html`
 - Then:
-  - Cache eligibility: Eligible for cache
-  - Edge TTL: Override → 5 minutes
-  - Browser TTL: Override → 5 minutes
+  - Cache eligibility: Bypass cache
 
 ### Page Rules (Legacy)
 
@@ -349,19 +347,18 @@ Recommended settings under **Speed → Optimization**:
 
 ### Purging Cache
 
-After deploying a new version of your gallery:
+With the cache rules above, `index.html` bypasses the cache entirely, so no purging is needed after deployments. Updates are reflected immediately.
+
+If you do need to purge other files for some reason:
 
 ```bash
-# Purge index.html (the only file that needs purging)
 curl -X POST "https://api.cloudflare.com/client/v4/zones/ZONE_ID/purge_cache" \
   -H "Authorization: Bearer API_TOKEN" \
   -H "Content-Type: application/json" \
-  --data '{"files":["https://photos.example.com/index.html"]}'
+  --data '{"purge_everything":true}'
 ```
 
 Or in the dashboard: **Caching → Configuration → Purge Cache**
-
-Since all assets have content-hashed filenames, you only need to purge `index.html` after updates. The new `index.html` will reference new asset URLs automatically.
 
 ## Cloudflare R2 + Workers
 
@@ -397,24 +394,266 @@ For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) w
            'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
            'Cache-Control': isHashed
              ? 'public, max-age=31536000, immutable'
-             : 'public, max-age=300'
+             : 'no-cache, no-store, must-revalidate'
          }
        });
      }
    };
    ```
 
+## Raspberry Pi with Cloudflare Tunnels
+
+This section walks through hosting your gallery on a Raspberry Pi at home, using Cloudflare Tunnels to make it accessible from the internet. This approach:
+
+- Requires no port forwarding on your router
+- Works behind NAT, CGNAT, or dynamic IP addresses
+- Keeps your Pi hidden behind Cloudflare's network
+- Provides free HTTPS and DDoS protection
+
+### Prerequisites
+
+Before starting, you need:
+
+1. **A Raspberry Pi** with Raspberry Pi OS installed (this guide uses Bookworm)
+2. **A domain name** added to your Cloudflare account (free tier works fine)
+3. **Your gallery built** and copied to the Pi
+
+### Step 1: Check Your Pi's Architecture
+
+First, determine if your Pi runs 32-bit or 64-bit:
+
+```bash
+uname -m
+```
+
+- If it shows `aarch64` → You have 64-bit (Pi 3, 4, 5 with 64-bit OS)
+- If it shows `armv7l` → You have 32-bit (older Pi or 32-bit OS)
+
+Remember this for Step 3.
+
+### Step 2: Install nginx
+
+nginx will serve your gallery files locally. The Cloudflare tunnel will connect to nginx.
+
+```bash
+sudo apt update
+sudo apt install nginx
+```
+
+Verify it's running:
+
+```bash
+sudo systemctl status nginx
+```
+
+You should see "active (running)" in green.
+
+### Step 3: Install cloudflared
+
+Add Cloudflare's package repository and install cloudflared:
+
+```bash
+# Create keyring directory
+sudo mkdir -p --mode=0755 /usr/share/keyrings
+
+# Download Cloudflare's GPG key
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+
+# Add the repository (use 'bookworm' for current Raspberry Pi OS)
+echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared bookworm main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+
+# Install cloudflared
+sudo apt update
+sudo apt install cloudflared
+```
+
+Verify installation:
+
+```bash
+cloudflared --version
+```
+
+### Step 4: Create a Tunnel in Cloudflare Dashboard
+
+This is the easiest method. Do these steps on any computer with a web browser:
+
+1. Go to [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
+2. Sign in with your Cloudflare account
+3. In the left sidebar, go to **Networks** → **Tunnels**
+4. Click **Create a tunnel**
+5. Select **Cloudflared** as the connector type
+6. Give your tunnel a name (e.g., `photos-pi`)
+7. Click **Save tunnel**
+
+You'll see a page with installation instructions. **Don't close this page yet** - you need the command shown.
+
+### Step 5: Connect Your Pi to the Tunnel
+
+On the Cloudflare dashboard, you'll see a command that looks like this:
+
+```bash
+sudo cloudflared service install eyJhIjoiYWJjZGVm...
+```
+
+The long string is your unique tunnel token. **Copy the entire command** and run it on your Raspberry Pi.
+
+This command:
+- Installs cloudflared as a system service
+- Configures it to connect to your tunnel
+- Sets it to start automatically on boot
+
+After running the command, go back to the Cloudflare dashboard and click **Next**.
+
+### Step 6: Route Your Domain to the Tunnel
+
+Still in the Cloudflare dashboard:
+
+1. Under **Public Hostnames**, click **Add a public hostname**
+2. Configure the hostname:
+   - **Subdomain**: Enter a subdomain (e.g., `photos`) or leave blank for root domain
+   - **Domain**: Select your domain from the dropdown
+   - **Type**: Select `HTTP`
+   - **URL**: Enter `localhost:80`
+3. Click **Save hostname**
+
+Your tunnel is now configured to route `photos.yourdomain.com` to nginx on your Pi.
+
+### Step 7: Copy Your Gallery to nginx
+
+Copy your built gallery to nginx's web directory:
+
+```bash
+# Remove the default nginx page
+sudo rm -rf /var/www/html/*
+
+# Copy your gallery (adjust the source path as needed)
+sudo cp -r /path/to/your/gallery/dist/* /var/www/html/
+```
+
+Set proper ownership:
+
+```bash
+sudo chown -R www-data:www-data /var/www/html
+```
+
+### Step 8: Configure nginx
+
+Create a configuration optimized for galerie:
+
+```bash
+sudo nano /etc/nginx/sites-available/default
+```
+
+Replace the entire contents with:
+
+```nginx
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html;
+
+    server_name _;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/html text/css application/javascript application/json;
+
+    # SPA routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Long cache for hashed assets
+    location /static/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /images/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # No cache for index.html
+    location = /index.html {
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+}
+```
+
+Save the file (Ctrl+O, Enter, Ctrl+X) and restart nginx:
+
+```bash
+sudo nginx -t          # Test configuration
+sudo systemctl restart nginx
+```
+
+### Step 9: Test Your Site
+
+Visit your domain in a browser (e.g., `https://photos.yourdomain.com`). Your gallery should load with HTTPS automatically provided by Cloudflare.
+
+### Step 10: Verify Everything Starts on Boot
+
+Reboot your Pi to ensure everything comes back up automatically:
+
+```bash
+sudo reboot
+```
+
+After a minute or two, check your site again. If it loads, you're all set.
+
+### Updating Your Gallery
+
+When you have new photos to add:
+
+1. Build your gallery on your main computer
+2. Copy the new `dist/` folder to your Pi:
+   ```bash
+   rsync -avz --delete dist/ pi@raspberrypi.local:/tmp/gallery/
+   ```
+3. SSH into the Pi and copy to nginx:
+   ```bash
+   ssh pi@raspberrypi.local
+   sudo rm -rf /var/www/html/*
+   sudo cp -r /tmp/gallery/* /var/www/html/
+   sudo chown -R www-data:www-data /var/www/html
+   ```
+
+Since `index.html` is never cached, visitors will see the new photos immediately.
+
+### Troubleshooting
+
+**Tunnel shows "Inactive" or "Down" in dashboard**
+- Check if cloudflared is running: `sudo systemctl status cloudflared`
+- View logs: `sudo journalctl -u cloudflared -f`
+- Restart the service: `sudo systemctl restart cloudflared`
+
+**Site not loading but tunnel is healthy**
+- Check if nginx is running: `sudo systemctl status nginx`
+- Test nginx config: `sudo nginx -t`
+- Check nginx logs: `sudo tail -f /var/log/nginx/error.log`
+
+**"502 Bad Gateway" error**
+- The tunnel can't reach nginx. Verify nginx is running on port 80
+- Check the tunnel's public hostname is set to `localhost:80`
+
+**Changes not appearing**
+- Verify files were copied: `ls -la /var/www/html/`
+- Check ownership: `ls -la /var/www/html/` should show `www-data`
+- Clear browser cache or open in incognito window
+
 ## Deployment Script Example
 
-Here's a complete deployment script for S3 with Cloudflare:
+Here's a complete deployment script for S3:
 
 ```bash
 #!/bin/bash
 set -e
 
 BUCKET="photos.example.com"
-CLOUDFLARE_ZONE="your-zone-id"
-CLOUDFLARE_TOKEN="your-api-token"
 SITE_DIR="/path/to/gallery"
 
 # Build the site
@@ -429,15 +668,9 @@ aws s3 sync static/ s3://$BUCKET/static/ \
 aws s3 sync images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"
 
-# Upload index.html with short cache
+# Upload index.html with no cache
 aws s3 cp index.html s3://$BUCKET/index.html \
-  --cache-control "public, max-age=300"
-
-# Purge Cloudflare cache for index.html
-curl -X POST "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE/purge_cache" \
-  -H "Authorization: Bearer $CLOUDFLARE_TOKEN" \
-  -H "Content-Type: application/json" \
-  --data '{"files":["https://photos.example.com/index.html"]}'
+  --cache-control "no-cache, no-store, must-revalidate"
 
 echo "Deployment complete!"
 ```
@@ -450,9 +683,9 @@ echo "Deployment complete!"
 - Ensure the `images/` directory was uploaded
 
 ### Stale content after deploy
-- Purge `index.html` from your CDN cache
-- Hard refresh in browser (Ctrl+Shift+R)
-- Content-hashed assets don't need purging - new `index.html` references new URLs
+- Verify `index.html` has `no-cache` headers (check with browser dev tools → Network tab)
+- If using Cloudflare, ensure the bypass cache rule is active for `/` and `/index.html`
+- Content-hashed assets never go stale - new `index.html` automatically references new URLs
 
 ### 404 errors on browser refresh
 - The fancy theme uses hash-based routing (`/#/photo/...`), so this shouldn't happen
