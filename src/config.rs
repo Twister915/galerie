@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use crate::i18n;
@@ -76,12 +76,12 @@ impl ThemeConfig {
     }
 
     /// Returns user-provided settings (empty for simple string format).
-    pub fn settings(&self) -> &HashMap<String, toml::Value> {
+    pub fn settings(&self) -> &BTreeMap<String, toml::Value> {
         match self {
             ThemeConfig::Name(_) => {
-                // Return empty HashMap for simple format
-                static EMPTY: std::sync::LazyLock<HashMap<String, toml::Value>> =
-                    std::sync::LazyLock::new(HashMap::new);
+                // Return empty BTreeMap for simple format
+                static EMPTY: std::sync::LazyLock<BTreeMap<String, toml::Value>> =
+                    std::sync::LazyLock::new(BTreeMap::new);
                 &EMPTY
             }
             ThemeConfig::Table(table) => &table.settings,
@@ -96,7 +96,7 @@ pub struct ThemeTableConfig {
     pub name: String,
     /// Arbitrary theme-specific settings
     #[serde(flatten)]
-    pub settings: HashMap<String, toml::Value>,
+    pub settings: BTreeMap<String, toml::Value>,
 }
 
 /// Language configuration for i18n support.

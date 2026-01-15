@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-pub type Translations = HashMap<String, String>;
-pub type AllTranslations = HashMap<String, Translations>;
+pub type Translations = BTreeMap<String, String>;
+pub type AllTranslations = BTreeMap<String, Translations>;
 
 /// Language info for configuration.
 #[derive(Debug, Clone)]
@@ -38,7 +38,7 @@ pub fn all_supported_languages() -> Vec<LanguageInfo> {
 
 /// Get translations for all supported languages.
 pub fn get_all_translations() -> AllTranslations {
-    let mut all = HashMap::new();
+    let mut all = BTreeMap::new();
     all.insert("en".to_string(), translations_en());
     all.insert("zh_CN".to_string(), translations_zh_cn());
     all.insert("es".to_string(), translations_es());

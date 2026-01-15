@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,7 +18,7 @@ use crate::theme_build::{self, ThemeType};
 
 /// Mapping from original asset path to hashed output path.
 /// e.g., "style.css" -> "/static/style-abc12345.css"
-pub type AssetManifest = HashMap<String, String>;
+pub type AssetManifest = BTreeMap<String, String>;
 
 /// Version injected at build time.
 const VERSION: &str = env!("GIT_VERSION");
@@ -56,7 +56,7 @@ struct SiteContext {
 #[derive(Debug, Default, Serialize)]
 struct DataManifest {
     /// Map of language code to i18n JSON URL (e.g., "en" -> "/static/i18n/en-abc12345.json")
-    i18n: HashMap<String, String>,
+    i18n: BTreeMap<String, String>,
     /// URL to gallery data JSON file (e.g., "/static/gallery-def67890.json")
     gallery: String,
 }
@@ -142,7 +142,7 @@ pub struct Pipeline {
     pub theme: Theme,
 
     /// Merged theme configuration (theme defaults + user overrides)
-    pub theme_config: HashMap<String, toml::Value>,
+    pub theme_config: BTreeMap<String, toml::Value>,
 
     /// Root album containing all photos
     pub root: Album,

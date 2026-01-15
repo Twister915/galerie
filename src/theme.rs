@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use include_dir::Dir;
@@ -44,22 +44,22 @@ pub struct Theme {
     pub has_photo_template: bool,
 
     /// Theme default configuration from theme.toml
-    pub defaults: HashMap<String, toml::Value>,
+    pub defaults: BTreeMap<String, toml::Value>,
 }
 
 /// Structure for parsing theme.toml files.
 #[derive(Debug, Deserialize)]
 struct ThemeToml {
     #[serde(default)]
-    defaults: HashMap<String, toml::Value>,
+    defaults: BTreeMap<String, toml::Value>,
 }
 
 /// Load theme defaults from theme.toml file.
-fn load_theme_defaults(theme_dir: &Path) -> Result<HashMap<String, toml::Value>> {
+fn load_theme_defaults(theme_dir: &Path) -> Result<BTreeMap<String, toml::Value>> {
     let theme_toml = theme_dir.join("theme.toml");
 
     if !theme_toml.exists() {
-        return Ok(HashMap::new());
+        return Ok(BTreeMap::new());
     }
 
     let content = std::fs::read_to_string(&theme_toml)?;
@@ -193,10 +193,10 @@ impl Theme {
                 );
                 parsed.defaults
             } else {
-                HashMap::new()
+                BTreeMap::new()
             }
         } else {
-            HashMap::new()
+            BTreeMap::new()
         };
 
         tracing::info!(
