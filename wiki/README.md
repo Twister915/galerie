@@ -44,6 +44,7 @@ The output is a fully static site you can deploy anywhere.
 
 ## Documentation
 
+- [Installation](install.md) - Build from source or download pre-built binaries
 - [Site Configuration](site-config.md) - How to configure `site.toml`
 - [Theme Structure](theme-structure.md) - How to organize a theme (classic and Vite-based)
 - [Templates](templates.md) - Well-known template names and behavior

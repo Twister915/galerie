@@ -19,29 +19,35 @@ When you drop photos into the folder (via SMB, SFTP, or directly), the site rebu
 
 ## 1. Install galerie
 
-Download the latest release for your architecture:
+Follow the [Installation Guide](install.md) to build and install galerie.
+
+Quick version for Raspberry Pi / Ubuntu:
 
 ```bash
-# Check your architecture
-uname -m
-# aarch64 = ARM 64-bit (Pi 4/5)
-# x86_64 = Intel/AMD 64-bit (NUC)
+# Install dependencies
+sudo apt update
+sudo apt install -y build-essential pkg-config libssl-dev curl git
 
-# Download (replace URL with latest release)
-# For ARM64 (Raspberry Pi):
-curl -LO https://github.com/example/galerie/releases/latest/download/galerie-linux-arm64
-sudo mv galerie-linux-arm64 /usr/local/bin/galerie
+# Install Rust (nightly)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+rustup default nightly
 
-# For x86_64 (NUC):
-curl -LO https://github.com/example/galerie/releases/latest/download/galerie-linux-x64
-sudo mv galerie-linux-x64 /usr/local/bin/galerie
+# Install Node.js (for theme building)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
 
-# Make executable
-sudo chmod +x /usr/local/bin/galerie
+# Clone and build galerie
+git clone https://github.com/Twister915/galerie.git
+cd galerie
+cargo build --release
 
-# Verify installation
+# Install
+sudo cp target/release/galerie /usr/local/bin/
 galerie --version
 ```
+
+The build takes 15-25 minutes on a Raspberry Pi 4. Go make some coffee.
 
 ## 2. Create Gallery Directory
 
@@ -395,8 +401,11 @@ set -e
 GALLERY_DIR="/var/www/gallery"
 DOMAIN="photos.example.com"
 
-echo "=== Installing galerie ==="
-# Add your download commands here based on architecture
+echo "=== Checking galerie is installed ==="
+if ! command -v galerie &> /dev/null; then
+    echo "Error: galerie not found. Install it first: https://github.com/Twister915/galerie/wiki/install"
+    exit 1
+fi
 
 echo "=== Creating gallery directory ==="
 sudo mkdir -p "$GALLERY_DIR/photos"
