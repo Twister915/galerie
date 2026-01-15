@@ -19,9 +19,23 @@ When you drop photos into the folder (via SMB, SFTP, or directly), the site rebu
 
 ## 1. Install galerie
 
-Follow the [Installation Guide](install.md) to build and install galerie.
+The easiest method is downloading a pre-built binary:
 
-Quick version for Raspberry Pi / Ubuntu:
+```bash
+# For Raspberry Pi 4/5 (ARM64)
+curl -L -o galerie https://github.com/Twister915/galerie/releases/latest/download/galerie-linux-arm64
+chmod +x galerie
+sudo mv galerie /usr/local/bin/
+
+# Verify
+galerie --version
+```
+
+For Intel NUC or x86_64 systems, use `galerie-linux-x86_64` instead.
+
+### Building from Source (Alternative)
+
+If you prefer to build from source (or need to modify galerie):
 
 ```bash
 # Install dependencies
@@ -47,7 +61,7 @@ sudo cp target/release/galerie /usr/local/bin/
 galerie --version
 ```
 
-The build takes 15-25 minutes on a Raspberry Pi 4. Go make some coffee.
+The build takes 15-25 minutes on a Raspberry Pi 4.
 
 ## 2. Create Gallery Directory
 
@@ -401,11 +415,19 @@ set -e
 GALLERY_DIR="/var/www/gallery"
 DOMAIN="photos.example.com"
 
-echo "=== Checking galerie is installed ==="
+echo "=== Installing galerie ==="
 if ! command -v galerie &> /dev/null; then
-    echo "Error: galerie not found. Install it first: https://github.com/Twister915/galerie/wiki/install"
-    exit 1
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then
+        BINARY="galerie-linux-arm64"
+    else
+        BINARY="galerie-linux-x86_64"
+    fi
+    curl -L -o /tmp/galerie "https://github.com/Twister915/galerie/releases/latest/download/$BINARY"
+    chmod +x /tmp/galerie
+    sudo mv /tmp/galerie /usr/local/bin/galerie
 fi
+galerie --version
 
 echo "=== Creating gallery directory ==="
 sudo mkdir -p "$GALLERY_DIR/photos"

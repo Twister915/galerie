@@ -2,9 +2,44 @@
 
 ## Pre-built Binaries
 
-*Coming soon* - Pre-built binaries for Linux (x86_64, ARM64) and macOS will be available on the [releases page](https://github.com/Twister915/galerie/releases).
+Download the latest binary for your platform from the [releases page](https://github.com/Twister915/galerie/releases):
 
-For now, follow the source-based installation below.
+| Platform | Binary | Architecture |
+|----------|--------|--------------|
+| macOS | `galerie-macos-arm64` | Apple Silicon (M1/M2/M3/M4) |
+| Linux | `galerie-linux-x86_64` | Intel/AMD 64-bit |
+| Linux | `galerie-linux-arm64` | ARM 64-bit (Raspberry Pi 4/5, AWS Graviton) |
+| Windows | `galerie-windows-x86_64.exe` | Intel/AMD 64-bit |
+
+### Linux / macOS
+
+```bash
+# Download (replace with your platform)
+curl -L -o galerie https://github.com/Twister915/galerie/releases/latest/download/galerie-linux-x86_64
+
+# Make executable
+chmod +x galerie
+
+# Move to PATH
+sudo mv galerie /usr/local/bin/
+
+# Verify
+galerie --version
+```
+
+### Windows
+
+Download `galerie-windows-x86_64.exe` from the releases page and add it to your PATH, or run it directly.
+
+### Updating
+
+To update, download the new binary and replace the old one:
+
+```bash
+curl -L -o galerie https://github.com/Twister915/galerie/releases/latest/download/galerie-linux-x86_64
+chmod +x galerie
+sudo mv galerie /usr/local/bin/
+```
 
 ## Building from Source
 
@@ -98,9 +133,9 @@ Verify installation:
 galerie --version
 ```
 
-## Updating
+## Updating (Source Builds)
 
-To update to the latest version:
+To update a source build to the latest version:
 
 ```bash
 cd galerie

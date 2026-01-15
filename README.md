@@ -16,15 +16,23 @@ A fast, minimal static site generator for photo galleries.
 
 ### 1. Install
 
+Download the latest binary for your platform from the [releases page](https://github.com/Twister915/galerie/releases):
+
+| Platform | Binary |
+|----------|--------|
+| macOS (Apple Silicon) | `galerie-macos-arm64` |
+| Linux (x86_64) | `galerie-linux-x86_64` |
+| Linux (ARM64) | `galerie-linux-arm64` |
+| Windows | `galerie-windows-x86_64.exe` |
+
 ```bash
-# Clone and build (requires Rust nightly + Node.js 18+)
-git clone https://github.com/Twister915/galerie.git
-cd galerie
-cargo build --release
-sudo cp target/release/galerie /usr/local/bin/
+# Example for Linux x86_64
+curl -L -o galerie https://github.com/Twister915/galerie/releases/latest/download/galerie-linux-x86_64
+chmod +x galerie
+sudo mv galerie /usr/local/bin/
 ```
 
-See the [Installation Guide](wiki/install.md) for detailed prerequisites, platform-specific notes, and troubleshooting.
+See the [Installation Guide](wiki/install.md) for building from source and troubleshooting.
 
 ### 2. Create a Gallery
 
