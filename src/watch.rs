@@ -24,13 +24,32 @@ pub fn watch(
     theme_override: Option<String>,
     debounce_secs: u64,
 ) -> Result<()> {
-    let debounce = Duration::from_secs(debounce_secs);
-
     // Initial build
     tracing::info!("performing initial build");
     if let Err(e) = do_build(&site_dir, &config_path, theme_override.as_deref()) {
         tracing::error!(error = %e, "initial build failed");
     }
+
+    watch_and_rebuild(
+        site_dir,
+        config_path,
+        theme_override,
+        Duration::from_secs(debounce_secs),
+    )
+}
+
+/// Watch for file changes and rebuild automatically.
+///
+/// This function blocks forever. Unlike `watch()`, it does not perform an
+/// initial build - use this when you've already built the site and just
+/// want to watch for changes.
+pub fn watch_and_rebuild(
+    site_dir: PathBuf,
+    config_path: PathBuf,
+    theme_override: Option<String>,
+    debounce: Duration,
+) -> Result<()> {
+    let debounce_secs = debounce.as_secs();
 
     // Load config to determine what paths to watch
     let config_content = std::fs::read_to_string(&config_path)?;
@@ -124,7 +143,7 @@ pub fn watch(
 }
 
 /// Perform a single build of the site.
-fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str>) -> Result<()> {
+pub fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str>) -> Result<()> {
     // Reload config each time in case it changed
     let config_content = std::fs::read_to_string(config_path)?;
     let mut site: Site = toml::from_str(&config_content)?;
@@ -141,7 +160,7 @@ fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str>) -
 }
 
 /// Check if an event should be ignored.
-fn should_ignore_event(event: &notify::Event, output_dir: &Path) -> bool {
+pub fn should_ignore_event(event: &notify::Event, output_dir: &Path) -> bool {
     // Ignore events in the output directory
     for path in &event.paths {
         if path.starts_with(output_dir) {

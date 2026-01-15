@@ -55,6 +55,14 @@ enum Command {
         /// Port to serve on
         #[arg(short, long, default_value = "3000")]
         port: u16,
+
+        /// Debounce delay in seconds for file watching
+        #[arg(long, default_value = "5")]
+        debounce: u64,
+
+        /// Disable automatic rebuild on file changes
+        #[arg(long)]
+        no_watch: bool,
     },
 
     /// Watch for changes and rebuild automatically
@@ -145,9 +153,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pipeline.build()?;
             tracing::info!("build complete");
         }
-        Command::Serve { port } => {
+        Command::Serve {
+            port,
+            debounce,
+            no_watch,
+        } => {
             let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
             pipeline.build()?;
+
+            if !no_watch {
+                let watch_dir = args.directory.clone();
+                let watch_config = config_path.clone();
+                let watch_theme = args.theme.clone();
+                std::thread::spawn(move || {
+                    let _ = watch::watch_and_rebuild(
+                        watch_dir,
+                        watch_config,
+                        watch_theme,
+                        std::time::Duration::from_secs(debounce),
+                    );
+                });
+            }
+
             serve(&pipeline.site_dir.join(&pipeline.config.build), port)?;
         }
         Command::Watch { .. } => unreachable!("handled above"),
