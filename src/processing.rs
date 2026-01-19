@@ -177,14 +177,19 @@ fn process_photo(
 
     // Extract EXIF metadata (cheap operation, always do it)
     // Use catch_unwind because little_exif can panic on malformed images
+    // Wrap in a span so little_exif's internal logging includes the file context
     let source_path = photo.source.clone();
-    photo.metadata = panic::catch_unwind(AssertUnwindSafe(|| {
-        extract_exif(&original_data, &photo.extension, gps_mode)
-    }))
-    .unwrap_or_else(|_| {
-        tracing::warn!(photo = %source_path.display(), "EXIF extraction panicked, skipping metadata");
-        PhotoMetadata::default()
-    });
+    let source_display = source_path.display().to_string();
+    photo.metadata = {
+        let _span = tracing::info_span!("exif", file = %source_display).entered();
+        panic::catch_unwind(AssertUnwindSafe(|| {
+            extract_exif(&original_data, &photo.extension, gps_mode)
+        }))
+        .unwrap_or_else(|_| {
+            tracing::warn!("EXIF extraction panicked, skipping metadata");
+            PhotoMetadata::default()
+        })
+    };
 
     // Extract image dimensions (reads header only, doesn't decode full image)
     let reader = image::ImageReader::new(Cursor::new(&original_data))
@@ -251,14 +256,15 @@ fn process_photo(
     if need_original {
         let final_original = if gps_mode != GpsMode::On {
             // Use catch_unwind because little_exif can panic on malformed images
+            // Wrap in a span so little_exif's internal logging includes the file context
             let ext = photo.extension.clone();
-            let source_display = photo.source.display().to_string();
+            let _span = tracing::info_span!("strip_gps", file = %source_display).entered();
             match panic::catch_unwind(AssertUnwindSafe(|| {
                 strip_gps_from_image(original_data, &ext)
             })) {
                 Ok(result) => result?,
                 Err(_) => {
-                    tracing::warn!(photo = %source_display, "GPS stripping panicked, copying original unchanged");
+                    tracing::warn!("GPS stripping panicked, copying original unchanged");
                     // Re-read the original since we consumed it
                     fs::read(&photo.source)?
                 }

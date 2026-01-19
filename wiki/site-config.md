@@ -180,3 +180,11 @@ default_sort = "shuffle"
 | `slideshow_delay` | number | 5000 | Milliseconds between slideshow transitions |
 | `default_sort` | string | "shuffle" | Initial sort: shuffle, date, rating, photographer, name |
 | `default_sort_direction` | string | "desc" | Sort direction: asc or desc (ignored for shuffle) |
+| `default_theme` | string | "system" | Color theme: system, dark, or light |
+
+**`default_theme` values:**
+- **`system`**: Follows the user's OS theme preference. Updates automatically when the OS setting changes.
+- **`dark`**: Always starts in dark mode.
+- **`light`**: Always starts in light mode.
+
+Users can still toggle the theme manually via the UI button regardless of this setting. Their preference is stored in localStorage and persists across sessions.
