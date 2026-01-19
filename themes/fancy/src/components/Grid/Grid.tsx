@@ -169,9 +169,12 @@ export function Grid() {
   }, [gridLoading, gridLoadedCount, loadMoreGrid, setGridLoading]);
 
   // Infinite scroll sentinel
+  // Create sort key for both tile sizing and scroll reset
+  const sortKey = `${sortMode}:${sortDirection}`;
   const sentinelRef = useIntersectionObserver(handleLoadMore, {
     rootMargin: '200px',
     enabled: gridLoadedCount < gridOrderRef.current.length,
+    resetKey: sortKey,
   });
 
   // Handle tile click
@@ -184,9 +187,6 @@ export function Grid() {
 
   // Get photos to render based on grid order
   const visibleIndices = gridOrderRef.current.slice(0, gridLoadedCount);
-
-  // Create a sort key for deterministic tile sizing per sort configuration
-  const sortKey = `${sortMode}:${sortDirection}`;
 
   return (
     <main class="gallery" id="gallery">
