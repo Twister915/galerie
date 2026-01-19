@@ -56,7 +56,11 @@ pub fn watch_and_rebuild(
     let site: Site = toml::from_str(&config_content)?;
 
     let photos_dir = site_dir.join(&site.photos);
-    let output_dir = site_dir.join(&site.build);
+    // Canonicalize output_dir so it matches absolute paths from notify events
+    let output_dir = site_dir
+        .join(&site.build)
+        .canonicalize()
+        .unwrap_or_else(|_| site_dir.join(&site.build));
 
     // Determine theme directory if it's local
     let theme_dir = {
@@ -98,6 +102,10 @@ pub fn watch_and_rebuild(
         debounce_secs = debounce_secs,
         "watch mode active, press Ctrl+C to stop"
     );
+    tracing::debug!(
+        output_dir = %output_dir.display(),
+        "output directory for filtering"
+    );
 
     // Event loop with debouncing
     let mut needs_rebuild = false;
@@ -105,10 +113,22 @@ pub fn watch_and_rebuild(
     loop {
         match rx.recv_timeout(debounce) {
             Ok(event) => {
+                let _span = tracing::debug_span!(
+                    "file_event",
+                    kind = ?event.kind,
+                    paths = ?event.paths,
+                )
+                .entered();
+
+                tracing::debug!("received file event");
+
                 // Filter out events we don't care about
                 if should_ignore_event(&event, &output_dir) {
+                    tracing::debug!("ignoring event (filtered)");
                     continue;
                 }
+
+                tracing::debug!("event passed filters");
 
                 if !needs_rebuild {
                     tracing::info!(
@@ -161,15 +181,36 @@ pub fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str
 
 /// Check if an event should be ignored.
 pub fn should_ignore_event(event: &notify::Event, output_dir: &Path) -> bool {
+    use notify::EventKind;
+
+    // Only care about create, modify, and remove events
+    // Ignore access events (file reads during build), metadata changes, etc.
+    match &event.kind {
+        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {}
+        other => {
+            tracing::trace!(kind = ?other, "ignoring: non-content event");
+            return true;
+        }
+    }
+
     // Ignore events in the output directory
     for path in &event.paths {
         if path.starts_with(output_dir) {
+            tracing::trace!(
+                path = %path.display(),
+                output_dir = %output_dir.display(),
+                "ignoring: in output directory"
+            );
             return true;
         }
 
         // Ignore hidden files
         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
             if name.starts_with('.') {
+                tracing::trace!(
+                    path = %path.display(),
+                    "ignoring: hidden file"
+                );
                 return true;
             }
         }
@@ -220,5 +261,31 @@ mod tests {
         };
 
         assert!(!should_ignore_event(&event, &output_dir));
+    }
+
+    #[test]
+    fn test_should_ignore_access_events() {
+        let output_dir = PathBuf::from("/site/dist");
+
+        let event = notify::Event {
+            kind: notify::EventKind::Access(notify::event::AccessKind::Read),
+            paths: vec![PathBuf::from("/site/photos/vacation/beach.jpg")],
+            attrs: Default::default(),
+        };
+
+        assert!(should_ignore_event(&event, &output_dir));
+    }
+
+    #[test]
+    fn test_should_ignore_other_events() {
+        let output_dir = PathBuf::from("/site/dist");
+
+        let event = notify::Event {
+            kind: notify::EventKind::Other,
+            paths: vec![PathBuf::from("/site/photos/vacation/beach.jpg")],
+            attrs: Default::default(),
+        };
+
+        assert!(should_ignore_event(&event, &output_dir));
     }
 }
