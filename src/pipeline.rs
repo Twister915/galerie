@@ -237,6 +237,7 @@ impl Pipeline {
             cached = stats.cached,
             generated = stats.generated,
             copied = stats.copied,
+            skipped = stats.skipped,
             "photos processed"
         );
 

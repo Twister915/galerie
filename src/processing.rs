@@ -13,6 +13,7 @@
 
 use std::fs;
 use std::io::Cursor;
+use std::panic::{self, AssertUnwindSafe};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -44,6 +45,7 @@ pub struct ProcessingStats {
     pub cached: usize,
     pub generated: usize,
     pub copied: usize,
+    pub skipped: usize,
 }
 
 /// What was processed for a single photo.
@@ -67,6 +69,7 @@ pub fn process_album(
     let cached = AtomicUsize::new(0);
     let generated = AtomicUsize::new(0);
     let copied = AtomicUsize::new(0);
+    let skipped = AtomicUsize::new(0);
 
     process_album_recursive(
         album,
@@ -76,13 +79,15 @@ pub fn process_album(
         &cached,
         &generated,
         &copied,
-    )?;
+        &skipped,
+    );
 
     Ok(ProcessingStats {
         total: total.load(Ordering::Relaxed),
         cached: cached.load(Ordering::Relaxed),
         generated: generated.load(Ordering::Relaxed),
         copied: copied.load(Ordering::Relaxed),
+        skipped: skipped.load(Ordering::Relaxed),
     })
 }
 
@@ -94,41 +99,61 @@ fn process_album_recursive(
     cached: &AtomicUsize,
     generated: &AtomicUsize,
     copied: &AtomicUsize,
-) -> Result<()> {
+    skipped: &AtomicUsize,
+) {
     let album_path = album.path.clone();
     let album_images_dir = if album_path.as_os_str().is_empty() {
         images_dir.to_path_buf()
     } else {
         let dir = images_dir.join(&album_path);
-        fs::create_dir_all(&dir)?;
+        if let Err(e) = fs::create_dir_all(&dir) {
+            tracing::error!(album = %album_path.display(), error = %e, "failed to create album directory");
+            return;
+        }
         dir
     };
 
-    // Process photos in this album in parallel
-    album
-        .photos
-        .par_iter_mut()
-        .try_for_each(|photo| -> Result<()> {
-            let result = process_photo(photo, &album_images_dir, gps_mode)?;
-            total.fetch_add(1, Ordering::Relaxed);
-            if !result.generated_webp && !result.copied_original {
-                cached.fetch_add(1, Ordering::Relaxed);
+    // Process photos in this album in parallel, catching errors per-photo
+    album.photos.par_iter_mut().for_each(|photo| {
+        let source = photo.source.display().to_string();
+        match process_photo(photo, &album_images_dir, gps_mode) {
+            Ok(result) => {
+                total.fetch_add(1, Ordering::Relaxed);
+                if !result.generated_webp && !result.copied_original {
+                    cached.fetch_add(1, Ordering::Relaxed);
+                }
+                if result.generated_webp {
+                    generated.fetch_add(1, Ordering::Relaxed);
+                }
+                if result.copied_original {
+                    copied.fetch_add(1, Ordering::Relaxed);
+                }
             }
-            if result.generated_webp {
-                generated.fetch_add(1, Ordering::Relaxed);
+            Err(e) => {
+                tracing::warn!(photo = %source, error = %e, "skipping photo due to processing error");
+                skipped.fetch_add(1, Ordering::Relaxed);
+                // Mark photo as skipped by clearing its hash
+                photo.hash.clear();
             }
-            if result.copied_original {
-                copied.fetch_add(1, Ordering::Relaxed);
-            }
-            Ok(())
-        })?;
+        }
+    });
+
+    // Remove skipped photos (those with empty hash)
+    album.photos.retain(|p| !p.hash.is_empty());
 
     // Recursively process child albums
     for child in &mut album.children {
-        process_album_recursive(child, images_dir, gps_mode, total, cached, generated, copied)?;
+        process_album_recursive(
+            child,
+            images_dir,
+            gps_mode,
+            total,
+            cached,
+            generated,
+            copied,
+            skipped,
+        );
     }
-
-    Ok(())
 }
 
 /// Process a single photo: hash, extract EXIF, generate and write image variants.
@@ -137,6 +162,8 @@ fn process_photo(
     images_dir: &Path,
     gps_mode: GpsMode,
 ) -> Result<PhotoProcessingResult> {
+    tracing::trace!(photo = %photo.source.display(), "processing photo");
+
     // Read the original file
     let original_data = fs::read(&photo.source)?;
 
@@ -149,7 +176,15 @@ fn process_photo(
     photo.hash = hash.to_hex()[..8].to_string();
 
     // Extract EXIF metadata (cheap operation, always do it)
-    photo.metadata = extract_exif(&original_data, &photo.extension, gps_mode);
+    // Use catch_unwind because little_exif can panic on malformed images
+    let source_path = photo.source.clone();
+    photo.metadata = panic::catch_unwind(AssertUnwindSafe(|| {
+        extract_exif(&original_data, &photo.extension, gps_mode)
+    }))
+    .unwrap_or_else(|_| {
+        tracing::warn!(photo = %source_path.display(), "EXIF extraction panicked, skipping metadata");
+        PhotoMetadata::default()
+    });
 
     // Extract image dimensions (reads header only, doesn't decode full image)
     let reader = image::ImageReader::new(Cursor::new(&original_data))
@@ -215,7 +250,19 @@ fn process_photo(
     // Write original (with GPS stripped if needed)
     if need_original {
         let final_original = if gps_mode != GpsMode::On {
-            strip_gps_from_image(original_data, &photo.extension)?
+            // Use catch_unwind because little_exif can panic on malformed images
+            let ext = photo.extension.clone();
+            let source_display = photo.source.display().to_string();
+            match panic::catch_unwind(AssertUnwindSafe(|| {
+                strip_gps_from_image(original_data, &ext)
+            })) {
+                Ok(result) => result?,
+                Err(_) => {
+                    tracing::warn!(photo = %source_display, "GPS stripping panicked, copying original unchanged");
+                    // Re-read the original since we consumed it
+                    fs::read(&photo.source)?
+                }
+            }
         } else {
             original_data
         };
