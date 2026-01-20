@@ -29,7 +29,7 @@ If the work tree is dirty, such as uncomitted changes that we didn't make, analy
 
 The core release procedure is:
 1. Bump the version in Cargo.toml. If the user specifies the "patch" version, bump the last number by 1. Example: 0.0.9 -> 0.0.10, 0.0.1 -> 0.0.2, etc. If the user specifies the "minor" version, bump the middle number by 1, and reset the last number to 0. Example: 0.0.1 -> 0.1.0, 0.2.9 -> 0.3.0. If the user specifies the "major" version, then bump the top number by 1, and reset the other two to 0. Example: 0.0.1 -> 1.0.0, 0.7.6 -> 1.0.0, 1.9.2 -> 2.0.0.
-2. Create a git commit for the version bump (git commit -sm "Release version 1.0.0" for example)
+2. Create a git commit for the version bump (git commit -sm "Release version 1.0.0" for example). This also changes Cargo.lock, but I'm not entirely sure why. Make sure you cargo update AFTER you bump the version and git add both files.
 3. Create a git tag for this version with the "v" prefix.
 4. Push both to the origin remote.
 
