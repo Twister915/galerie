@@ -1,5 +1,6 @@
 // Hooks barrel export
 
+export { useDropdown } from './useDropdown';
 export { useHashRouter } from './useHashRouter';
 export { useKeyboardNav } from './useKeyboardNav';
 export { useTouchSwipe } from './useTouchSwipe';

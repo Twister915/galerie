@@ -1,8 +1,9 @@
 // Sort control dropdown for grid view
 
-import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
+import { useState, useCallback } from 'preact/hooks';
 import { useGalleryStore, type SortMode } from '../../store/galleryStore';
 import { useTranslation } from '../../context/I18nContext';
+import { useDropdown } from '../../hooks';
 import { Button } from '../UI';
 
 const SORT_OPTIONS: { mode: SortMode; icon: string; labelKey: string }[] = [
@@ -20,57 +21,15 @@ export function SortControl() {
   const setSortMode = useGalleryStore((s) => s.setSortMode);
   const toggleSortDirection = useGalleryStore((s) => s.toggleSortDirection);
 
-  const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const { open, containerRef, triggerRef, handleTriggerClick } = useDropdown({
+    id: 'sort-control',
+    onScroll: () => setHovered(false),
+  });
 
   // Show expanded state on hover or when open
   const expanded = open || hovered;
-
-  // Close on click outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && open) {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [open]);
-
-  // Collapse on scroll (for mobile)
-  useEffect(() => {
-    function handleScroll() {
-      setHovered(false);
-      if (open) setOpen(false);
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [open]);
-
-  const handleToggle = useCallback((e: MouseEvent) => {
-    e.stopPropagation();
-    setOpen((prev) => !prev);
-  }, []);
 
   const handleOptionClick = useCallback(
     (mode: SortMode) => {
@@ -106,7 +65,7 @@ export function SortControl() {
         variant="filled"
         open={open}
         class="sort-control-trigger"
-        onClick={handleToggle}
+        onClick={handleTriggerClick}
         aria-haspopup="true"
         aria-expanded={open}
         aria-label={t('sort.label')}

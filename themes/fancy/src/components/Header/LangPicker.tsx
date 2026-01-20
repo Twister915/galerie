@@ -1,16 +1,17 @@
 // Language picker dropdown
 
-import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
+import { useState, useEffect, useCallback } from 'preact/hooks';
 import { useLang, useI18nLoading } from '../../context/I18nContext';
+import { useDropdown } from '../../hooks';
 import { Button, ChevronDownIcon } from '../UI';
 
 export function LangPicker() {
   const [lang, setLang] = useLang();
   const loading = useI18nLoading();
-  const [open, setOpen] = useState(false);
   const [pendingLang, setPendingLang] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const { open, containerRef, triggerRef, handleTriggerClick, close } =
+    useDropdown({ id: 'lang-picker' });
 
   // Clear pending state when loading completes
   useEffect(() => {
@@ -26,56 +27,13 @@ export function LangPicker() {
   const currentLangName =
     languages.find((l) => l.code === displayLang)?.name || displayLang.toUpperCase();
 
-  // Close on click outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && open) {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [open]);
-
-  // Close on scroll (for mobile)
-  useEffect(() => {
-    function handleScroll() {
-      if (open) setOpen(false);
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [open]);
-
-  const handleToggle = useCallback((e: MouseEvent) => {
-    e.stopPropagation();
-    setOpen((prev) => !prev);
-  }, []);
-
   const handleSelect = useCallback(
     (code: string) => {
       setPendingLang(code);
       setLang(code);
-      setOpen(false);
+      close();
     },
-    [setLang]
+    [setLang, close]
   );
 
   const isLoading = pendingLang !== null;
@@ -93,7 +51,7 @@ export function LangPicker() {
         id="lang-dropdown-trigger"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={handleToggle}
+        onClick={handleTriggerClick}
         disabled={isLoading}
       >
         <span class="lang-current" id="lang-current">

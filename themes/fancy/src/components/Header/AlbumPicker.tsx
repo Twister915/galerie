@@ -1,8 +1,9 @@
 // Album picker with collapsible tree dropdown
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'preact/hooks';
+import { useState, useCallback, useMemo } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
 import { useTranslation } from '../../context/I18nContext';
+import { useDropdown } from '../../hooks';
 import { Button, ChevronDownIcon, ChevronRightIcon } from '../UI';
 import type { Album } from '../../types';
 
@@ -44,10 +45,13 @@ export function AlbumPicker() {
   const filterAlbum = useGalleryStore((s) => s.filterAlbum);
   const t = useTranslation();
 
-  const [open, setOpen] = useState(false);
   const [expandedAlbums, setExpandedAlbums] = useState<Set<string>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const { open, containerRef, triggerRef, handleTriggerClick, close } =
+    useDropdown({
+      id: 'album-picker',
+      onClose: () => setExpandedAlbums(new Set()),
+    });
 
   // Build album tree from flat list
   const albumTree = useMemo(() => buildAlbumTree(albums), [albums]);
@@ -59,55 +63,11 @@ export function AlbumPicker() {
     return found?.name || filterAlbum;
   }, [filterAlbum, albums, t]);
 
-  // Close on click outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && open) {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [open]);
-
-  // Close on scroll (for mobile)
-  useEffect(() => {
-    function handleScroll() {
-      if (open) setOpen(false);
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [open]);
-
-  const handleToggle = useCallback((e: MouseEvent) => {
-    e.stopPropagation();
-    setOpen((prev) => !prev);
-  }, []);
-
   const handleAllPhotos = useCallback(() => {
-    setOpen(false);
-    setExpandedAlbums(new Set());
+    close();
     // Just set hash - let the hash router handle state update
     window.location.hash = '';
-  }, []);
+  }, [close]);
 
   const handleAlbumClick = useCallback(
     (album: Album, hasChildren: boolean) => {
@@ -118,13 +78,12 @@ export function AlbumPicker() {
         setExpandedAlbums((prev) => new Set([...prev, album.path]));
       } else {
         // Filter to this album
-        setOpen(false);
-        setExpandedAlbums(new Set());
+        close();
         // Just set hash - let the hash router handle state update
         window.location.hash = '/album/' + encodeURIComponent(album.path);
       }
     },
-    [expandedAlbums]
+    [expandedAlbums, close]
   );
 
   // Render a single album node and its children
@@ -181,7 +140,7 @@ export function AlbumPicker() {
         class="album-dropdown-trigger"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={handleToggle}
+        onClick={handleTriggerClick}
       >
         <span class="album-dropdown-current">{currentAlbumName}</span>
         <ChevronDownIcon class="btn__arrow" />
