@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import type { Photo, Album, SiteInfo, SortMode, SortDirection } from '../types';
-import { getDefaultSort, getDefaultSortDirection } from '../config';
+import { getDefaultSort, getDefaultSortDirection, debug } from '../config';
 
 // Re-export sort types for convenience
 export type { SortMode, SortDirection } from '../types';
@@ -138,18 +138,22 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 
   // Grid actions
   setFilterAlbum: (slug) => {
-    const { filterAlbum } = get();
-    if (filterAlbum === slug) return; // Prevent unnecessary updates
+    const { filterAlbum, gridLoadedCount } = get();
+    debug('[setFilterAlbum] called with:', slug, '| current filter:', filterAlbum, '| current gridLoadedCount:', gridLoadedCount);
+    if (filterAlbum === slug) {
+      debug('[setFilterAlbum] SKIPPED - same value');
+      return; // Prevent unnecessary updates
+    }
     set({ filterAlbum: slug, gridLoadedCount: 0 });
+    debug('[setFilterAlbum] SET filterAlbum:', slug, '| gridLoadedCount: 0');
   },
 
   loadMoreGrid: (count = GRID_BATCH_SIZE) =>
-    set((state) => ({
-      gridLoadedCount: Math.min(
-        state.gridLoadedCount + count,
-        state.photos.length
-      ),
-    })),
+    set((state) => {
+      const newCount = Math.min(state.gridLoadedCount + count, state.photos.length);
+      debug('[loadMoreGrid] called with count:', count, '| current:', state.gridLoadedCount, '| photos.length:', state.photos.length, '| newCount:', newCount);
+      return { gridLoadedCount: newCount };
+    }),
 
   setGridLoading: (loading) => set({ gridLoading: loading }),
 
@@ -269,10 +273,20 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 // Memoized cache for filtered photos
 let filteredPhotosCache: { filterAlbum: string | null; photos: Photo[]; result: Photo[] } | null = null;
 
+// Check if a path starts with a prefix, ignoring trailing slashes and URL encoding
+function pathStartsWith(path: string, prefix: string): boolean {
+  const normPath = decodeURIComponent(path).replace(/\/+$/, '');
+  const normPrefix = decodeURIComponent(prefix).replace(/\/+$/, '');
+  return normPath === normPrefix || normPath.startsWith(normPrefix + '/');
+}
+
 // Selector for filtered photos based on album (memoized to prevent new array on every call)
 export function useFilteredPhotos(): Photo[] {
   return useGalleryStore((state) => {
-    if (!state.filterAlbum) return state.photos;
+    if (!state.filterAlbum) {
+      debug('[useFilteredPhotos] no filter, returning all photos:', state.photos.length);
+      return state.photos;
+    }
 
     // Return cached result if inputs haven't changed
     if (
@@ -280,13 +294,19 @@ export function useFilteredPhotos(): Photo[] {
       filteredPhotosCache.filterAlbum === state.filterAlbum &&
       filteredPhotosCache.photos === state.photos
     ) {
+      debug('[useFilteredPhotos] returning cached result for:', state.filterAlbum, '| count:', filteredPhotosCache.result.length);
       return filteredPhotosCache.result;
     }
 
     // Compute and cache new result
-    const result = state.photos.filter((photo) =>
-      photo.htmlPath.startsWith(state.filterAlbum + '/')
-    );
+    // Extract album portion from htmlPath (everything before the last '/')
+    const result = state.photos.filter((photo) => {
+      const lastSlash = photo.htmlPath.lastIndexOf('/');
+      if (lastSlash < 0) return false; // Root-level photos don't belong to an album
+      const photoAlbum = photo.htmlPath.substring(0, lastSlash);
+      return pathStartsWith(photoAlbum, state.filterAlbum);
+    });
+    debug('[useFilteredPhotos] computed filtered photos for:', state.filterAlbum, '| count:', result.length, '| total photos:', state.photos.length);
     filteredPhotosCache = { filterAlbum: state.filterAlbum, photos: state.photos, result };
     return result;
   });

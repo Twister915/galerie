@@ -42,3 +42,13 @@ export function getDefaultSortDirection(): SortDirection {
 export function getDefaultTheme(): 'system' | 'dark' | 'light' {
   return getConfig('default_theme', 'system');
 }
+
+/** Whether debug logging is enabled */
+const DEBUG = getConfig('debug', false);
+
+/** Log a debug message (only when debug theme option is enabled) */
+export function debug(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}

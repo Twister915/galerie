@@ -10,7 +10,7 @@ import {
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 import { PhotoTile } from './PhotoTile';
 import { SortControl } from './SortControl';
-import { GRID_BATCH_SIZE } from '../../config';
+import { GRID_BATCH_SIZE, debug } from '../../config';
 import { simpleHash } from '../../utils/hash';
 import type { MasonryInstance, Photo } from '../../types';
 
@@ -90,23 +90,42 @@ export function Grid() {
 
   // Compute grid order when photos or sort settings change
   useEffect(() => {
+    debug('[Grid:photosEffect] running | photos.length:', photos.length, '| masonryRef:', !!masonryRef.current, '| gridRef:', !!gridRef.current);
     gridOrderRef.current = computeGridOrder(photos, sortMode, sortDirection);
+    debug('[Grid:photosEffect] computed gridOrder length:', gridOrderRef.current.length);
     prevLoadedCountRef.current = 0;
 
     // Reset masonry when photos or sort changes
     if (masonryRef.current && gridRef.current) {
       // Clear existing tiles for re-sort
       const existingTiles = gridRef.current.querySelectorAll('.photo-tile');
+      debug('[Grid:photosEffect] clearing', existingTiles.length, 'tiles and calling loadMoreGrid');
       existingTiles.forEach((tile) => tile.remove());
       // Reload grid
       loadMoreGrid(GRID_BATCH_SIZE);
+    } else {
+      debug('[Grid:photosEffect] SKIPPED loadMoreGrid - masonry or grid not ready');
     }
   }, [photos, sortMode, sortDirection, loadMoreGrid]);
 
+  // Safeguard: ensure grid loads when photos exist but gridLoadedCount is 0
+  // This handles race conditions during initial hash-based routing on mobile
+  useEffect(() => {
+    debug('[Grid:safeguardEffect] running | gridLoadedCount:', gridLoadedCount, '| photos.length:', photos.length, '| masonryRef:', !!masonryRef.current);
+    if (gridLoadedCount === 0 && photos.length > 0 && masonryRef.current) {
+      debug('[Grid:safeguardEffect] CONDITIONS MET - calling loadMoreGrid');
+      loadMoreGrid(GRID_BATCH_SIZE);
+    }
+  }, [gridLoadedCount, photos.length, loadMoreGrid]);
+
   // Initialize Masonry
   useEffect(() => {
+    debug('[Grid:masonryInit] running | gridRef:', !!gridRef.current, '| window.Masonry:', !!window.Masonry);
     const grid = gridRef.current;
-    if (!grid || !window.Masonry) return;
+    if (!grid || !window.Masonry) {
+      debug('[Grid:masonryInit] ABORTED - grid or Masonry not available');
+      return;
+    }
 
     masonryRef.current = new window.Masonry(grid, {
       itemSelector: '.photo-tile',
@@ -116,6 +135,7 @@ export function Grid() {
       transitionDuration: 0,
       initLayout: false,
     });
+    debug('[Grid:masonryInit] Masonry created, calling loadMoreGrid');
 
     // Initial layout
     requestAnimationFrame(() => {
@@ -126,6 +146,7 @@ export function Grid() {
     loadMoreGrid(GRID_BATCH_SIZE);
 
     return () => {
+      debug('[Grid:masonryInit] CLEANUP - setting masonryRef to null');
       masonryRef.current = null;
     };
   }, [loadMoreGrid]);
@@ -187,6 +208,7 @@ export function Grid() {
 
   // Get photos to render based on grid order
   const visibleIndices = gridOrderRef.current.slice(0, gridLoadedCount);
+  debug('[Grid:render] gridLoadedCount:', gridLoadedCount, '| gridOrderRef.length:', gridOrderRef.current.length, '| visibleIndices.length:', visibleIndices.length, '| photos.length:', photos.length);
 
   return (
     <main class="gallery" id="gallery">

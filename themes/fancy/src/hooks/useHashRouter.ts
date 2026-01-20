@@ -2,6 +2,7 @@
 
 import { useEffect } from 'preact/hooks';
 import { useGalleryStore } from '../store/galleryStore';
+import { debug } from '../config';
 
 interface RouteMatch {
   type: 'photo' | 'album' | 'none';
@@ -72,15 +73,18 @@ export function useHashRouter(): void {
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     const route = parseHash(hash);
+    debug('[HashRouter:initialEffect] running | hash:', hash, '| route:', route, '| photos.length:', photos.length);
 
     if (route.type === 'photo') {
       const stem = route.value!;
       const index = photos.findIndex((p) => p.stem === stem);
+      debug('[HashRouter:initialEffect] photo route | stem:', stem, '| index:', index);
       if (index >= 0) {
         document.body.classList.add('viewer-open');
         setCurrentPhotoIndex(index);
       }
     } else if (route.type === 'album') {
+      debug('[HashRouter:initialEffect] album route | calling setFilterAlbum:', route.value);
       setFilterAlbum(route.value);
     }
     // Only run once when photos are loaded
