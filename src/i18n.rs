@@ -156,7 +156,7 @@ fn translations_en() -> Translations {
         ("field.program", "Program"),
         // Exposure programs
         ("program.manual", "Manual"),
-        ("program.program", "Program"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Aperture Priority"),
         ("program.shutter_priority", "Shutter Priority"),
         ("program.creative", "Creative"),
@@ -265,7 +265,7 @@ fn translations_zh_cn() -> Translations {
         ("field.program", "程序"),
         // Exposure programs
         ("program.manual", "手动"),
-        ("program.program", "程序"),
+        ("program.program", "自动"),
         ("program.aperture_priority", "光圈优先"),
         ("program.shutter_priority", "快门优先"),
         ("program.creative", "创意"),
@@ -374,7 +374,7 @@ fn translations_es() -> Translations {
         ("field.program", "Programa"),
         // Exposure programs
         ("program.manual", "Manual"),
-        ("program.program", "Programa"),
+        ("program.program", "Automático"),
         ("program.aperture_priority", "Prioridad de apertura"),
         ("program.shutter_priority", "Prioridad de obturador"),
         ("program.creative", "Creativo"),
@@ -483,7 +483,7 @@ fn translations_fr() -> Translations {
         ("field.program", "Programme"),
         // Exposure programs
         ("program.manual", "Manuel"),
-        ("program.program", "Programme"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Priorité ouverture"),
         ("program.shutter_priority", "Priorité vitesse"),
         ("program.creative", "Créatif"),
@@ -592,7 +592,7 @@ fn translations_nl() -> Translations {
         ("field.program", "Programma"),
         // Exposure programs
         ("program.manual", "Handmatig"),
-        ("program.program", "Programma"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Diafragmaprioriteit"),
         ("program.shutter_priority", "Sluiterprioriteit"),
         ("program.creative", "Creatief"),
@@ -701,7 +701,7 @@ fn translations_de() -> Translations {
         ("field.program", "Programm"),
         // Exposure programs
         ("program.manual", "Manuell"),
-        ("program.program", "Programm"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Blendenpriorität"),
         ("program.shutter_priority", "Verschlusspriorität"),
         ("program.creative", "Kreativ"),
@@ -810,7 +810,7 @@ fn translations_uk() -> Translations {
         ("field.program", "Програма"),
         // Exposure programs
         ("program.manual", "Ручний"),
-        ("program.program", "Програма"),
+        ("program.program", "Авто"),
         ("program.aperture_priority", "Пріоритет діафрагми"),
         ("program.shutter_priority", "Пріоритет витримки"),
         ("program.creative", "Креативний"),
@@ -919,7 +919,7 @@ fn translations_ru() -> Translations {
         ("field.program", "Программа"),
         // Exposure programs
         ("program.manual", "Ручной"),
-        ("program.program", "Программа"),
+        ("program.program", "Авто"),
         ("program.aperture_priority", "Приоритет диафрагмы"),
         ("program.shutter_priority", "Приоритет выдержки"),
         ("program.creative", "Творческий"),
@@ -1028,7 +1028,7 @@ fn translations_ja() -> Translations {
         ("field.program", "プログラム"),
         // Exposure programs
         ("program.manual", "マニュアル"),
-        ("program.program", "プログラム"),
+        ("program.program", "オート"),
         ("program.aperture_priority", "絞り優先"),
         ("program.shutter_priority", "シャッター優先"),
         ("program.creative", "クリエイティブ"),
@@ -1137,7 +1137,7 @@ fn translations_ar() -> Translations {
         ("field.program", "البرنامج"),
         // Exposure programs
         ("program.manual", "يدوي"),
-        ("program.program", "برنامج"),
+        ("program.program", "تلقائي"),
         ("program.aperture_priority", "أولوية فتحة العدسة"),
         ("program.shutter_priority", "أولوية الغالق"),
         ("program.creative", "إبداعي"),
@@ -1246,7 +1246,7 @@ fn translations_hi() -> Translations {
         ("field.program", "प्रोग्राम"),
         // Exposure programs
         ("program.manual", "मैनुअल"),
-        ("program.program", "प्रोग्राम"),
+        ("program.program", "ऑटो"),
         ("program.aperture_priority", "अपर्चर प्राथमिकता"),
         ("program.shutter_priority", "शटर प्राथमिकता"),
         ("program.creative", "क्रिएटिव"),
@@ -1355,7 +1355,7 @@ fn translations_he() -> Translations {
         ("field.program", "תוכנית"),
         // Exposure programs
         ("program.manual", "ידני"),
-        ("program.program", "תוכנית"),
+        ("program.program", "אוטומטי"),
         ("program.aperture_priority", "עדיפות צמצם"),
         ("program.shutter_priority", "עדיפות תריס"),
         ("program.creative", "יצירתי"),
@@ -1464,7 +1464,7 @@ fn translations_it() -> Translations {
         ("field.program", "Programma"),
         // Exposure programs
         ("program.manual", "Manuale"),
-        ("program.program", "Programma"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Priorità diaframma"),
         ("program.shutter_priority", "Priorità otturatore"),
         ("program.creative", "Creativo"),
@@ -1573,7 +1573,7 @@ fn translations_ko() -> Translations {
         ("field.program", "프로그램"),
         // Exposure programs
         ("program.manual", "수동"),
-        ("program.program", "프로그램"),
+        ("program.program", "자동"),
         ("program.aperture_priority", "조리개 우선"),
         ("program.shutter_priority", "셔터 우선"),
         ("program.creative", "크리에이티브"),
@@ -1682,7 +1682,7 @@ fn translations_pl() -> Translations {
         ("field.program", "Program"),
         // Exposure programs
         ("program.manual", "Ręczny"),
-        ("program.program", "Program"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Priorytet przysłony"),
         ("program.shutter_priority", "Priorytet migawki"),
         ("program.creative", "Kreatywny"),
@@ -1791,7 +1791,7 @@ fn translations_cs() -> Translations {
         ("field.program", "Program"),
         // Exposure programs
         ("program.manual", "Manuální"),
-        ("program.program", "Program"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Priorita clony"),
         ("program.shutter_priority", "Priorita závěrky"),
         ("program.creative", "Kreativní"),
@@ -1900,7 +1900,7 @@ fn translations_fi() -> Translations {
         ("field.program", "Ohjelma"),
         // Exposure programs
         ("program.manual", "Manuaalinen"),
-        ("program.program", "Ohjelma"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Aukkoprioriteetti"),
         ("program.shutter_priority", "Suljinprioriteetti"),
         ("program.creative", "Luova"),
@@ -2009,7 +2009,7 @@ fn translations_da() -> Translations {
         ("field.program", "Program"),
         // Exposure programs
         ("program.manual", "Manuel"),
-        ("program.program", "Program"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Blændeprioritet"),
         ("program.shutter_priority", "Lukkerprioritet"),
         ("program.creative", "Kreativ"),
@@ -2118,7 +2118,7 @@ fn translations_hu() -> Translations {
         ("field.program", "Program"),
         // Exposure programs
         ("program.manual", "Manuális"),
-        ("program.program", "Program"),
+        ("program.program", "Auto"),
         ("program.aperture_priority", "Rekeszpriorítás"),
         ("program.shutter_priority", "Zárpriorítás"),
         ("program.creative", "Kreatív"),
@@ -2227,7 +2227,7 @@ fn translations_pt() -> Translations {
         ("field.program", "Programa"),
         // Exposure programs
         ("program.manual", "Manual"),
-        ("program.program", "Programa"),
+        ("program.program", "Automático"),
         ("program.aperture_priority", "Prioridade de abertura"),
         ("program.shutter_priority", "Prioridade de obturador"),
         ("program.creative", "Criativo"),
