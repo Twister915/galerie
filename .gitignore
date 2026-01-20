@@ -5,3 +5,4 @@
 # Vite theme build artifacts
 themes/*/node_modules/
 themes/*/dist/
+*.timestamp-*.mjs

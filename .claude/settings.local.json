@@ -43,7 +43,8 @@
       "Bash(cargo --version:*)",
       "Bash(rustc:*)",
       "Bash(python3:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(cloc:*)"
     ]
   }
 }

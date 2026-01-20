@@ -48,6 +48,7 @@ features = ["macos_fsevent"]
 
 [build-dependencies]
 which = { version = "7", default-features = false }
+ignore = "0.4"
 
 [dev-dependencies]
 test-case = "3"
