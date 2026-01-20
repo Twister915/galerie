@@ -6,8 +6,7 @@ import type { Photo } from '../../types';
 
 interface PhotoTileProps {
   photo: Photo;
-  index: number;
-  onClick: (index: number) => void;
+  onClick: (stem: string) => void;
   sortKey: string; // Combination of sortMode + sortDirection for size variation
 }
 
@@ -20,15 +19,14 @@ function getTileSizeClass(hash: string, sortKey: string): string {
   return 'size-1x';
 }
 
-function PhotoTileInner({ photo, index, onClick, sortKey }: PhotoTileProps) {
+function PhotoTileInner({ photo, onClick, sortKey }: PhotoTileProps) {
   const sizeClass = getTileSizeClass(photo.hash, sortKey);
 
   return (
     <div
       class={`photo-tile ${sizeClass}`}
-      data-index={index}
       data-stem={photo.stem}
-      onClick={() => onClick(index)}
+      onClick={() => onClick(photo.stem)}
     >
       <img
         src={photo.thumbPath}

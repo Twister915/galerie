@@ -24,13 +24,6 @@ export function Filmstrip() {
   const setFilmstripRange = useGalleryStore((s) => s.setFilmstripRange);
   const openViewer = useGalleryStore((s) => s.openViewer);
 
-  // Map from photo stem to main array index for click handling
-  const stemToMainIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    mainPhotos.forEach((photo, index) => map.set(photo.stem, index));
-    return map;
-  }, [mainPhotos]);
-
   // Find active photo's position in the filmstrip's sorted order
   const currentPhoto = currentPhotoIndex >= 0 ? mainPhotos[currentPhotoIndex] : null;
   const activeFilmstripIndex = useMemo(() => {
@@ -124,17 +117,14 @@ export function Filmstrip() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [updateVisibleRange]);
 
-  // Handle thumbnail click - map filmstrip index back to main photos array
+  // Handle thumbnail click
   const handleThumbClick = useCallback(
     (filmstripIndex: number) => {
       const photo = photos[filmstripIndex];
       if (!photo) return;
-      const mainIndex = stemToMainIndex.get(photo.stem);
-      if (mainIndex !== undefined) {
-        openViewer(mainIndex);
-      }
+      openViewer(photo.stem);
     },
-    [photos, stemToMainIndex, openViewer]
+    [photos, openViewer]
   );
 
   const totalWidth = photos.length * FILMSTRIP_THUMB_WIDTH;

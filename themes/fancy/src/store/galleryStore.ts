@@ -82,7 +82,7 @@ interface GalleryActions {
   resetGrid: () => void;
 
   // Viewer actions
-  openViewer: (index: number) => void;
+  openViewer: (stem: string) => void;
   closeViewer: () => void;
   navigatePhoto: (direction: number) => boolean;
   setCurrentPhotoIndex: (index: number) => void;
@@ -156,24 +156,31 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   resetGrid: () => set({ gridLoadedCount: 0, gridLoading: false }),
 
   // Viewer actions
-  openViewer: (index) => {
+  openViewer: (stem) => {
     const { photos } = get();
-    if (index < 0 || index >= photos.length) return;
+    const index = photos.findIndex((p) => p.stem === stem);
+    if (index < 0) return;
 
-    const photo = photos[index];
-    window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
+    window.location.hash = '/photo/' + encodeURIComponent(stem);
     document.body.classList.add('viewer-open');
 
     set({ currentPhotoIndex: index });
   },
 
   closeViewer: () => {
+    const { filterAlbum } = get();
     document.body.classList.remove('viewer-open');
-    history.replaceState(
-      null,
-      '',
-      window.location.pathname + window.location.search
-    );
+
+    // Preserve album filter in URL when closing viewer
+    if (filterAlbum) {
+      window.location.hash = '/album/' + encodeURIComponent(filterAlbum);
+    } else {
+      history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
 
     set({
       currentPhotoIndex: -1,
