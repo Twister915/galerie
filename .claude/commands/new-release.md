@@ -17,6 +17,7 @@ If the user asks you to do any tasks unrelated to the "core version bump + relea
     </input>
     <behavior>
         1. Do the tasks the user asked, cargo fmt, cargo check, fixing the broken tests and formatting isues.
+        2. Check the Rust style guide in @.claude/rust-style.md and make sure we are in adherence to the style guide. You might need to explore the new changes or the entire project to check this out.
         2. Make a commit using git commit -sm "Cargo fmt, cargo check, and fixed associated issues / tests"
         3. Do the release procedure (described later)
     </behavior>
