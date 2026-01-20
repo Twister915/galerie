@@ -13,26 +13,86 @@ pub struct LanguageInfo {
 /// Returns all supported languages with their display names.
 pub fn all_supported_languages() -> Vec<LanguageInfo> {
     vec![
-        LanguageInfo { code: "en", name: "English" },
-        LanguageInfo { code: "zh_CN", name: "简体中文" },
-        LanguageInfo { code: "es", name: "Español" },
-        LanguageInfo { code: "fr", name: "Français" },
-        LanguageInfo { code: "nl", name: "Nederlands" },
-        LanguageInfo { code: "de", name: "Deutsch" },
-        LanguageInfo { code: "uk", name: "Українська" },
-        LanguageInfo { code: "ru", name: "Русский" },
-        LanguageInfo { code: "ja", name: "日本語" },
-        LanguageInfo { code: "ar", name: "العربية" },
-        LanguageInfo { code: "hi", name: "हिन्दी" },
-        LanguageInfo { code: "he", name: "עברית" },
-        LanguageInfo { code: "it", name: "Italiano" },
-        LanguageInfo { code: "ko", name: "한국어" },
-        LanguageInfo { code: "pl", name: "Polski" },
-        LanguageInfo { code: "cs", name: "Čeština" },
-        LanguageInfo { code: "fi", name: "Suomi" },
-        LanguageInfo { code: "da", name: "Dansk" },
-        LanguageInfo { code: "hu", name: "Magyar" },
-        LanguageInfo { code: "pt", name: "Português" },
+        LanguageInfo {
+            code: "en",
+            name: "English",
+        },
+        LanguageInfo {
+            code: "zh_CN",
+            name: "简体中文",
+        },
+        LanguageInfo {
+            code: "es",
+            name: "Español",
+        },
+        LanguageInfo {
+            code: "fr",
+            name: "Français",
+        },
+        LanguageInfo {
+            code: "nl",
+            name: "Nederlands",
+        },
+        LanguageInfo {
+            code: "de",
+            name: "Deutsch",
+        },
+        LanguageInfo {
+            code: "uk",
+            name: "Українська",
+        },
+        LanguageInfo {
+            code: "ru",
+            name: "Русский",
+        },
+        LanguageInfo {
+            code: "ja",
+            name: "日本語",
+        },
+        LanguageInfo {
+            code: "ar",
+            name: "العربية",
+        },
+        LanguageInfo {
+            code: "hi",
+            name: "हिन्दी",
+        },
+        LanguageInfo {
+            code: "he",
+            name: "עברית",
+        },
+        LanguageInfo {
+            code: "it",
+            name: "Italiano",
+        },
+        LanguageInfo {
+            code: "ko",
+            name: "한국어",
+        },
+        LanguageInfo {
+            code: "pl",
+            name: "Polski",
+        },
+        LanguageInfo {
+            code: "cs",
+            name: "Čeština",
+        },
+        LanguageInfo {
+            code: "fi",
+            name: "Suomi",
+        },
+        LanguageInfo {
+            code: "da",
+            name: "Dansk",
+        },
+        LanguageInfo {
+            code: "hu",
+            name: "Magyar",
+        },
+        LanguageInfo {
+            code: "pt",
+            name: "Português",
+        },
     ]
 }
 
@@ -69,6 +129,7 @@ fn translations_en() -> Translations {
         ("nav.next", "Next"),
         ("nav.index", "Index"),
         ("nav.close", "Close"),
+        ("nav.all_photos", "All Photos"),
         // Sections
         ("section.albums", "Albums"),
         ("section.photo", "Photo"),
@@ -177,6 +238,7 @@ fn translations_zh_cn() -> Translations {
         ("nav.next", "下一张"),
         ("nav.index", "索引"),
         ("nav.close", "关闭"),
+        ("nav.all_photos", "所有照片"),
         // Sections
         ("section.albums", "相册"),
         ("section.photo", "照片"),
@@ -285,6 +347,7 @@ fn translations_es() -> Translations {
         ("nav.next", "Siguiente"),
         ("nav.index", "Índice"),
         ("nav.close", "Cerrar"),
+        ("nav.all_photos", "Todas las fotos"),
         // Sections
         ("section.albums", "Álbumes"),
         ("section.photo", "Foto"),
@@ -393,6 +456,7 @@ fn translations_fr() -> Translations {
         ("nav.next", "Suivant"),
         ("nav.index", "Index"),
         ("nav.close", "Fermer"),
+        ("nav.all_photos", "Toutes les photos"),
         // Sections
         ("section.albums", "Albums"),
         ("section.photo", "Photo"),
@@ -501,6 +565,7 @@ fn translations_nl() -> Translations {
         ("nav.next", "Volgende"),
         ("nav.index", "Index"),
         ("nav.close", "Sluiten"),
+        ("nav.all_photos", "Alle foto's"),
         // Sections
         ("section.albums", "Albums"),
         ("section.photo", "Foto"),
@@ -609,6 +674,7 @@ fn translations_de() -> Translations {
         ("nav.next", "Weiter"),
         ("nav.index", "Index"),
         ("nav.close", "Schließen"),
+        ("nav.all_photos", "Alle Fotos"),
         // Sections
         ("section.albums", "Alben"),
         ("section.photo", "Foto"),
@@ -717,6 +783,7 @@ fn translations_uk() -> Translations {
         ("nav.next", "Наступне"),
         ("nav.index", "Індекс"),
         ("nav.close", "Закрити"),
+        ("nav.all_photos", "Усі фото"),
         // Sections
         ("section.albums", "Альбоми"),
         ("section.photo", "Фото"),
@@ -825,6 +892,7 @@ fn translations_ru() -> Translations {
         ("nav.next", "Вперёд"),
         ("nav.index", "Индекс"),
         ("nav.close", "Закрыть"),
+        ("nav.all_photos", "Все фото"),
         // Sections
         ("section.albums", "Альбомы"),
         ("section.photo", "Фото"),
@@ -933,6 +1001,7 @@ fn translations_ja() -> Translations {
         ("nav.next", "次へ"),
         ("nav.index", "索引"),
         ("nav.close", "閉じる"),
+        ("nav.all_photos", "すべての写真"),
         // Sections
         ("section.albums", "アルバム"),
         ("section.photo", "写真"),
@@ -1041,6 +1110,7 @@ fn translations_ar() -> Translations {
         ("nav.next", "التالي"),
         ("nav.index", "الفهرس"),
         ("nav.close", "إغلاق"),
+        ("nav.all_photos", "كل الصور"),
         // Sections
         ("section.albums", "الألبومات"),
         ("section.photo", "صورة"),
@@ -1149,6 +1219,7 @@ fn translations_hi() -> Translations {
         ("nav.next", "अगला"),
         ("nav.index", "सूची"),
         ("nav.close", "बंद करें"),
+        ("nav.all_photos", "सभी फ़ोटो"),
         // Sections
         ("section.albums", "एल्बम"),
         ("section.photo", "फ़ोटो"),
@@ -1257,6 +1328,7 @@ fn translations_he() -> Translations {
         ("nav.next", "הבא"),
         ("nav.index", "אינדקס"),
         ("nav.close", "סגור"),
+        ("nav.all_photos", "כל התמונות"),
         // Sections
         ("section.albums", "אלבומים"),
         ("section.photo", "תמונה"),
@@ -1365,6 +1437,7 @@ fn translations_it() -> Translations {
         ("nav.next", "Successivo"),
         ("nav.index", "Indice"),
         ("nav.close", "Chiudi"),
+        ("nav.all_photos", "Tutte le foto"),
         // Sections
         ("section.albums", "Album"),
         ("section.photo", "Foto"),
@@ -1473,6 +1546,7 @@ fn translations_ko() -> Translations {
         ("nav.next", "다음"),
         ("nav.index", "목록"),
         ("nav.close", "닫기"),
+        ("nav.all_photos", "모든 사진"),
         // Sections
         ("section.albums", "앨범"),
         ("section.photo", "사진"),
@@ -1581,6 +1655,7 @@ fn translations_pl() -> Translations {
         ("nav.next", "Następne"),
         ("nav.index", "Indeks"),
         ("nav.close", "Zamknij"),
+        ("nav.all_photos", "Wszystkie zdjęcia"),
         // Sections
         ("section.albums", "Albumy"),
         ("section.photo", "Zdjęcie"),
@@ -1689,6 +1764,7 @@ fn translations_cs() -> Translations {
         ("nav.next", "Další"),
         ("nav.index", "Index"),
         ("nav.close", "Zavřít"),
+        ("nav.all_photos", "Všechny fotky"),
         // Sections
         ("section.albums", "Alba"),
         ("section.photo", "Fotografie"),
@@ -1797,6 +1873,7 @@ fn translations_fi() -> Translations {
         ("nav.next", "Seuraava"),
         ("nav.index", "Hakemisto"),
         ("nav.close", "Sulje"),
+        ("nav.all_photos", "Kaikki kuvat"),
         // Sections
         ("section.albums", "Albumit"),
         ("section.photo", "Valokuva"),
@@ -1905,6 +1982,7 @@ fn translations_da() -> Translations {
         ("nav.next", "Næste"),
         ("nav.index", "Indeks"),
         ("nav.close", "Luk"),
+        ("nav.all_photos", "Alle billeder"),
         // Sections
         ("section.albums", "Album"),
         ("section.photo", "Foto"),
@@ -2013,6 +2091,7 @@ fn translations_hu() -> Translations {
         ("nav.next", "Következő"),
         ("nav.index", "Tartalomjegyzék"),
         ("nav.close", "Bezárás"),
+        ("nav.all_photos", "Összes fotó"),
         // Sections
         ("section.albums", "Albumok"),
         ("section.photo", "Fotó"),
@@ -2121,6 +2200,7 @@ fn translations_pt() -> Translations {
         ("nav.next", "Próxima"),
         ("nav.index", "Índice"),
         ("nav.close", "Fechar"),
+        ("nav.all_photos", "Todas as fotos"),
         // Sections
         ("section.albums", "Álbuns"),
         ("section.photo", "Foto"),

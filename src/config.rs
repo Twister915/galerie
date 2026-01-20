@@ -172,19 +172,21 @@ pub struct Site {
 
     /// Default language code (defaults to first in languages list)
     pub default_language: Option<String>,
+
+    /// Flatten album hierarchy - treat all photos as one gallery
+    #[serde(default)]
+    pub flatten: bool,
 }
 
 impl Site {
     /// Returns the default language code.
     pub fn default_lang(&self) -> String {
-        self.default_language
-            .clone()
-            .unwrap_or_else(|| {
-                self.languages
-                    .first()
-                    .map(|l| l.code.clone())
-                    .unwrap_or_else(|| "en".to_string())
-            })
+        self.default_language.clone().unwrap_or_else(|| {
+            self.languages
+                .first()
+                .map(|l| l.code.clone())
+                .unwrap_or_else(|| "en".to_string())
+        })
     }
 
     /// Returns the languages to use, respecting `all_languages` flag.

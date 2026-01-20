@@ -31,6 +31,7 @@ export function useHashRouter(): void {
   const closeViewer = useGalleryStore((s) => s.closeViewer);
   const setFilterAlbum = useGalleryStore((s) => s.setFilterAlbum);
 
+  // Handle hash changes
   useEffect(() => {
     function handleRoute() {
       const hash = window.location.hash.slice(1);
@@ -47,10 +48,13 @@ export function useHashRouter(): void {
           break;
         }
         case 'album': {
+          // setFilterAlbum already has a guard for same-value updates
           setFilterAlbum(route.value);
           break;
         }
         case 'none': {
+          // Clear album filter when navigating away
+          setFilterAlbum(null);
           if (currentPhotoIndex >= 0) {
             closeViewer();
           }
@@ -59,11 +63,27 @@ export function useHashRouter(): void {
       }
     }
 
-    // Handle initial route
-    handleRoute();
-
-    // Listen for hash changes
+    // Listen for hash changes only - don't run on every render
     window.addEventListener('hashchange', handleRoute);
     return () => window.removeEventListener('hashchange', handleRoute);
   }, [photos, currentPhotoIndex, setCurrentPhotoIndex, closeViewer, setFilterAlbum]);
+
+  // Handle initial route on mount only
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const route = parseHash(hash);
+
+    if (route.type === 'photo') {
+      const stem = route.value!;
+      const index = photos.findIndex((p) => p.stem === stem);
+      if (index >= 0) {
+        document.body.classList.add('viewer-open');
+        setCurrentPhotoIndex(index);
+      }
+    } else if (route.type === 'album') {
+      setFilterAlbum(route.value);
+    }
+    // Only run once when photos are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos.length > 0]);
 }

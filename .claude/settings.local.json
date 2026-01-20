@@ -41,7 +41,9 @@
       "Bash(ls:*)",
       "Bash(file:*)",
       "Bash(cargo --version:*)",
-      "Bash(rustc:*)"
+      "Bash(rustc:*)",
+      "Bash(python3:*)",
+      "Bash(jq:*)"
     ]
   }
 }

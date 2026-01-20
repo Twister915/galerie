@@ -108,6 +108,24 @@ gps = "off"      # No GPS data shown or preserved
 
 **`off`**: Maximum privacy. No GPS data is shown or preserved.
 
+### `flatten` (optional)
+
+When enabled, all photos from all subdirectories are treated as a single flat gallery. Album organization is ignored and no album picker is shown.
+
+```toml
+flatten = true
+```
+
+This is useful when you want a simple gallery without album navigation, or when your photos are organized in folders for your own convenience but you want them displayed as one collection.
+
+**What happens when flattened:**
+- All photos appear in a single gallery view
+- No album dropdown or navigation is shown
+- Directory structure is preserved for image file paths but not exposed in the UI
+- The `albums` array in gallery data is empty
+
+Defaults to `false` (albums are preserved).
+
 ### `all_languages` (optional)
 
 Enable all 20 supported languages. When enabled, a language picker appears in themes that support i18n.

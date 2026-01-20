@@ -5,7 +5,7 @@
 //! - **Classic themes** (like basic): Embed entire theme directory.
 //! - **Vite themes** (like fancy): Embed dist/ subdirectory (built at compile time by build.rs).
 
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 
 /// The "basic" built-in theme - classic theme, embed entire directory.
 static BASIC: Dir = include_dir!("$CARGO_MANIFEST_DIR/themes/basic");

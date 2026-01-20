@@ -127,7 +127,11 @@ fn find_package_manager(dir: &Path) -> String {
     // Try preferred first, then fall back to any available
     let candidates: Vec<&str> = if let Some(pref) = preferred {
         std::iter::once(pref)
-            .chain(["bun", "pnpm", "npm", "yarn"].into_iter().filter(|&p| p != pref))
+            .chain(
+                ["bun", "pnpm", "npm", "yarn"]
+                    .into_iter()
+                    .filter(|&p| p != pref),
+            )
             .collect()
     } else {
         vec!["bun", "pnpm", "npm", "yarn"]

@@ -8,6 +8,7 @@ mod pipeline;
 mod processing;
 mod theme;
 mod theme_build;
+mod util;
 mod watch;
 
 use clap::{Parser, Subcommand};
@@ -40,6 +41,10 @@ struct Args {
     /// Override theme (for testing)
     #[arg(short, long, global = true)]
     theme: Option<String>,
+
+    /// Include source maps for debugging (copies .map files without hashing)
+    #[arg(long, global = true)]
+    source_maps: bool,
 
     #[command(subcommand)]
     command: Option<Command>,
@@ -95,10 +100,10 @@ impl Args {
 }
 
 fn init_tracing(level: Level) {
-    use tracing_subscriber::{fmt, EnvFilter};
+    use tracing_subscriber::{EnvFilter, fmt};
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(level.as_str()));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level.as_str()));
 
     #[cfg(distribute)]
     {
@@ -138,6 +143,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         site.theme = config::ThemeConfig::Name(theme_name.clone());
     }
 
+    // Disable minification when source maps are enabled (easier debugging)
+    if args.source_maps && site.minify {
+        tracing::info!("disabling minification for source map debugging");
+        site.minify = false;
+    }
+
     tracing::info!(
         domain = %site.domain,
         theme = %site.theme,
@@ -149,7 +160,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle command
     match args.command.unwrap_or(Command::Build) {
         Command::Build => {
-            let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
+            let mut pipeline =
+                pipeline::Pipeline::load(args.directory.clone(), site, args.source_maps)?;
             pipeline.build()?;
             tracing::info!("build complete");
         }
@@ -158,7 +170,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             debounce,
             no_watch,
         } => {
-            let mut pipeline = pipeline::Pipeline::load(args.directory.clone(), site)?;
+            let mut pipeline =
+                pipeline::Pipeline::load(args.directory.clone(), site, args.source_maps)?;
             pipeline.build()?;
 
             if !no_watch {
@@ -200,17 +213,23 @@ fn serve(dir: &std::path::Path, port: u16) -> Result<(), Box<dyn std::error::Err
     let server = Server::http(&addr).map_err(|e| format!("failed to start server: {}", e))?;
 
     tracing::info!(url = %format!("http://localhost:{}", port), "serving site");
-    println!("\n  Serving at http://localhost:{}\n  Press Ctrl+C to stop\n", port);
+    println!(
+        "\n  Serving at http://localhost:{}\n  Press Ctrl+C to stop\n",
+        port
+    );
 
     for request in server.incoming_requests() {
         let url_path = request.url().to_string();
         let url_path = url_path.trim_start_matches('/');
 
+        // URL-decode the path (handles %20 for spaces, etc.)
+        let decoded_path = url_decode(url_path);
+
         // Determine file path
-        let file_path = if url_path.is_empty() {
+        let file_path = if decoded_path.is_empty() {
             dir.join("index.html")
         } else {
-            let path = dir.join(url_path);
+            let path = dir.join(&decoded_path);
             if path.is_dir() {
                 path.join("index.html")
             } else {
@@ -256,6 +275,41 @@ fn guess_content_type(path: &std::path::Path) -> &'static str {
         Some("woff") => "font/woff",
         Some("woff2") => "font/woff2",
         Some("ttf") => "font/ttf",
+        Some("map") => "application/json",
         _ => "application/octet-stream",
     }
+}
+
+/// Decode URL-encoded strings (e.g., %20 -> space).
+fn url_decode(s: &str) -> String {
+    let mut result = Vec::with_capacity(s.len());
+    let mut bytes = s.bytes();
+
+    while let Some(b) = bytes.next() {
+        if b == b'%' {
+            match (bytes.next(), bytes.next()) {
+                (Some(h1), Some(h2)) => {
+                    let hex = [h1, h2];
+                    match u8::from_str_radix(std::str::from_utf8(&hex).unwrap_or(""), 16) {
+                        Ok(byte) => result.push(byte),
+                        Err(_) => {
+                            result.push(b'%');
+                            result.extend_from_slice(&hex);
+                        }
+                    }
+                }
+                (Some(h1), None) => {
+                    result.push(b'%');
+                    result.push(h1);
+                }
+                _ => result.push(b'%'),
+            }
+        } else if b == b'+' {
+            result.push(b' ');
+        } else {
+            result.push(b);
+        }
+    }
+
+    String::from_utf8_lossy(&result).into_owned()
 }

@@ -4,36 +4,9 @@ use serde::Serialize;
 
 use crate::config::GpsMode;
 use crate::error::{Error, Result};
+use crate::util::{url_encode, url_encode_path};
 
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif"];
-
-/// URL-encode a string for use in URL paths.
-/// Encodes spaces and other special characters while preserving alphanumerics,
-/// hyphens, underscores, periods, and tildes.
-fn url_encode(s: &str) -> String {
-    let mut result = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => {
-                result.push(c);
-            }
-            _ => {
-                for byte in c.to_string().as_bytes() {
-                    result.push_str(&format!("%{:02X}", byte));
-                }
-            }
-        }
-    }
-    result
-}
-
-/// URL-encode a path, encoding each segment but preserving '/' separators.
-fn url_encode_path(path: &str) -> String {
-    path.split('/')
-        .map(url_encode)
-        .collect::<Vec<_>>()
-        .join("/")
-}
 
 /// A single photo in the gallery.
 #[derive(Debug, Clone, Serialize)]
@@ -480,9 +453,7 @@ impl Photo {
             let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-full.webp",
-                encoded_album,
-                encoded_stem,
-                self.hash
+                encoded_album, encoded_stem, self.hash
             )
         }
     }
@@ -496,9 +467,7 @@ impl Photo {
             let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-thumb.webp",
-                encoded_album,
-                encoded_stem,
-                self.hash
+                encoded_album, encoded_stem, self.hash
             )
         }
     }
@@ -515,9 +484,7 @@ impl Photo {
             let encoded_album = url_encode_path(&album_path.display().to_string());
             format!(
                 "images/{}/{}-{}-micro.webp",
-                encoded_album,
-                encoded_stem,
-                self.hash
+                encoded_album, encoded_stem, self.hash
             )
         }
     }
@@ -556,7 +523,7 @@ impl Photo {
 }
 
 /// An album containing photos and possibly child albums.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Album {
     /// Display name (directory name, titlecased)
     pub name: String,
@@ -639,9 +606,7 @@ pub fn discover(photos_dir: &Path) -> Result<Album> {
 }
 
 fn discover_recursive(base: &Path, dir: &Path, album: &mut Album) -> Result<()> {
-    let entries: Vec<_> = std::fs::read_dir(dir)?
-        .filter_map(|e| e.ok())
-        .collect();
+    let entries: Vec<_> = std::fs::read_dir(dir)?.filter_map(|e| e.ok()).collect();
 
     for entry in entries {
         let path = entry.path();
@@ -695,9 +660,7 @@ fn titlecase(s: &str) -> String {
             let mut chars = word.chars();
             match chars.next() {
                 None => String::new(),
-                Some(first) => {
-                    first.to_uppercase().chain(chars).collect()
-                }
+                Some(first) => first.to_uppercase().chain(chars).collect(),
             }
         })
         .collect::<Vec<_>>()
@@ -737,10 +700,22 @@ mod tests {
         };
 
         let root_path = PathBuf::new();
-        assert_eq!(photo.image_path(&root_path), "images/test-abc12345-full.webp");
-        assert_eq!(photo.thumb_path(&root_path), "images/test-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&root_path, GpsMode::On), "images/test-abc12345-original.jpg");
-        assert_eq!(photo.original_path(&root_path, GpsMode::Off), "images/test-abc12345-original-nogps.jpg");
+        assert_eq!(
+            photo.image_path(&root_path),
+            "images/test-abc12345-full.webp"
+        );
+        assert_eq!(
+            photo.thumb_path(&root_path),
+            "images/test-abc12345-thumb.webp"
+        );
+        assert_eq!(
+            photo.original_path(&root_path, GpsMode::On),
+            "images/test-abc12345-original.jpg"
+        );
+        assert_eq!(
+            photo.original_path(&root_path, GpsMode::Off),
+            "images/test-abc12345-original-nogps.jpg"
+        );
         assert_eq!(photo.html_path(&root_path), "test.html");
     }
 
@@ -758,9 +733,18 @@ mod tests {
         };
 
         let album_path = PathBuf::from("vacation");
-        assert_eq!(photo.image_path(&album_path), "images/vacation/test-def67890-full.webp");
-        assert_eq!(photo.thumb_path(&album_path), "images/vacation/test-def67890-thumb.webp");
-        assert_eq!(photo.original_path(&album_path, GpsMode::On), "images/vacation/test-def67890-original.jpg");
+        assert_eq!(
+            photo.image_path(&album_path),
+            "images/vacation/test-def67890-full.webp"
+        );
+        assert_eq!(
+            photo.thumb_path(&album_path),
+            "images/vacation/test-def67890-thumb.webp"
+        );
+        assert_eq!(
+            photo.original_path(&album_path, GpsMode::On),
+            "images/vacation/test-def67890-original.jpg"
+        );
         assert_eq!(photo.html_path(&album_path), "vacation/test.html");
     }
 
@@ -778,24 +762,37 @@ mod tests {
         };
 
         let root_path = PathBuf::new();
-        assert_eq!(photo.image_path(&root_path), "images/Beach%20Day-abc12345-full.webp");
-        assert_eq!(photo.thumb_path(&root_path), "images/Beach%20Day-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&root_path, GpsMode::On), "images/Beach%20Day-abc12345-original.jpg");
+        assert_eq!(
+            photo.image_path(&root_path),
+            "images/Beach%20Day-abc12345-full.webp"
+        );
+        assert_eq!(
+            photo.thumb_path(&root_path),
+            "images/Beach%20Day-abc12345-thumb.webp"
+        );
+        assert_eq!(
+            photo.original_path(&root_path, GpsMode::On),
+            "images/Beach%20Day-abc12345-original.jpg"
+        );
         assert_eq!(photo.html_path(&root_path), "Beach%20Day.html");
 
         let album_path = PathBuf::from("My Vacation");
-        assert_eq!(photo.image_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-full.webp");
-        assert_eq!(photo.thumb_path(&album_path), "images/My%20Vacation/Beach%20Day-abc12345-thumb.webp");
-        assert_eq!(photo.original_path(&album_path, GpsMode::On), "images/My%20Vacation/Beach%20Day-abc12345-original.jpg");
-        assert_eq!(photo.html_path(&album_path), "My%20Vacation/Beach%20Day.html");
-    }
-
-    #[test]
-    fn url_encode_special_chars() {
-        assert_eq!(url_encode("hello world"), "hello%20world");
-        assert_eq!(url_encode("test&file"), "test%26file");
-        assert_eq!(url_encode("photo#1"), "photo%231");
-        assert_eq!(url_encode("normal-file_name.jpg"), "normal-file_name.jpg");
+        assert_eq!(
+            photo.image_path(&album_path),
+            "images/My%20Vacation/Beach%20Day-abc12345-full.webp"
+        );
+        assert_eq!(
+            photo.thumb_path(&album_path),
+            "images/My%20Vacation/Beach%20Day-abc12345-thumb.webp"
+        );
+        assert_eq!(
+            photo.original_path(&album_path, GpsMode::On),
+            "images/My%20Vacation/Beach%20Day-abc12345-original.jpg"
+        );
+        assert_eq!(
+            photo.html_path(&album_path),
+            "My%20Vacation/Beach%20Day.html"
+        );
     }
 
     #[test]

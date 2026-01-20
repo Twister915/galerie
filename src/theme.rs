@@ -90,7 +90,10 @@ impl Theme {
         templates.autoescape_on(vec![]);
 
         // Validate required templates
-        if !templates.get_template_names().any(|n| n == templates::INDEX) {
+        if !templates
+            .get_template_names()
+            .any(|n| n == templates::INDEX)
+        {
             return Err(Error::MissingIndexTemplate);
         }
 
@@ -137,7 +140,9 @@ impl Theme {
         let mut templates = Tera::default();
 
         // Load all templates from templates/ subdirectory
-        let templates_dir = dir.get_dir("templates").ok_or(Error::MissingIndexTemplate)?;
+        let templates_dir = dir
+            .get_dir("templates")
+            .ok_or(Error::MissingIndexTemplate)?;
 
         for file in templates_dir.files() {
             let Some(name) = file.path().file_name().and_then(|n| n.to_str()) else {
@@ -165,7 +170,10 @@ impl Theme {
         templates.autoescape_on(vec![]);
 
         // Validate required templates
-        if !templates.get_template_names().any(|n| n == templates::INDEX) {
+        if !templates
+            .get_template_names()
+            .any(|n| n == templates::INDEX)
+        {
             return Err(Error::MissingIndexTemplate);
         }
 

@@ -5,7 +5,7 @@
 //! partial file transfers.
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, RecvTimeoutError};
+use std::sync::mpsc::{RecvTimeoutError, channel};
 use std::time::Duration;
 
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
@@ -65,11 +65,7 @@ pub fn watch_and_rebuild(
     // Determine theme directory if it's local
     let theme_dir = {
         let dir = site_dir.join(site.theme.name());
-        if dir.is_dir() {
-            Some(dir)
-        } else {
-            None
-        }
+        if dir.is_dir() { Some(dir) } else { None }
     };
 
     // Set up file watcher
@@ -164,6 +160,16 @@ pub fn watch_and_rebuild(
 
 /// Perform a single build of the site.
 pub fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str>) -> Result<()> {
+    do_build_with_options(site_dir, config_path, theme_override, false)
+}
+
+/// Perform a single build of the site with options.
+pub fn do_build_with_options(
+    site_dir: &Path,
+    config_path: &Path,
+    theme_override: Option<&str>,
+    source_maps: bool,
+) -> Result<()> {
     // Reload config each time in case it changed
     let config_content = std::fs::read_to_string(config_path)?;
     let mut site: Site = toml::from_str(&config_content)?;
@@ -173,7 +179,12 @@ pub fn do_build(site_dir: &Path, config_path: &Path, theme_override: Option<&str
         site.theme = ThemeConfig::Name(theme_name.to_string());
     }
 
-    let mut pipeline = Pipeline::load(site_dir.to_path_buf(), site)?;
+    // Disable minification when source maps are enabled (easier debugging)
+    if source_maps && site.minify {
+        site.minify = false;
+    }
+
+    let mut pipeline = Pipeline::load(site_dir.to_path_buf(), site, source_maps)?;
     pipeline.build()?;
 
     Ok(())

@@ -58,7 +58,10 @@ pub fn js(input: &str) -> String {
         minify: true,
         ..Default::default()
     };
-    Codegen::new().with_options(codegen_options).build(&program).code
+    Codegen::new()
+        .with_options(codegen_options)
+        .build(&program)
+        .code
 }
 
 #[cfg(test)]

@@ -28,6 +28,23 @@ dist/
 
 All assets use content-hashed filenames (e.g., `app-3ae6aadb.js`) for cache-busting. When you rebuild, only changed files get new hashes.
 
+### Source Maps (Debug Builds)
+
+When building with `--source-maps`, additional files are included for debugging:
+
+```
+dist/
+└── static/
+    ├── app-{hash}.js
+    ├── app.js.map                          # JavaScript source map (no hash)
+    ├── style-{hash}.css
+    └── style.css.map                       # CSS source map (no hash)
+```
+
+Source maps allow browser developer tools to show original source code when debugging. Note that `.map` files do **not** have content hashes in their filenames - they use fixed names like `app.js.map`.
+
+**Important**: Source maps are intended for **local debugging only**. They expose your source code structure, which you may not want publicly accessible. See the [Source Maps in Production](#source-maps-in-production) section for configuration options if you choose to deploy them.
+
 ### Theme Differences
 
 Different themes produce different outputs:
@@ -48,8 +65,25 @@ galerie's build output is designed for optimal caching:
 | `static/*` | 1 year | Content-hashed filenames |
 | `images/*` | 1 year | Content-hashed filenames |
 | `index.html` | No cache | Entry point, references hashed assets |
+| `*.map` | Block or no cache | Source maps (debug only, no hash) |
 
 Since all assets in `static/` and `images/` have content hashes in their filenames, they can be cached indefinitely. The `index.html` file should never be cached - it's small, and ensuring browsers always fetch the latest version means updates are reflected immediately.
+
+### Source Maps in Production
+
+Source maps (`.map` files) are an exception to the caching rules. Unlike other static assets, they:
+- Do **not** have content hashes in their filenames
+- Expose your source code structure to anyone who requests them
+
+**Recommended approach**: Don't deploy source maps to production. Only use `--source-maps` for local debugging.
+
+If you must deploy with source maps (e.g., for production debugging), you have two options:
+
+1. **Block access** (recommended) - Return 403 Forbidden for `.map` files. This prevents exposing your source code while allowing you to manually access them via SSH if needed.
+
+2. **Serve with no-cache** - If you need browser access to source maps, serve them with `no-cache` headers since they don't have content hashes. Be aware this exposes your code publicly.
+
+The web server configurations below include commented rules for both approaches.
 
 ## AWS S3
 
@@ -97,8 +131,10 @@ Use the `--cache-control` flag when uploading:
 BUCKET="photos.example.com"
 
 # Upload content-hashed assets with long cache (1 year)
+# Exclude source maps (they don't have hashes and shouldn't be public)
 aws s3 sync dist/static/ s3://$BUCKET/static/ \
-  --cache-control "public, max-age=31536000, immutable"
+  --cache-control "public, max-age=31536000, immutable" \
+  --exclude "*.map"
 
 aws s3 sync dist/images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"
@@ -106,6 +142,12 @@ aws s3 sync dist/images/ s3://$BUCKET/images/ \
 # Upload index.html with no cache
 aws s3 cp dist/index.html s3://$BUCKET/index.html \
   --cache-control "no-cache, no-store, must-revalidate"
+
+# Optional: If you need source maps accessible (not recommended for production),
+# upload them separately with no-cache:
+# aws s3 sync dist/static/ s3://$BUCKET/static/ \
+#   --cache-control "no-cache, no-store, must-revalidate" \
+#   --exclude "*" --include "*.map"
 ```
 
 ### Custom Domain with Route 53
@@ -153,6 +195,13 @@ gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
 # Disable cache for index.html
 gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
   "gs://photos.example.com/index.html"
+
+# If source maps exist, delete them (recommended) or set no-cache
+gsutil -m rm "gs://photos.example.com/static/*.map" 2>/dev/null || true
+
+# Alternative: If you need source maps accessible (not recommended for production)
+# gsutil -m setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
+#   "gs://photos.example.com/static/*.map"
 ```
 
 ### Custom Domain
@@ -199,6 +248,18 @@ server {
         expires -1;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
+
+    # Source maps (if deployed with --source-maps)
+    # Option A: Block access (recommended - prevents exposing source code)
+    location ~* \.map$ {
+        return 403;
+    }
+
+    # Option B: Serve with no-cache (use instead of Option A if you need browser access)
+    # location ~* \.map$ {
+    #     expires -1;
+    #     add_header Cache-Control "no-cache, no-store, must-revalidate";
+    # }
 }
 ```
 
@@ -261,6 +322,18 @@ RewriteRule ^ /index.html [L]
         ExpiresDefault "access"
         Header set Cache-Control "no-cache, no-store, must-revalidate"
     </Files>
+
+    # Source maps (if deployed with --source-maps)
+    # Option A: Block access (recommended - prevents exposing source code)
+    <FilesMatch "\.map$">
+        Require all denied
+    </FilesMatch>
+
+    # Option B: Serve with no-cache (use instead of Option A if you need browser access)
+    # <FilesMatch "\.map$">
+    #     ExpiresDefault "access"
+    #     Header set Cache-Control "no-cache, no-store, must-revalidate"
+    # </FilesMatch>
 </IfModule>
 ```
 
@@ -315,14 +388,21 @@ Cloudflare respects `Cache-Control` headers from your origin, but you can overri
 
 Go to **Caching → Cache Rules** and create rules:
 
-**Rule 1: Long cache for content-hashed assets**
+**Rule 1: Block source maps (if deployed)**
+- If: URI Path ends with `.map`
+- Then:
+  - Cache eligibility: Bypass cache
+
+Note: Cloudflare Cache Rules can't return 403 directly. To block source maps at the edge, use a WAF Custom Rule instead (Security → WAF → Custom Rules) with action "Block".
+
+**Rule 2: Long cache for content-hashed assets**
 - If: URI Path starts with `/static/` OR URI Path starts with `/images/`
 - Then:
   - Cache eligibility: Eligible for cache
   - Edge TTL: Override → 1 year
   - Browser TTL: Override → 1 year
 
-**Rule 2: No cache for index.html**
+**Rule 3: No cache for index.html**
 - If: URI Path equals `/` OR URI Path equals `/index.html`
 - Then:
   - Cache eligibility: Bypass cache
@@ -379,6 +459,11 @@ For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) w
        const url = new URL(request.url);
        let path = url.pathname.slice(1) || 'index.html';
 
+       // Block source maps (recommended - prevents exposing source code)
+       if (path.endsWith('.map')) {
+         return new Response('Forbidden', { status: 403 });
+       }
+
        const object = await env.BUCKET.get(path);
        if (!object) {
          // SPA fallback: serve index.html for unknown routes
@@ -388,6 +473,7 @@ For a fully Cloudflare-native solution, you can use R2 (S3-compatible storage) w
          });
        }
 
+       // Content-hashed assets can be cached forever
        const isHashed = path.startsWith('static/') || path.startsWith('images/');
        return new Response(object.body, {
          headers: {
@@ -581,6 +667,11 @@ server {
         expires -1;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
+
+    # Block source maps (if present)
+    location ~* \.map$ {
+        return 403;
+    }
 }
 ```
 
@@ -656,14 +747,16 @@ set -e
 BUCKET="photos.example.com"
 SITE_DIR="/path/to/gallery"
 
-# Build the site
+# Build the site (without --source-maps for production)
 galerie -C "$SITE_DIR"
 
 cd "$SITE_DIR/dist"
 
 # Upload content-hashed assets with long cache
+# Exclude source maps (they don't have hashes and shouldn't be public)
 aws s3 sync static/ s3://$BUCKET/static/ \
-  --cache-control "public, max-age=31536000, immutable"
+  --cache-control "public, max-age=31536000, immutable" \
+  --exclude "*.map"
 
 aws s3 sync images/ s3://$BUCKET/images/ \
   --cache-control "public, max-age=31536000, immutable"

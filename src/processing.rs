@@ -17,10 +17,10 @@ use std::panic::{self, AssertUnwindSafe};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use image::imageops::FilterType;
-use image::DynamicImage;
 use gufo_common::xmp::Namespace;
 use gufo_xmp::{Tag, Xmp};
+use image::DynamicImage;
+use image::imageops::FilterType;
 use little_exif::exif_tag::ExifTag;
 use little_exif::filetype::FileExtension;
 use little_exif::metadata::Metadata;
@@ -72,14 +72,7 @@ pub fn process_album(
     let skipped = AtomicUsize::new(0);
 
     process_album_recursive(
-        album,
-        images_dir,
-        gps_mode,
-        &total,
-        &cached,
-        &generated,
-        &copied,
-        &skipped,
+        album, images_dir, gps_mode, &total, &cached, &generated, &copied, &skipped,
     );
 
     Ok(ProcessingStats {
@@ -144,14 +137,7 @@ fn process_album_recursive(
     // Recursively process child albums
     for child in &mut album.children {
         process_album_recursive(
-            child,
-            images_dir,
-            gps_mode,
-            total,
-            cached,
-            generated,
-            copied,
-            skipped,
+            child, images_dir, gps_mode, total, cached, generated, copied, skipped,
         );
     }
 }
@@ -200,13 +186,15 @@ fn process_photo(
     photo.height = height;
 
     // Build output paths
-    let micro_thumb_path =
-        images_dir.join(format!("{}-{}-micro.webp", photo.stem, photo.hash));
+    let micro_thumb_path = images_dir.join(format!("{}-{}-micro.webp", photo.stem, photo.hash));
     let thumb_path = images_dir.join(format!("{}-{}-thumb.webp", photo.stem, photo.hash));
     let full_path = images_dir.join(format!("{}-{}-full.webp", photo.stem, photo.hash));
     let original_path = images_dir.join(format!(
         "{}-{}-original{}.{}",
-        photo.stem, photo.hash, gps_mode.original_suffix(), photo.extension
+        photo.stem,
+        photo.hash,
+        gps_mode.original_suffix(),
+        photo.extension
     ));
 
     // Check what needs to be generated
@@ -302,7 +290,9 @@ fn generate_variant(img: &DynamicImage, max_size: u32, quality: f32) -> Result<V
 fn get_file_extension(extension: &str) -> Option<FileExtension> {
     match extension.to_lowercase().as_str() {
         "jpg" | "jpeg" => Some(FileExtension::JPEG),
-        "png" => Some(FileExtension::PNG { as_zTXt_chunk: true }),
+        "png" => Some(FileExtension::PNG {
+            as_zTXt_chunk: true,
+        }),
         "webp" => Some(FileExtension::WEBP),
         _ => None,
     }
@@ -379,7 +369,9 @@ fn extract_exif(data: &Vec<u8>, extension: &str, gps_mode: GpsMode) -> PhotoMeta
     // Extract GPS based on mode
     let gps = match gps_mode {
         GpsMode::Off => None,
-        GpsMode::General => extract_gps(&metadata).map(|(lat, lon)| GpsCoords::new_general(lat, lon)),
+        GpsMode::General => {
+            extract_gps(&metadata).map(|(lat, lon)| GpsCoords::new_general(lat, lon))
+        }
         GpsMode::On => extract_gps(&metadata).map(|(lat, lon)| GpsCoords::new(lat, lon)),
     };
 

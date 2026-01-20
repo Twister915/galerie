@@ -156,6 +156,11 @@ server {
         expires -1;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
+
+    # Block source maps (if present from debug builds)
+    location ~* \.map$ {
+        return 403;
+    }
 }
 EOF
 

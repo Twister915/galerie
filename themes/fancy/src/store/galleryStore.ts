@@ -137,7 +137,11 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   setGalleryData: (photos, albums, site) => set({ photos, albums, site }),
 
   // Grid actions
-  setFilterAlbum: (slug) => set({ filterAlbum: slug, gridLoadedCount: 0 }),
+  setFilterAlbum: (slug) => {
+    const { filterAlbum } = get();
+    if (filterAlbum === slug) return; // Prevent unnecessary updates
+    set({ filterAlbum: slug, gridLoadedCount: 0 });
+  },
 
   loadMoreGrid: (count = GRID_BATCH_SIZE) =>
     set((state) => ({
@@ -255,13 +259,29 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   },
 }));
 
-// Selector for filtered photos based on album
+// Memoized cache for filtered photos
+let filteredPhotosCache: { filterAlbum: string | null; photos: Photo[]; result: Photo[] } | null = null;
+
+// Selector for filtered photos based on album (memoized to prevent new array on every call)
 export function useFilteredPhotos(): Photo[] {
   return useGalleryStore((state) => {
     if (!state.filterAlbum) return state.photos;
-    return state.photos.filter((photo) =>
+
+    // Return cached result if inputs haven't changed
+    if (
+      filteredPhotosCache &&
+      filteredPhotosCache.filterAlbum === state.filterAlbum &&
+      filteredPhotosCache.photos === state.photos
+    ) {
+      return filteredPhotosCache.result;
+    }
+
+    // Compute and cache new result
+    const result = state.photos.filter((photo) =>
       photo.htmlPath.startsWith(state.filterAlbum + '/')
     );
+    filteredPhotosCache = { filterAlbum: state.filterAlbum, photos: state.photos, result };
+    return result;
   });
 }
 

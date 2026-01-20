@@ -7,6 +7,8 @@ export default defineConfig({
   build: {
     outDir: 'dist/static',
     emptyOutDir: false,
+    sourcemap: true,
+    minify: false, // Easier debugging
     rollupOptions: {
       input: resolve(__dirname, 'src/main.tsx'),
       output: {

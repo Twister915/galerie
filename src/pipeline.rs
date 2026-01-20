@@ -12,8 +12,9 @@ use crate::error::{Error, Result};
 use crate::i18n;
 use crate::minify;
 use crate::photos::{Album, Photo};
+use crate::util::url_encode_path;
 use crate::processing;
-use crate::theme::{templates, StaticSource, Theme};
+use crate::theme::{StaticSource, Theme, templates};
 use crate::theme_build::{self, ThemeType};
 
 /// Mapping from original asset path to hashed output path.
@@ -32,12 +33,12 @@ fn toml_to_json(value: &toml::Value) -> serde_json::Value {
             .map(serde_json::Value::Number)
             .unwrap_or(serde_json::Value::Null),
         toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
-        toml::Value::Array(arr) => {
-            serde_json::Value::Array(arr.iter().map(toml_to_json).collect())
-        }
+        toml::Value::Array(arr) => serde_json::Value::Array(arr.iter().map(toml_to_json).collect()),
         toml::Value::Table(t) => {
-            let map: serde_json::Map<_, _> =
-                t.iter().map(|(k, v)| (k.clone(), toml_to_json(v))).collect();
+            let map: serde_json::Map<_, _> = t
+                .iter()
+                .map(|(k, v)| (k.clone(), toml_to_json(v)))
+                .collect();
             serde_json::Value::Object(map)
         }
         toml::Value::Datetime(dt) => serde_json::Value::String(dt.to_string()),
@@ -149,11 +150,14 @@ pub struct Pipeline {
 
     /// Site directory (where site.toml lives)
     pub site_dir: PathBuf,
+
+    /// Whether to include source maps for debugging
+    pub source_maps: bool,
 }
 
 impl Pipeline {
     /// Load all components for site generation.
-    pub fn load(site_dir: PathBuf, config: Site) -> Result<Self> {
+    pub fn load(site_dir: PathBuf, config: Site, source_maps: bool) -> Result<Self> {
         // Resolve paths relative to site directory
         let theme_name = config.theme.name();
         let local_theme_path = site_dir.join(theme_name);
@@ -195,7 +199,22 @@ impl Pipeline {
         }
 
         tracing::debug!(photos = %photos_path.display(), "discovering photos");
-        let root = crate::photos::discover(&photos_path)?;
+        let discovered = crate::photos::discover(&photos_path)?;
+
+        // Apply flatten option if enabled
+        let root = if config.flatten {
+            tracing::debug!("flattening album hierarchy");
+            let all_photos: Vec<_> = discovered.all_photos().into_iter().cloned().collect();
+            Album {
+                name: discovered.name,
+                slug: discovered.slug,
+                path: discovered.path,
+                photos: all_photos,
+                children: Vec::new(),
+            }
+        } else {
+            discovered
+        };
 
         tracing::info!(
             photos = root.photo_count(),
@@ -209,6 +228,7 @@ impl Pipeline {
             theme_config,
             root,
             site_dir,
+            source_maps,
         })
     }
 
@@ -290,7 +310,15 @@ impl Pipeline {
         match &self.theme.static_source {
             StaticSource::Directory(dir) => {
                 fs::create_dir_all(&dest)?;
-                copy_dir_with_hashing(dir, &dest, "", expected, should_minify, &mut manifest)?;
+                copy_dir_with_hashing(
+                    dir,
+                    &dest,
+                    "",
+                    expected,
+                    should_minify,
+                    self.source_maps,
+                    &mut manifest,
+                )?;
                 tracing::debug!(
                     from = %dir.display(),
                     to = %dest.display(),
@@ -307,6 +335,18 @@ impl Pipeline {
                         continue;
                     };
                     if name.starts_with('.') {
+                        continue;
+                    }
+
+                    // Handle source map files specially
+                    if name.ends_with(".map") {
+                        if self.source_maps {
+                            // Copy without hashing when source maps enabled
+                            let file_path = dest.join(name);
+                            fs::write(&file_path, file.contents())?;
+                            expected.insert(file_path);
+                        }
+                        // Skip source maps when disabled
                         continue;
                     }
 
@@ -596,7 +636,12 @@ impl Pipeline {
         self.collect_album_images(&self.root, images_dir, expected);
     }
 
-    fn collect_album_images(&self, album: &Album, images_dir: &Path, expected: &mut HashSet<PathBuf>) {
+    fn collect_album_images(
+        &self,
+        album: &Album,
+        images_dir: &Path,
+        expected: &mut HashSet<PathBuf>,
+    ) {
         // Images for this album go into images/ or images/{album_path}/
         let album_images_dir = if album.path.as_os_str().is_empty() {
             images_dir.to_path_buf()
@@ -606,21 +651,18 @@ impl Pipeline {
 
         for photo in &album.photos {
             // Matches processing.rs naming: {stem}-{hash}-{variant}.{ext}
-            expected.insert(album_images_dir.join(format!(
-                "{}-{}-micro.webp",
-                photo.stem, photo.hash
-            )));
-            expected.insert(album_images_dir.join(format!(
-                "{}-{}-thumb.webp",
-                photo.stem, photo.hash
-            )));
-            expected.insert(album_images_dir.join(format!(
-                "{}-{}-full.webp",
-                photo.stem, photo.hash
-            )));
+            expected
+                .insert(album_images_dir.join(format!("{}-{}-micro.webp", photo.stem, photo.hash)));
+            expected
+                .insert(album_images_dir.join(format!("{}-{}-thumb.webp", photo.stem, photo.hash)));
+            expected
+                .insert(album_images_dir.join(format!("{}-{}-full.webp", photo.stem, photo.hash)));
             expected.insert(album_images_dir.join(format!(
                 "{}-{}-original{}.{}",
-                photo.stem, photo.hash, self.config.gps.original_suffix(), photo.extension
+                photo.stem,
+                photo.hash,
+                self.config.gps.original_suffix(),
+                photo.extension
             )));
         }
 
@@ -642,17 +684,17 @@ impl Pipeline {
 
         let all_translations = i18n::get_all_translations();
         for (lang_code, translations) in &all_translations {
-            let lang_json = serde_json::to_string(translations)
-                .map_err(|e| Error::Other(format!("failed to serialize i18n for {}: {}", lang_code, e)))?;
+            let lang_json = serde_json::to_string(translations).map_err(|e| {
+                Error::Other(format!("failed to serialize i18n for {}: {}", lang_code, e))
+            })?;
             let lang_hash = &blake3::hash(lang_json.as_bytes()).to_hex()[..8];
             let lang_filename = format!("{}-{}.json", lang_code, lang_hash);
             let lang_path = i18n_dir.join(&lang_filename);
             fs::write(&lang_path, &lang_json)?;
             expected.insert(lang_path);
-            manifest.i18n.insert(
-                lang_code.clone(),
-                format!("/static/i18n/{}", lang_filename),
-            );
+            manifest
+                .i18n
+                .insert(lang_code.clone(), format!("/static/i18n/{}", lang_filename));
         }
 
         // Generate gallery JSON (photos and albums)
@@ -687,17 +729,20 @@ impl Pipeline {
             version: VERSION,
         };
 
-        // Collect all albums (excluding root)
-        let albums: Vec<AlbumData> = self
-            .root
-            .children
-            .iter()
-            .map(|a| AlbumData {
-                name: a.name.clone(),
-                slug: a.slug.clone(),
-                path: a.path.to_string_lossy().to_string(),
-            })
-            .collect();
+        // Recursively collect all albums (excluding root)
+        fn collect_all_albums(album: &Album) -> Vec<AlbumData> {
+            let mut result = Vec::new();
+            for child in &album.children {
+                result.push(AlbumData {
+                    name: child.name.clone(),
+                    slug: child.slug.clone(),
+                    path: url_encode_path(&child.path.to_string_lossy()),
+                });
+                result.extend(collect_all_albums(child));
+            }
+            result
+        }
+        let albums = collect_all_albums(&self.root);
 
         // Collect all photos with computed paths
         let photos: Vec<PhotoData> = self
@@ -814,6 +859,7 @@ fn copy_dir_with_hashing(
     relative_path: &str,
     expected: &mut HashSet<PathBuf>,
     should_minify: bool,
+    source_maps: bool,
     manifest: &mut AssetManifest,
 ) -> Result<()> {
     fs::create_dir_all(dest)?;
@@ -844,9 +890,22 @@ fn copy_dir_with_hashing(
                 &entry_relative,
                 expected,
                 should_minify,
+                source_maps,
                 manifest,
             )?;
         } else {
+            // Handle source map files specially
+            if name.ends_with(".map") {
+                if source_maps {
+                    // Copy without hashing when source maps enabled
+                    let dest_path = dest.join(name);
+                    fs::copy(&src_path, &dest_path)?;
+                    expected.insert(dest_path);
+                }
+                // Skip source maps when disabled
+                continue;
+            }
+
             let contents = fs::read(&src_path)?;
             let output = process_static_file(name, &contents, should_minify)?;
             let hashed_name = hash_filename(name, &output);

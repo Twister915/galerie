@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
+import { AlbumPicker } from './AlbumPicker';
 import { LangPicker } from './LangPicker';
 import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {
   const albums = useGalleryStore((s) => s.albums);
   const site = useGalleryStore((s) => s.site);
-  const filterAlbum = useGalleryStore((s) => s.filterAlbum);
-  const setFilterAlbum = useGalleryStore((s) => s.setFilterAlbum);
   const headerRef = useRef<HTMLElement>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -31,12 +30,6 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  function handleAlbumClick(e: MouseEvent, slug: string) {
-    e.preventDefault();
-    window.location.hash = '/album/' + slug;
-    setFilterAlbum(slug);
-  }
-
   return (
     <header
       ref={headerRef}
@@ -46,21 +39,7 @@ export function Header() {
         {site.title}
       </a>
 
-      {albums.length > 0 && (
-        <nav class="album-nav">
-          {albums.map((album) => (
-            <a
-              key={album.slug}
-              href={`#/album/${album.slug}`}
-              class={`album-link${filterAlbum === album.slug ? ' active' : ''}`}
-              data-album={album.slug}
-              onClick={(e) => handleAlbumClick(e as MouseEvent, album.slug)}
-            >
-              {album.name}
-            </a>
-          ))}
-        </nav>
-      )}
+      {albums.length > 0 && <AlbumPicker />}
 
       <div class="header-controls">
         <ThemeToggle />
