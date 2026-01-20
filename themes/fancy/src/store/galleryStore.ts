@@ -187,13 +187,32 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
       return false;
     }
 
-    const newIndex = currentPhotoIndex + direction;
-    if (newIndex < 0 || newIndex >= photos.length) {
+    if (currentPhotoIndex < 0) return false;
+
+    // Sort by capture date (oldest first) to match filmstrip order
+    const sortedPhotos = [...photos].sort((a, b) => {
+      const dateA = a.metadata.dateTaken || '';
+      const dateB = b.metadata.dateTaken || '';
+      return dateA.localeCompare(dateB);
+    });
+
+    // Find current photo's position in sorted order
+    const currentPhoto = photos[currentPhotoIndex];
+    const sortedIndex = sortedPhotos.findIndex((p) => p.stem === currentPhoto.stem);
+    if (sortedIndex < 0) return false;
+
+    // Navigate in sorted order
+    const newSortedIndex = sortedIndex + direction;
+    if (newSortedIndex < 0 || newSortedIndex >= sortedPhotos.length) {
       return false;
     }
 
-    const photo = photos[newIndex];
-    window.location.hash = '/photo/' + encodeURIComponent(photo.stem);
+    // Find the target photo's index in the main array
+    const targetPhoto = sortedPhotos[newSortedIndex];
+    const newIndex = photos.findIndex((p) => p.stem === targetPhoto.stem);
+    if (newIndex < 0) return false;
+
+    window.location.hash = '/photo/' + encodeURIComponent(targetPhoto.stem);
 
     set({
       currentPhotoIndex: newIndex,

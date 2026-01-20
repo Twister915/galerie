@@ -1,18 +1,42 @@
 // Virtualized filmstrip component
 
-import { useEffect, useRef, useCallback } from 'preact/hooks';
+import { useEffect, useRef, useCallback, useMemo } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
 import { FilmstripThumb } from './FilmstripThumb';
 import { FILMSTRIP_BUFFER, FILMSTRIP_THUMB_WIDTH } from '../../config';
 
 export function Filmstrip() {
-  const photos = useGalleryStore((s) => s.photos);
+  const mainPhotos = useGalleryStore((s) => s.photos);
+
+  // Sort photos by capture date (oldest first, newest last)
+  // Memoized to only recompute when mainPhotos changes
+  const photos = useMemo(() => {
+    return [...mainPhotos].sort((a, b) => {
+      const dateA = a.metadata.dateTaken || '';
+      const dateB = b.metadata.dateTaken || '';
+      return dateA.localeCompare(dateB);
+    });
+  }, [mainPhotos]);
   const currentPhotoIndex = useGalleryStore((s) => s.currentPhotoIndex);
   const filmstripStart = useGalleryStore((s) => s.filmstripStart);
   const filmstripEnd = useGalleryStore((s) => s.filmstripEnd);
   const filmstripCollapsed = useGalleryStore((s) => s.filmstripCollapsed);
   const setFilmstripRange = useGalleryStore((s) => s.setFilmstripRange);
   const openViewer = useGalleryStore((s) => s.openViewer);
+
+  // Map from photo stem to main array index for click handling
+  const stemToMainIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    mainPhotos.forEach((photo, index) => map.set(photo.stem, index));
+    return map;
+  }, [mainPhotos]);
+
+  // Find active photo's position in the filmstrip's sorted order
+  const currentPhoto = currentPhotoIndex >= 0 ? mainPhotos[currentPhotoIndex] : null;
+  const activeFilmstripIndex = useMemo(() => {
+    if (!currentPhoto) return -1;
+    return photos.findIndex((p) => p.stem === currentPhoto.stem);
+  }, [photos, currentPhoto]);
 
   const containerRef = useRef<HTMLElement>(null);
   const isScrollingToActive = useRef(false);
@@ -48,14 +72,14 @@ export function Filmstrip() {
   // Scroll to active thumbnail when current photo changes
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || currentPhotoIndex < 0) return;
+    if (!container || activeFilmstripIndex < 0) return;
 
     isScrollingToActive.current = true;
 
     const viewportWidth = container.clientWidth;
     const targetScroll = Math.max(
       0,
-      currentPhotoIndex * FILMSTRIP_THUMB_WIDTH -
+      activeFilmstripIndex * FILMSTRIP_THUMB_WIDTH -
         viewportWidth / 2 +
         FILMSTRIP_THUMB_WIDTH / 2
     );
@@ -78,7 +102,7 @@ export function Filmstrip() {
       isScrollingToActive.current = false;
     }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPhotoIndex]);
+  }, [activeFilmstripIndex]);
 
   // Initial visible range calculation
   useEffect(() => {
@@ -100,12 +124,17 @@ export function Filmstrip() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [updateVisibleRange]);
 
-  // Handle thumbnail click
+  // Handle thumbnail click - map filmstrip index back to main photos array
   const handleThumbClick = useCallback(
-    (index: number) => {
-      openViewer(index);
+    (filmstripIndex: number) => {
+      const photo = photos[filmstripIndex];
+      if (!photo) return;
+      const mainIndex = stemToMainIndex.get(photo.stem);
+      if (mainIndex !== undefined) {
+        openViewer(mainIndex);
+      }
     },
-    [openViewer]
+    [photos, stemToMainIndex, openViewer]
   );
 
   const totalWidth = photos.length * FILMSTRIP_THUMB_WIDTH;
@@ -139,7 +168,7 @@ export function Filmstrip() {
               key={photo.stem}
               photo={photo}
               index={index}
-              isActive={index === currentPhotoIndex}
+              isActive={index === activeFilmstripIndex}
               onClick={handleThumbClick}
             />
           );
