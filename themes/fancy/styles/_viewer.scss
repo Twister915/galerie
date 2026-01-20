@@ -32,13 +32,13 @@
 
 // Always dark - part of photo viewing experience
 .viewer-btn {
-  width: 44px;
-  height: 44px;
+  width: 54px;
+  height: 54px;
   border: 1px solid #2a2a2a;
   border-radius: 4px;
   background: #141414;
   color: #888;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -55,7 +55,7 @@
 }
 
 .viewer-close {
-  font-size: 1.5rem;
+  font-size: 1.875rem;
   font-weight: 400;
 }
 

@@ -8,13 +8,13 @@
 }
 
 .sort-control-trigger {
-  height: 48px;
-  padding: 0 14px;
+  height: 72px;
+  padding: 0 21px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 1.375rem;
+  font-size: 2.0625rem;
   cursor: pointer;
   transition: all var(--transition-normal);
   display: flex;
@@ -36,12 +36,12 @@
 }
 
 .sort-icon {
-  font-size: 1.25rem;
+  font-size: 2.5rem;
   flex-shrink: 0;
 }
 
 .sort-label {
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 500;
   max-width: 0;
   opacity: 0;
@@ -51,13 +51,13 @@
     opacity var(--transition-normal);
 
   .sort-control.expanded & {
-    max-width: 120px;
+    max-width: 180px;
     opacity: 1;
   }
 }
 
 .sort-direction {
-  font-size: 0.875rem;
+  font-size: 1.3125rem;
   opacity: 0.7;
   flex-shrink: 0;
 }
@@ -67,8 +67,8 @@
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
-  min-width: 180px;
-  padding: 6px;
+  min-width: 270px;
+  padding: 9px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -93,8 +93,8 @@
   align-items: center;
   gap: var(--gap-sm);
   width: 100%;
-  padding: 10px 14px;
-  font-size: 1rem;
+  padding: 15px 21px;
+  font-size: 1.5rem;
   color: var(--text-secondary);
   text-align: left;
   background: transparent;
@@ -114,8 +114,8 @@
 }
 
 .sort-item-icon {
-  font-size: 1.125rem;
-  width: 22px;
+  font-size: 1.6875rem;
+  width: 33px;
   text-align: center;
 }
 
@@ -124,6 +124,6 @@
 }
 
 .sort-item-direction {
-  font-size: 0.875rem;
+  font-size: 1.3125rem;
   opacity: 0.7;
 }
