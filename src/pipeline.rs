@@ -12,10 +12,10 @@ use crate::error::{Error, Result};
 use crate::i18n;
 use crate::minify;
 use crate::photos::{Album, Photo};
-use crate::util::url_encode_path;
 use crate::processing;
 use crate::theme::{StaticSource, Theme, templates};
 use crate::theme_build::{self, ThemeType};
+use crate::util::url_encode_path;
 
 /// Mapping from original asset path to hashed output path.
 /// e.g., "style.css" -> "/static/style-abc12345.css"

@@ -216,14 +216,14 @@ pub fn should_ignore_event(event: &notify::Event, output_dir: &Path) -> bool {
         }
 
         // Ignore hidden files
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            if name.starts_with('.') {
-                tracing::trace!(
-                    path = %path.display(),
-                    "ignoring: hidden file"
-                );
-                return true;
-            }
+        if let Some(name) = path.file_name().and_then(|n| n.to_str())
+            && name.starts_with('.')
+        {
+            tracing::trace!(
+                path = %path.display(),
+                "ignoring: hidden file"
+            );
+            return true;
         }
     }
 

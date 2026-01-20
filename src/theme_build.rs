@@ -95,12 +95,12 @@ fn find_package_manager(theme_dir: &Path) -> Result<(&'static str, PathBuf)> {
     };
 
     // If we have a preferred package manager from lockfile, try to find it
-    if let Some(pm) = preferred {
-        if let Ok(path) = which::which(pm) {
-            return Ok((pm, path));
-        }
-        // Fall through to try others if preferred not found
+    if let Some(pm) = preferred
+        && let Ok(path) = which::which(pm)
+    {
+        return Ok((pm, path));
     }
+    // Fall through to try others if preferred not found
 
     // Try each package manager in order of preference
     for pm in ["bun", "pnpm", "npm", "yarn"] {

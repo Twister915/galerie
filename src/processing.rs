@@ -84,6 +84,7 @@ pub fn process_album(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_album_recursive(
     album: &mut Album,
     images_dir: &Path,

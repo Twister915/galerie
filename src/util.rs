@@ -43,7 +43,10 @@ mod tests {
     #[test]
     fn url_encode_path_preserves_slashes() {
         assert_eq!(url_encode_path("album/photo"), "album/photo");
-        assert_eq!(url_encode_path("2025 in Virginia/photo"), "2025%20in%20Virginia/photo");
+        assert_eq!(
+            url_encode_path("2025 in Virginia/photo"),
+            "2025%20in%20Virginia/photo"
+        );
         assert_eq!(url_encode_path("a/b/c"), "a/b/c");
     }
 }

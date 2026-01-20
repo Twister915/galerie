@@ -99,14 +99,14 @@ fn build_vite_theme(dir: &Path) {
 /// Remove the theme's dist directory to ensure no stale files remain.
 fn clean_theme_dist(dir: &Path) {
     let dist_dir = dir.join("dist");
-    if dist_dir.exists() {
-        if let Err(e) = fs::remove_dir_all(&dist_dir) {
-            println!(
-                "cargo:warning=Failed to clean {}: {}",
-                dist_dir.display(),
-                e
-            );
-        }
+    if dist_dir.exists()
+        && let Err(e) = fs::remove_dir_all(&dist_dir)
+    {
+        println!(
+            "cargo:warning=Failed to clean {}: {}",
+            dist_dir.display(),
+            e
+        );
     }
 }
 
