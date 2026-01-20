@@ -299,13 +299,9 @@ export function useFilteredPhotos(): Photo[] {
     }
 
     // Compute and cache new result
-    // Extract album portion from htmlPath (everything before the last '/')
-    const result = state.photos.filter((photo) => {
-      const lastSlash = photo.htmlPath.lastIndexOf('/');
-      if (lastSlash < 0) return false; // Root-level photos don't belong to an album
-      const photoAlbum = photo.htmlPath.substring(0, lastSlash);
-      return pathStartsWith(photoAlbum, state.filterAlbum);
-    });
+    const result = state.photos.filter((photo) =>
+      pathStartsWith(photo.htmlPath, state.filterAlbum)
+    );
     debug('[useFilteredPhotos] computed filtered photos for:', state.filterAlbum, '| count:', result.length, '| total photos:', state.photos.length);
     filteredPhotosCache = { filterAlbum: state.filterAlbum, photos: state.photos, result };
     return result;
