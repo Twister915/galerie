@@ -208,7 +208,6 @@ fn generate_builtin_themes_code(themes: &BTreeMap<String, ()>, out_dir: &str) {
     writeln!(file, "        _ => None,").unwrap();
     writeln!(file, "    }}").unwrap();
     writeln!(file, "}}").unwrap();
-
 }
 
 /// Generate an empty builtin_themes module (when no themes directory exists).
