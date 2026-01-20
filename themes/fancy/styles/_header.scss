@@ -31,45 +31,15 @@
   position: relative;
 }
 
+// Album dropdown trigger - extends .btn with max-width
 .album-dropdown-trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  height: 54px;
-  padding: 0 18px;
-  font-size: 1.3125rem;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
   max-width: 300px;
-
-  &:hover {
-    color: var(--text-primary);
-    border-color: var(--text-secondary);
-  }
-
-  .album-dropdown.open & {
-    color: var(--text-primary);
-    border-color: var(--accent);
-  }
 }
 
 .album-dropdown-current {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.album-dropdown-arrow {
-  flex-shrink: 0;
-  transition: transform var(--transition-fast);
-
-  .album-dropdown.open & {
-    transform: rotate(180deg);
-  }
 }
 
 .album-dropdown-menu {
@@ -99,28 +69,9 @@
   }
 }
 
+// Album dropdown menu items - layout only, base styles from .btn--menu-item
 .album-dropdown-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
   padding: 12px 18px;
-  font-size: 1.3125rem;
-  color: var(--text-secondary);
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-  }
-
-  &.active {
-    color: var(--accent);
-  }
 }
 
 // "All Photos" separator
@@ -175,65 +126,9 @@
   gap: var(--gap-sm);
 }
 
-// Theme toggle button
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 54px;
-  padding: 0;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-    border-color: var(--text-secondary);
-  }
-
-  &:active {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-}
-
 // Language Dropdown
 .lang-dropdown {
   position: relative;
-}
-
-.lang-dropdown-trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  height: 54px;
-  padding: 0 18px;
-  font-size: 1.3125rem;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-    border-color: var(--text-secondary);
-  }
-
-  .lang-dropdown.open & {
-    color: var(--text-primary);
-    border-color: var(--accent);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
 }
 
 .lang-dropdown-spinner {
@@ -243,14 +138,6 @@
   border-top-color: var(--text-primary);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
-}
-
-.lang-dropdown-arrow {
-  transition: transform var(--transition-fast);
-
-  .lang-dropdown.open & {
-    transform: rotate(180deg);
-  }
 }
 
 .lang-dropdown-menu {
@@ -279,25 +166,7 @@
   }
 }
 
+// Language dropdown menu items - layout only
 .lang-dropdown-item {
-  display: block;
-  width: 100%;
   padding: 12px 18px;
-  font-size: 1.3125rem;
-  color: var(--text-secondary);
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-  }
-
-  &.active {
-    color: var(--accent);
-  }
 }

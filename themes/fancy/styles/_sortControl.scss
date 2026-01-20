@@ -7,32 +7,10 @@
   z-index: var(--z-header);
 }
 
+// Sort trigger - extends .btn--filled .btn--lg with sort-specific layout
 .sort-control-trigger {
-  height: 72px;
-  padding: 0 21px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 2.0625rem;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
-  white-space: nowrap;
   overflow: hidden;
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-  }
-
-  .sort-control.open & {
-    color: var(--text-primary);
-    border-color: var(--accent);
-  }
 }
 
 .sort-icon {
@@ -88,29 +66,9 @@
   }
 }
 
+// Sort menu items - layout only (base styles from .btn--menu-item .btn--lg)
 .sort-control-item {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  width: 100%;
   padding: 15px 21px;
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
-  }
-
-  &.active {
-    color: var(--accent);
-  }
 }
 
 .sort-item-icon {

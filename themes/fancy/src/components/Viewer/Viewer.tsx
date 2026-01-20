@@ -12,6 +12,7 @@ import { ViewerControls } from '../ViewerControls';
 import { ViewerImage } from './ViewerImage';
 import { Drawer } from '../Drawer';
 import { Filmstrip, FilmstripToggle } from '../Filmstrip';
+import { Button } from '../UI';
 import { CONTROLS_HIDE_DELAY, getSlideshowDelay } from '../../config';
 
 export function Viewer() {
@@ -205,8 +206,9 @@ export function Viewer() {
       <ViewerControls />
 
       <div class="viewer-main">
-        <button
-          class="viewer-nav viewer-prev"
+        <Button
+          variant="viewer-nav"
+          class="viewer-prev"
           id="viewer-prev"
           aria-label="Previous"
           onClick={handlePrevClick}
@@ -216,8 +218,9 @@ export function Viewer() {
 
         {photo && <ViewerImage photo={photo} />}
 
-        <button
-          class="viewer-nav viewer-next"
+        <Button
+          variant="viewer-nav"
+          class="viewer-next"
           id="viewer-next"
           aria-label="Next"
           onClick={handleNextClick}

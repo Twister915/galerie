@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
 import { useTranslation } from '../../context/I18nContext';
+import { Button, ChevronDownIcon, ChevronRightIcon } from '../UI';
 import type { Album } from '../../types';
 
 interface AlbumNode {
@@ -137,34 +138,24 @@ export function AlbumPicker() {
       const items: preact.JSX.Element[] = [];
 
       items.push(
-        <button
+        <Button
           key={album.path}
-          class={`album-dropdown-item${isActive ? ' active' : ''}`}
+          variant="menu-item"
+          active={isActive}
+          class="album-dropdown-item"
           data-depth={depth}
           role="menuitem"
           onClick={() => handleAlbumClick(album, hasChildren)}
         >
           {hasChildren ? (
-            <svg
+            <ChevronRightIcon
               class={`album-dropdown-chevron${isExpanded ? ' expanded' : ''}`}
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-            >
-              <path
-                d="M4.5 2.5L8 6L4.5 9.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+            />
           ) : (
             <span class="album-dropdown-spacer" />
           )}
           <span class="album-dropdown-name">{album.name}</span>
-        </button>
+        </Button>
       );
 
       // Render children if expanded
@@ -184,39 +175,28 @@ export function AlbumPicker() {
       ref={containerRef}
       class={`album-dropdown${open ? ' open' : ''}`}
     >
-      <button
+      <Button
         ref={triggerRef}
+        open={open}
         class="album-dropdown-trigger"
         aria-haspopup="true"
         aria-expanded={open}
         onClick={handleToggle}
       >
         <span class="album-dropdown-current">{currentAlbumName}</span>
-        <svg
-          class="album-dropdown-arrow"
-          width="10"
-          height="6"
-          viewBox="0 0 10 6"
-          fill="none"
-        >
-          <path
-            d="M1 1L5 5L9 1"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
+        <ChevronDownIcon class="btn__arrow" />
+      </Button>
       <div class="album-dropdown-menu" role="menu">
-        <button
-          class={`album-dropdown-item album-dropdown-all${!filterAlbum ? ' active' : ''}`}
+        <Button
+          variant="menu-item"
+          active={!filterAlbum}
+          class="album-dropdown-item album-dropdown-all"
           role="menuitem"
           onClick={handleAllPhotos}
         >
           <span class="album-dropdown-spacer" />
           <span class="album-dropdown-name">{t('nav.all_photos')}</span>
-        </button>
+        </Button>
         {albumTree.map((node) => renderAlbumNode(node))}
       </div>
     </div>

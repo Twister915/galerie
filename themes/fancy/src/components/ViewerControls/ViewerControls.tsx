@@ -2,6 +2,7 @@
 
 import { useCallback } from 'preact/hooks';
 import { useGalleryStore } from '../../store/galleryStore';
+import { Button } from '../UI';
 
 export function ViewerControls() {
   const bigPictureMode = useGalleryStore((s) => s.bigPictureMode);
@@ -32,15 +33,16 @@ export function ViewerControls() {
 
   return (
     <div class="viewer-controls">
-      <button
-        class="viewer-btn"
+      <Button
+        variant="viewer"
         id="big-picture-toggle"
         aria-label="Fullscreen mode"
         onClick={handleBigPictureClick}
         dangerouslySetInnerHTML={{ __html: '&#9974;' }}
       />
-      <button
-        class={`viewer-btn${slideshowPlaying ? ' playing' : ''}`}
+      <Button
+        variant="viewer"
+        class={slideshowPlaying ? 'playing' : undefined}
         id="slideshow-toggle"
         aria-label={slideshowPlaying ? 'Pause slideshow' : 'Play slideshow'}
         onClick={handleSlideshowClick}
@@ -48,17 +50,19 @@ export function ViewerControls() {
           __html: slideshowPlaying ? '&#9208;' : '&#9654;',
         }}
       />
-      <button
-        class={`viewer-btn${drawerOpen ? ' active' : ''}`}
+      <Button
+        variant="viewer"
+        active={drawerOpen}
         id="drawer-toggle"
         aria-label="Toggle info"
         onClick={handleDrawerClick}
         disabled={bigPictureMode}
       >
         i
-      </button>
-      <button
-        class="viewer-btn viewer-close"
+      </Button>
+      <Button
+        variant="viewer"
+        class="viewer-close"
         id="viewer-close"
         aria-label="Close"
         onClick={handleCloseClick}

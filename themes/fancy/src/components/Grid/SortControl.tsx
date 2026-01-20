@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 import { useGalleryStore, type SortMode } from '../../store/galleryStore';
 import { useTranslation } from '../../context/I18nContext';
+import { Button } from '../UI';
 
 const SORT_OPTIONS: { mode: SortMode; icon: string; labelKey: string }[] = [
   { mode: 'shuffle', icon: '⤮', labelKey: 'sort.shuffle' },
@@ -99,8 +100,11 @@ export function SortControl() {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <button
+      <Button
         ref={triggerRef}
+        size="lg"
+        variant="filled"
+        open={open}
         class="sort-control-trigger"
         onClick={handleToggle}
         aria-haspopup="true"
@@ -110,12 +114,15 @@ export function SortControl() {
         <span class="sort-icon">{currentOption?.icon}</span>
         <span class="sort-label">{t('sort.label')}</span>
         {directionArrow && <span class="sort-direction">{directionArrow}</span>}
-      </button>
+      </Button>
       <div class="sort-control-menu" role="menu">
         {SORT_OPTIONS.map((option) => (
-          <button
+          <Button
             key={option.mode}
-            class={`sort-control-item${option.mode === sortMode ? ' active' : ''}`}
+            variant="menu-item"
+            size="lg"
+            active={option.mode === sortMode}
+            class="sort-control-item"
             role="menuitem"
             onClick={() => handleOptionClick(option.mode)}
           >
@@ -124,7 +131,7 @@ export function SortControl() {
             {option.mode === sortMode && option.mode !== 'shuffle' && (
               <span class="sort-item-direction">{directionArrow}</span>
             )}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

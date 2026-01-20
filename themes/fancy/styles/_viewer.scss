@@ -30,35 +30,6 @@
   gap: var(--gap-sm);
 }
 
-// Always dark - part of photo viewing experience
-.viewer-btn {
-  width: 54px;
-  height: 54px;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  background: #141414;
-  color: #888;
-  font-size: 1.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    color: #e0e0e0;
-    background: #1e1e1e;
-  }
-
-  &.active {
-    color: #4a9eff;
-    border-color: #4a9eff;
-  }
-}
-
-.viewer-close {
-  font-size: 1.875rem;
-  font-weight: 400;
-}
-
 .viewer-main {
   position: relative;
   flex: 1;
@@ -172,36 +143,20 @@
   100% { background-position: -200% 0; }
 }
 
-// Navigation arrows - always dark
-.viewer-nav {
+// Navigation arrows - positioning only (base styles from .btn--viewer-nav)
+.viewer-prev {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: var(--z-controls);
-  width: 60px;
-  height: 100px;
-  border: none;
-  background: transparent;
-  color: #888;
-  font-size: 3rem;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-
-  &:hover {
-    color: #e0e0e0;
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-}
-
-.viewer-prev {
   left: var(--gap-md);
 }
 
 .viewer-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-controls);
   right: var(--gap-md);
 }
 

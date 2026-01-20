@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 import { useLang, useI18nLoading } from '../../context/I18nContext';
+import { Button, ChevronDownIcon } from '../UI';
 
 export function LangPicker() {
   const [lang, setLang] = useLang();
@@ -85,8 +86,9 @@ export function LangPicker() {
       class={`lang-dropdown${open ? ' open' : ''}${isLoading ? ' loading' : ''}`}
       id="lang-dropdown"
     >
-      <button
+      <Button
         ref={triggerRef}
+        open={open}
         class="lang-dropdown-trigger"
         id="lang-dropdown-trigger"
         aria-haspopup="true"
@@ -100,34 +102,22 @@ export function LangPicker() {
         {isLoading ? (
           <span class="lang-dropdown-spinner" />
         ) : (
-          <svg
-            class="lang-dropdown-arrow"
-            width="10"
-            height="6"
-            viewBox="0 0 10 6"
-            fill="none"
-          >
-            <path
-              d="M1 1L5 5L9 1"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <ChevronDownIcon class="btn__arrow" />
         )}
-      </button>
+      </Button>
       <div class="lang-dropdown-menu" id="lang-dropdown-menu" role="menu">
         {languages.map((l) => (
-          <button
+          <Button
             key={l.code}
-            class={`lang-dropdown-item${l.code === lang ? ' active' : ''}`}
+            variant="menu-item"
+            active={l.code === lang}
+            class="lang-dropdown-item"
             data-lang={l.code}
             role="menuitem"
             onClick={() => handleSelect(l.code)}
           >
             {l.name}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
