@@ -329,28 +329,51 @@ impl Pipeline {
             }
             StaticSource::Builtin(embedded_dir) => {
                 fs::create_dir_all(&dest)?;
-                // Write all files from embedded directory (skip hidden files)
+
+                // Pass 1: Process all .map files first to build hash mapping
+                let mut map_hashes: HashMap<String, String> = HashMap::new();
                 for file in embedded_dir.files() {
                     let Some(name) = file.path().file_name().and_then(|n| n.to_str()) else {
                         continue;
                     };
-                    if name.starts_with('.') {
+                    if name.starts_with('.') || !name.ends_with(".map") {
                         continue;
                     }
 
-                    // Handle source map files specially
-                    if name.ends_with(".map") {
-                        if self.source_maps {
-                            // Copy without hashing when source maps enabled
-                            let file_path = dest.join(name);
-                            fs::write(&file_path, file.contents())?;
-                            expected.insert(file_path);
-                        }
-                        // Skip source maps when disabled
+                    if self.source_maps {
+                        let hashed_name = hash_filename(name, file.contents());
+                        map_hashes.insert(name.to_string(), hashed_name.clone());
+                        let file_path = dest.join(&hashed_name);
+                        fs::write(&file_path, file.contents())?;
+                        expected.insert(file_path);
+                        manifest.insert(name.to_string(), format!("/static/{}", hashed_name));
+                    }
+                }
+
+                // Pass 2: Process all other files
+                for file in embedded_dir.files() {
+                    let Some(name) = file.path().file_name().and_then(|n| n.to_str()) else {
+                        continue;
+                    };
+                    if name.starts_with('.') || name.ends_with(".map") {
                         continue;
                     }
 
-                    let contents = process_static_file(name, file.contents(), should_minify)?;
+                    // Transform JS source map comments
+                    let contents = if name.ends_with(".js") {
+                        let js_str = std::str::from_utf8(file.contents())
+                            .map_err(|e| Error::Other(format!("invalid UTF-8 in JS: {}", e)))?;
+                        let map_name = format!("{}.map", name);
+                        let transformed = transform_js_source_map(
+                            js_str,
+                            self.source_maps,
+                            map_hashes.get(&map_name).map(String::as_str),
+                        );
+                        process_static_file(name, transformed.as_bytes(), should_minify)?
+                    } else {
+                        process_static_file(name, file.contents(), should_minify)?
+                    };
+
                     let hashed_name = hash_filename(name, &contents);
                     let file_path = dest.join(&hashed_name);
 
@@ -864,16 +887,53 @@ fn copy_dir_with_hashing(
 ) -> Result<()> {
     fs::create_dir_all(dest)?;
 
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
+    // Collect all entries first for two-pass processing
+    let entries: Vec<_> = fs::read_dir(src)?
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_name()
+                .to_str()
+                .map(|n| !n.starts_with('.'))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    // Pass 1: Process all .map files first to build hash mapping
+    let mut map_hashes: HashMap<String, String> = HashMap::new();
+    for entry in &entries {
         let src_path = entry.path();
         let file_name = entry.file_name();
         let name = file_name.to_str().unwrap_or("");
 
-        // Skip hidden files
-        if name.starts_with('.') {
-            continue;
+        if src_path.is_file() && name.ends_with(".map") && source_maps {
+            let contents = fs::read(&src_path)?;
+            let hashed_name = hash_filename(name, &contents);
+            map_hashes.insert(name.to_string(), hashed_name.clone());
+
+            let dest_path = dest.join(&hashed_name);
+            fs::write(&dest_path, contents)?;
+            expected.insert(dest_path);
+
+            // Build the hashed path for the manifest
+            let entry_relative = if relative_path.is_empty() {
+                name.to_string()
+            } else {
+                format!("{}/{}", relative_path, name)
+            };
+            let hashed_relative = if relative_path.is_empty() {
+                format!("/static/{}", hashed_name)
+            } else {
+                format!("/static/{}/{}", relative_path, hashed_name)
+            };
+            manifest.insert(entry_relative, hashed_relative);
         }
+    }
+
+    // Pass 2: Process directories and non-map files
+    for entry in &entries {
+        let src_path = entry.path();
+        let file_name = entry.file_name();
+        let name = file_name.to_str().unwrap_or("");
 
         // Build the relative path for manifest keys
         let entry_relative = if relative_path.is_empty() {
@@ -893,21 +953,23 @@ fn copy_dir_with_hashing(
                 source_maps,
                 manifest,
             )?;
-        } else {
-            // Handle source map files specially
-            if name.ends_with(".map") {
-                if source_maps {
-                    // Copy without hashing when source maps enabled
-                    let dest_path = dest.join(name);
-                    fs::copy(&src_path, &dest_path)?;
-                    expected.insert(dest_path);
-                }
-                // Skip source maps when disabled
-                continue;
-            }
-
+        } else if !name.ends_with(".map") {
+            // Transform JS source map comments
             let contents = fs::read(&src_path)?;
-            let output = process_static_file(name, &contents, should_minify)?;
+            let output = if name.ends_with(".js") {
+                let js_str = std::str::from_utf8(&contents)
+                    .map_err(|e| Error::Other(format!("invalid UTF-8 in JS: {}", e)))?;
+                let map_name = format!("{}.map", name);
+                let transformed = transform_js_source_map(
+                    js_str,
+                    source_maps,
+                    map_hashes.get(&map_name).map(String::as_str),
+                );
+                process_static_file(name, transformed.as_bytes(), should_minify)?
+            } else {
+                process_static_file(name, &contents, should_minify)?
+            };
+
             let hashed_name = hash_filename(name, &output);
             let dest_path = dest.join(&hashed_name);
 
@@ -961,6 +1023,71 @@ fn make_static_function(manifest: AssetManifest) -> impl Function {
             ))),
         }
     }
+}
+
+/// Transform source map comment in JavaScript content.
+///
+/// Handles standard and deprecated comment formats:
+/// - `//# sourceMappingURL=...`
+/// - `//@ sourceMappingURL=...`
+///
+/// Leaves inline `data:` URLs untouched since they're self-contained.
+fn transform_js_source_map(
+    js_content: &str,
+    source_maps_enabled: bool,
+    hashed_map_name: Option<&str>,
+) -> String {
+    // Pattern: // followed by # or @ followed by sourceMappingURL=...
+    // The comment must be at the end of a line or at end of file
+    let mut result = String::with_capacity(js_content.len());
+    let mut last_end = 0;
+
+    // Find source map comments - they're typically at the very end
+    for (i, _) in js_content.match_indices("//") {
+        // Check if this is a source map comment
+        let rest = &js_content[i + 2..];
+        if !rest.starts_with('#') && !rest.starts_with('@') {
+            continue;
+        }
+
+        let after_marker = &rest[1..];
+        let trimmed = after_marker.trim_start();
+        if !trimmed.starts_with("sourceMappingURL=") {
+            continue;
+        }
+
+        // Found a source map comment - find its extent
+        let url_start = trimmed.find('=').unwrap() + 1;
+        let url_part = &trimmed[url_start..];
+
+        // Find end of URL (newline or end of string)
+        let url_end = url_part.find('\n').unwrap_or(url_part.len());
+        let url = url_part[..url_end].trim();
+
+        // Skip inline data URLs - they're self-contained
+        if url.starts_with("data:") {
+            continue;
+        }
+
+        // Calculate the full comment extent
+        let comment_end = i + 2 + 1 + (after_marker.len() - trimmed.len()) + url_start + url_end;
+
+        // Copy everything before this comment
+        result.push_str(&js_content[last_end..i]);
+
+        if let Some(hashed_name) = hashed_map_name.filter(|_| source_maps_enabled) {
+            // Replace with updated comment pointing to hashed file
+            result.push_str("//# sourceMappingURL=");
+            result.push_str(hashed_name);
+        }
+        // If source maps disabled or no hashed name available, strip the comment
+
+        last_end = comment_end;
+    }
+
+    // Append any remaining content
+    result.push_str(&js_content[last_end..]);
+    result
 }
 
 /// Process a static file, optionally minifying based on extension.
