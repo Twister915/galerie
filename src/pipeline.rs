@@ -639,8 +639,8 @@ impl Pipeline {
     }
 
     fn find_album_path_recursive(&self, album: &Album, photo: &Photo) -> Option<PathBuf> {
-        // Check if photo is in this album
-        if album.photos.iter().any(|p| p.stem == photo.stem) {
+        // Check if photo is in this album (compare by source path for uniqueness)
+        if album.photos.iter().any(|p| p.source == photo.source) {
             return Some(album.path.clone());
         }
 
