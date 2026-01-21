@@ -44,7 +44,8 @@
       "Bash(rustc:*)",
       "Bash(python3:*)",
       "Bash(jq:*)",
-      "Bash(cloc:*)"
+      "Bash(cloc:*)",
+      "Bash(git show:*)"
     ]
   }
 }

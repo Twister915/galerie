@@ -6,7 +6,7 @@ import type { Photo } from '../../types';
 
 interface PhotoTileProps {
   photo: Photo;
-  onClick: (stem: string) => void;
+  onClick: (photoId: string) => void;
   sortKey: string; // Combination of sortMode + sortDirection for size variation
 }
 
@@ -26,7 +26,7 @@ function PhotoTileInner({ photo, onClick, sortKey }: PhotoTileProps) {
     <div
       class={`photo-tile ${sizeClass}`}
       data-stem={photo.stem}
-      onClick={() => onClick(photo.stem)}
+      onClick={() => onClick(photo.htmlPath.replace(/\.html$/, ''))}
     >
       <img
         src={photo.thumbPath}

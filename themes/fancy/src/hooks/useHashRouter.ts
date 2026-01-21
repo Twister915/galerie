@@ -40,8 +40,8 @@ export function useHashRouter(): void {
 
       switch (route.type) {
         case 'photo': {
-          const stem = route.value!;
-          const index = photos.findIndex((p) => p.stem === stem);
+          const photoId = route.value!;
+          const index = photos.findIndex((p) => p.htmlPath.replace(/\.html$/, '') === photoId);
           if (index >= 0 && index !== currentPhotoIndex) {
             document.body.classList.add('viewer-open');
             setCurrentPhotoIndex(index);
@@ -76,9 +76,9 @@ export function useHashRouter(): void {
     debug('[HashRouter:initialEffect] running | hash:', hash, '| route:', route, '| photos.length:', photos.length);
 
     if (route.type === 'photo') {
-      const stem = route.value!;
-      const index = photos.findIndex((p) => p.stem === stem);
-      debug('[HashRouter:initialEffect] photo route | stem:', stem, '| index:', index);
+      const photoId = route.value!;
+      const index = photos.findIndex((p) => p.htmlPath.replace(/\.html$/, '') === photoId);
+      debug('[HashRouter:initialEffect] photo route | photoId:', photoId, '| index:', index);
       if (index >= 0) {
         document.body.classList.add('viewer-open');
         setCurrentPhotoIndex(index);

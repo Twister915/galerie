@@ -82,7 +82,7 @@ interface GalleryActions {
   resetGrid: () => void;
 
   // Viewer actions
-  openViewer: (stem: string) => void;
+  openViewer: (photoId: string) => void;
   closeViewer: () => void;
   navigatePhoto: (direction: number) => boolean;
   setCurrentPhotoIndex: (index: number) => void;
@@ -160,12 +160,12 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
   resetGrid: () => set({ gridLoadedCount: 0, gridLoading: false }),
 
   // Viewer actions
-  openViewer: (stem) => {
+  openViewer: (photoId) => {
     const { photos } = get();
-    const index = photos.findIndex((p) => p.stem === stem);
+    const index = photos.findIndex((p) => p.htmlPath.replace(/\.html$/, '') === photoId);
     if (index < 0) return;
 
-    window.location.hash = '/photo/' + encodeURIComponent(stem);
+    window.location.hash = '/photo/' + encodeURIComponent(photoId);
     document.body.classList.add('viewer-open');
 
     set({ currentPhotoIndex: index });
@@ -213,7 +213,7 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 
     // Find current photo's position in sorted order
     const currentPhoto = photos[currentPhotoIndex];
-    const sortedIndex = sortedPhotos.findIndex((p) => p.stem === currentPhoto.stem);
+    const sortedIndex = sortedPhotos.findIndex((p) => p.htmlPath === currentPhoto.htmlPath);
     if (sortedIndex < 0) return false;
 
     // Navigate in sorted order
@@ -224,10 +224,11 @@ export const useGalleryStore = create<GalleryStore>((set, get) => ({
 
     // Find the target photo's index in the main array
     const targetPhoto = sortedPhotos[newSortedIndex];
-    const newIndex = photos.findIndex((p) => p.stem === targetPhoto.stem);
+    const newIndex = photos.findIndex((p) => p.htmlPath === targetPhoto.htmlPath);
     if (newIndex < 0) return false;
 
-    window.location.hash = '/photo/' + encodeURIComponent(targetPhoto.stem);
+    const targetPhotoId = targetPhoto.htmlPath.replace(/\.html$/, '');
+    window.location.hash = '/photo/' + encodeURIComponent(targetPhotoId);
 
     set({
       currentPhotoIndex: newIndex,

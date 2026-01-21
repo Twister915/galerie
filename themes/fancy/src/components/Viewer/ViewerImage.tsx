@@ -32,11 +32,11 @@ export function ViewerImage({ photo }: ViewerImageProps) {
 
   // Load new image when photo changes
   useEffect(() => {
-    const isNewPhoto = prevPhotoRef.current !== photo.stem;
+    const isNewPhoto = prevPhotoRef.current !== photo.htmlPath;
 
     if (!isNewPhoto) return;
 
-    prevPhotoRef.current = photo.stem;
+    prevPhotoRef.current = photo.htmlPath;
     fullImageLoadedRef.current = false;
     setThumbLoaded(false);
     setShowProgress(false);
@@ -65,7 +65,7 @@ export function ViewerImage({ photo }: ViewerImageProps) {
       clearTimeout(progressTimeout);
       imageLoader.abort();
     };
-  }, [photo.stem, photo.thumbPath, photo.imagePath, imageLoader.load, imageLoader.abort]);
+  }, [photo.htmlPath, photo.thumbPath, photo.imagePath, imageLoader.load, imageLoader.abort]);
 
   // Determine current display source
   const displaySrc = imageLoader.src || (thumbLoaded ? photo.thumbPath : null);

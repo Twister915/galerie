@@ -28,7 +28,7 @@ export function Filmstrip() {
   const currentPhoto = currentPhotoIndex >= 0 ? mainPhotos[currentPhotoIndex] : null;
   const activeFilmstripIndex = useMemo(() => {
     if (!currentPhoto) return -1;
-    return photos.findIndex((p) => p.stem === currentPhoto.stem);
+    return photos.findIndex((p) => p.htmlPath === currentPhoto.htmlPath);
   }, [photos, currentPhoto]);
 
   const containerRef = useRef<HTMLElement>(null);
@@ -122,7 +122,7 @@ export function Filmstrip() {
     (filmstripIndex: number) => {
       const photo = photos[filmstripIndex];
       if (!photo) return;
-      openViewer(photo.stem);
+      openViewer(photo.htmlPath.replace(/\.html$/, ''));
     },
     [photos, openViewer]
   );
@@ -155,7 +155,7 @@ export function Filmstrip() {
           if (!photo) return null;
           return (
             <FilmstripThumb
-              key={photo.stem}
+              key={photo.htmlPath}
               photo={photo}
               index={index}
               isActive={index === activeFilmstripIndex}

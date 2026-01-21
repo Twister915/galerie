@@ -200,8 +200,8 @@ export function Grid() {
 
   // Handle tile click
   const handleTileClick = useCallback(
-    (stem: string) => {
-      openViewer(stem);
+    (photoId: string) => {
+      openViewer(photoId);
     },
     [openViewer]
   );
@@ -220,7 +220,7 @@ export function Grid() {
           if (!photo) return null;
           return (
             <PhotoTile
-              key={photo.stem}
+              key={photo.htmlPath}
               photo={photo}
               onClick={handleTileClick}
               sortKey={sortKey}
