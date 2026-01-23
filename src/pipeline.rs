@@ -72,10 +72,12 @@ struct GalleryData {
 
 /// Album data for gallery JSON.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AlbumData {
     name: String,
     slug: String,
     path: String,
+    photo_count: usize,
 }
 
 /// Photo data for gallery JSON.
@@ -760,6 +762,7 @@ impl Pipeline {
                     name: child.name.clone(),
                     slug: child.slug.clone(),
                     path: url_encode_path(&child.path.to_string_lossy()),
+                    photo_count: child.photo_count(),
                 });
                 result.extend(collect_all_albums(child));
             }

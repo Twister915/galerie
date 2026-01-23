@@ -152,6 +152,15 @@
   white-space: nowrap;
 }
 
+// Photo count (right-aligned)
+.album-dropdown-count {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
 // Header controls container (theme toggle + language picker)
 .header-controls {
   display: flex;

@@ -59,6 +59,7 @@ export interface Album {
   name: string;
   slug: string;
   path: string;
+  photoCount: number;
 }
 
 export interface SiteInfo {

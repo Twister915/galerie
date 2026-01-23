@@ -5,6 +5,7 @@ import { useGalleryStore } from '../../store/galleryStore';
 import { useTranslation } from '../../context/I18nContext';
 import { useDropdown } from '../../hooks';
 import { Button, ChevronDownIcon, ChevronRightIcon } from '../UI';
+import { formatCount } from '../../utils/format';
 import type { Album } from '../../types';
 
 interface AlbumNode {
@@ -42,6 +43,7 @@ function buildAlbumTree(albums: Album[]): AlbumNode[] {
 
 export function AlbumPicker() {
   const albums = useGalleryStore((s) => s.albums);
+  const photos = useGalleryStore((s) => s.photos);
   const filterAlbum = useGalleryStore((s) => s.filterAlbum);
   const t = useTranslation();
 
@@ -55,6 +57,13 @@ export function AlbumPicker() {
 
   // Build album tree from flat list
   const albumTree = useMemo(() => buildAlbumTree(albums), [albums]);
+
+  // Check if any album has children (need spacers for alignment)
+  const hasNestedAlbums = useMemo(() => {
+    const checkChildren = (nodes: AlbumNode[]): boolean =>
+      nodes.some((n) => n.children.length > 0 || checkChildren(n.children));
+    return checkChildren(albumTree);
+  }, [albumTree]);
 
   // Get current album display name
   const currentAlbumName = useMemo(() => {
@@ -111,9 +120,10 @@ export function AlbumPicker() {
               class={`album-dropdown-chevron${isExpanded ? ' expanded' : ''}`}
             />
           ) : (
-            <span class="album-dropdown-spacer" />
+            hasNestedAlbums && <span class="album-dropdown-spacer" />
           )}
           <span class="album-dropdown-name">{album.name}</span>
+          <span class="album-dropdown-count">{formatCount(album.photoCount)}</span>
         </Button>
       );
 
@@ -126,7 +136,7 @@ export function AlbumPicker() {
 
       return items;
     },
-    [expandedAlbums, filterAlbum, handleAlbumClick]
+    [expandedAlbums, filterAlbum, handleAlbumClick, hasNestedAlbums]
   );
 
   return (
@@ -153,8 +163,9 @@ export function AlbumPicker() {
           role="menuitem"
           onClick={handleAllPhotos}
         >
-          <span class="album-dropdown-spacer" />
+          {hasNestedAlbums && <span class="album-dropdown-spacer" />}
           <span class="album-dropdown-name">{t('nav.all_photos')}</span>
+          <span class="album-dropdown-count">{formatCount(photos.length)}</span>
         </Button>
         {albumTree.map((node) => renderAlbumNode(node))}
       </div>
