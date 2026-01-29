@@ -27,6 +27,7 @@ export function useTouchSwipe(
   });
 
   const onTouchStart = useCallback((e: TouchEvent) => {
+    if ((e.target as HTMLElement).closest('#filmstrip')) return;
     touchState.current = {
       startX: e.touches[0].clientX,
       startY: e.touches[0].clientY,
@@ -35,6 +36,7 @@ export function useTouchSwipe(
   }, []);
 
   const onTouchMove = useCallback((e: TouchEvent) => {
+    if ((e.target as HTMLElement).closest('#filmstrip')) return;
     const { startX, startY } = touchState.current;
     const deltaX = e.touches[0].clientX - startX;
     const deltaY = e.touches[0].clientY - startY;
@@ -47,6 +49,7 @@ export function useTouchSwipe(
 
   const onTouchEnd = useCallback(
     (e: TouchEvent) => {
+      if ((e.target as HTMLElement).closest('#filmstrip')) return;
       const { startX, startY, startTime } = touchState.current;
       const deltaX = e.changedTouches[0].clientX - startX;
       const deltaY = e.changedTouches[0].clientY - startY;
