@@ -6,3 +6,4 @@
 themes/*/node_modules/
 themes/*/dist/
 *.timestamp-*.mjs
+.claude/settings.local.json

@@ -18,7 +18,9 @@ interface SwipeHandlers {
 export function useTouchSwipe(
   onSwipeLeft: () => void,
   onSwipeRight: () => void,
-  onTap?: () => void
+  onTap?: () => void,
+  onSwipeUp?: () => void,
+  onSwipeDown?: () => void
 ): SwipeHandlers {
   const touchState = useRef<TouchState>({
     startX: 0,
@@ -41,8 +43,11 @@ export function useTouchSwipe(
     const deltaX = e.touches[0].clientX - startX;
     const deltaY = e.touches[0].clientY - startY;
 
-    // Prevent vertical scrolling when swiping horizontally
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+    // Prevent scrolling when swiping horizontally or vertically
+    if (
+      (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) ||
+      (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10)
+    ) {
       e.preventDefault();
     }
   }, []);
@@ -65,11 +70,21 @@ export function useTouchSwipe(
         } else {
           onSwipeLeft();
         }
+      } else if (
+        deltaTime < SWIPE_TIME_LIMIT &&
+        Math.abs(deltaY) > SWIPE_THRESHOLD &&
+        Math.abs(deltaY) > Math.abs(deltaX)
+      ) {
+        if (deltaY < 0) {
+          onSwipeUp?.();
+        } else {
+          onSwipeDown?.();
+        }
       } else if (onTap && Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
         onTap();
       }
     },
-    [onSwipeLeft, onSwipeRight, onTap]
+    [onSwipeLeft, onSwipeRight, onTap, onSwipeUp, onSwipeDown]
   );
 
   return { onTouchStart, onTouchMove, onTouchEnd };
