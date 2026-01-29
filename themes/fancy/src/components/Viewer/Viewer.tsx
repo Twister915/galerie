@@ -161,7 +161,9 @@ export function Viewer() {
   const swipeHandlers = useTouchSwipe(
     () => navigatePhoto(1), // swipe left = next
     () => navigatePhoto(-1), // swipe right = prev
-    bigPictureMode ? showControlsTemporarily : undefined // tap to show controls
+    bigPictureMode ? showControlsTemporarily : undefined, // tap to show controls
+    () => setDrawerOpen(true), // swipe up = open drawer
+    () => setDrawerOpen(false) // swipe down = close drawer
   );
 
   // Handle backdrop click
